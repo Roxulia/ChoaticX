@@ -389,6 +389,31 @@ class ZoneDetector:
 
         buy_side = process_zone(lows, 'Buy-Side')
         sell_side = process_zone(highs, 'Sell-Side')
+        result = self.get_liq_touches(buy_side + sell_side)
 
-        return buy_side + sell_side
+        return result
+    
+    def get_liq_touches(self, liquidity_zones):
+        lows = self.df['low'].values
+        highs = self.df['high'].values
+        opens = self.df['open'].values
 
+        results = []
+        for zone in liquidity_zones:
+            zone_high = zone['zone_high']
+            zone_low = zone['zone_low']
+            start_idx = zone['index'] + 2
+            end_idx = zone['end_index'] - 2
+
+            touches = []
+            for i in range(start_idx, min(end_idx, len(self.df))):
+                low = lows[i]
+                high = highs[i]
+                open_price = opens[i]
+
+                if (high >= zone_low and open_price < zone_low) or (open_price > zone_high and low <= zone_high):
+                    touches.append(i)
+
+            results.append({**zone, 'touch_indexs': touches})
+
+        return results
