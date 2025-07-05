@@ -11,11 +11,18 @@ class BinanceAPI:
         api_secret = os.getenv("BINANCE_SECRET_KEY")
         self.client = Client(api_key, api_secret)
 
-    def get_ohlcv(self, symbol='BTCUSDT', interval=Client.KLINE_INTERVAL_1HOUR, lookback='3 years'):
+    def get_ohlcv(self, symbol='BTCUSDT', interval='1h', lookback='3 years'):
         """
         Fetch historical OHLCV data and return as formatted DataFrame
         """
-        klines = self.client.get_historical_klines(symbol, interval, lookback)
+        tf = {
+            '5min' : Client.KLINE_INTERVAL_5MINUTE,
+            '15min' : Client.KLINE_INTERVAL_15MINUTE,
+            '1h' : Client.KLINE_INTERVAL_1HOUR,
+            '4h' : Client.KLINE_INTERVAL_4HOUR,
+            '1D' : Client.KLINE_INTERVAL_1DAY
+        }
+        klines = self.client.get_historical_klines(symbol, tf[interval], lookback)
 
         df = pd.DataFrame(klines, columns=[
             'timestamp', 'open', 'high', 'low', 'close', 'volume',
@@ -28,28 +35,8 @@ class BinanceAPI:
 
         df = df[['open', 'high', 'low', 'close', 'volume']]
         df = df.apply(pd.to_numeric).astype('float32')
-
+        df = self.add_TA(df)
         return df
-    
-    def generate_4H(self,df):
-        df_4h = df.resample('4h').agg({
-            'open': 'first',
-            'high': 'max',
-            'low': 'min',
-            'close': 'last',
-            'volume': 'sum'
-        })
-        return df_4h
-    
-    def generate_1D(self,df):
-        df_1d = df.resample('1D').agg({
-            'open': 'first',
-            'high': 'max',
-            'low': 'min',
-            'close': 'last',
-            'volume': 'sum'
-        })
-        return df_1d
     
     def add_TA(self,df):
         data = df.copy()
