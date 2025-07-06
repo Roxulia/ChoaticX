@@ -3,6 +3,7 @@ import pandas as pd
 from binance.client import Client
 from dotenv import load_dotenv
 import ta
+from timeFrames import timeFrame
 
 class BinanceAPI:
     def __init__(self):
@@ -15,14 +16,8 @@ class BinanceAPI:
         """
         Fetch historical OHLCV data and return as formatted DataFrame
         """
-        tf = {
-            '5min' : Client.KLINE_INTERVAL_5MINUTE,
-            '15min' : Client.KLINE_INTERVAL_15MINUTE,
-            '1h' : Client.KLINE_INTERVAL_1HOUR,
-            '4h' : Client.KLINE_INTERVAL_4HOUR,
-            '1D' : Client.KLINE_INTERVAL_1DAY
-        }
-        klines = self.client.get_historical_klines(symbol, tf[interval], lookback)
+        
+        klines = self.client.get_historical_klines(symbol,timeFrame.getTimeFrame(interval) , lookback)
 
         df = pd.DataFrame(klines, columns=[
             'timestamp', 'open', 'high', 'low', 'close', 'volume',
