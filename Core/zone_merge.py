@@ -1,19 +1,21 @@
+
+import numpy as np
 class ZoneMerger:
     def __init__(self, zones, threshold=0.002):
         self.zones = zones
         self.threshold = threshold
+        self.seperate()
 
-    def merge(self):
-        # Output: Combined zones with metadata (source count, strength, etc.)
-        combined_zones = []
-        # TODO: Implement merging based on price proximity or overlap
-        return combined_zones
+    def seperate(self):
+        self.liq_zones = [z for z in self.zones if  z['type'] in ['Buy Side Liq','Sell Side Liq']]
+        self.core_zones = [z for z in self.zones if z['type'] not in ['Buy Side Liq','Sell Side Liq']]
+        
     
-    def merge_MTF(self):
+    def merge(self):
         merged = []
         used = set()
 
-        for i, zone in enumerate(self.zones):
+        for i, zone in enumerate(self.core_zones):
             if i in used:
                 continue
 
@@ -22,9 +24,10 @@ class ZoneMerger:
 
             z_high = zone['zone_high'] * (1 + self.threshold)
             z_low = zone['zone_low'] * (1 - self.threshold)
-
-            for j, other in enumerate(self.zones):
-                if j in used or i == j:
+            available_zones = [z for z in self.core_zones if (z['touch_index'] > zone['index'] and z['touch_index'] is not None) or z['touch_index'] is None]
+            for j, other in enumerate(available_zones):
+                orig_index = self.core_zones.index(other)
+                if orig_index in used or i == orig_index:
                     continue
 
                 other_high = other['zone_high'] * (1 + self.threshold)
@@ -38,7 +41,7 @@ class ZoneMerger:
                     (other_low <= z_low and other_high >= z_high)
                 ):
                     group.append(other)
-                    used.add(j)
+                    used.add(orig_index)
 
                     # Expand merged zone bounds
                     z_high = max(z_high, other['zone_high'] * (1 + self.threshold))
@@ -52,10 +55,28 @@ class ZoneMerger:
                 'types': list(set(z['type'] for z in group)),
                 'timeframes': list(set(z['time_frame'] for z in group)),
                 'count': len(group),
-                'sources': group
+                'start_index': min(z['index'] for z in group),
+                'end_index': max(z['index'] for z in group),
+                'mid_index': int(np.mean([z['index'] for z in group])), 
             }
 
             merged.append(merged_zone)
 
+        return merged
+    
+    def add_liq_confluence(self,merged):
+        for m in merged:
+            confluents = []
+            available_zones = [z for z in self.liq_zones if (z['swept_index'] > m['index'] and z['swept_index'] is not None) or (z['swept_index'] is None) ]
+            for lz in available_zones:
+                if lz['zone_low'] <= m['zone_high'] and lz['zone_high'] >= m['zone_low']:
+                    confluents.append({
+                        'type': lz['type'],
+                        'timeframe': lz['time_frame'],
+                        'zone_low': lz['zone_low'],
+                        'zone_high': lz['zone_high'],
+                        'swept': lz.get('swept_index') is not None
+                    })
+            m['liquidity_confluence'] = confluents
         return merged
 
