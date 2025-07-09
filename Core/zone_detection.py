@@ -4,7 +4,6 @@ class ZoneDetector:
         self.df = df
         self.timeframe = timeframe
         self.detect_swings()
-        self.label_structure_from_swings()
 
     def detect_fvg(self,threshold = 300):
         """
@@ -281,7 +280,7 @@ class ZoneDetector:
             })
         self.swings = labeled_swings
 
-    def detect_liquidity_zones(self, range_pct=0.01,timeframe = '1h'):
+    def detect_liquidity_zones(self, range_pct=0.01):
         """
         Detect buy-side and sell-side liquidity zones based on repeated highs/lows.
 
@@ -381,7 +380,7 @@ class ZoneDetector:
                     'avg_rsi' : np.mean(rsis),
                     'avg_atr' : np.mean(atrs),
                     'avg_atr_mean' : np.mean(atr_means),
-                    'time_frame' : timeframe,
+                    'time_frame' : self.timeframe,
                 })
 
 
