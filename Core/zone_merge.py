@@ -69,7 +69,7 @@ class ZoneMerger:
     def add_liq_confluence(self,merged):
         for m in merged:
             confluents = []
-            available_zones = [z for z in self.liq_zones if (z['swept_index'] > m['index'] and z['swept_index'] is not None) or (z['swept_index'] is None) ]
+            available_zones = [z for z in self.liq_zones if (z['swept_index'] is not None and z['swept_index'] > m['start_index'] ) or (z['swept_index'] is None) ]
             for lz in available_zones:
                 if lz['zone_low'] <= m['zone_high'] and lz['zone_high'] >= m['zone_low']:
                     confluents.append({
