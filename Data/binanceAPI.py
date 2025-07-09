@@ -3,7 +3,7 @@ import pandas as pd
 from binance.client import Client
 from dotenv import load_dotenv
 import ta
-from timeFrames import timeFrame
+from .timeFrames import timeFrame
 
 class BinanceAPI:
     def __init__(self):
