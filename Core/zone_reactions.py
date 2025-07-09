@@ -53,3 +53,21 @@ class ZoneReactor:
             zone_reactions.append(zone_copy)
 
         return zone_reactions
+    
+    def get_last_candle_reaction(self):
+        candle = self.candles.iloc[-1]
+        high, low, close, open_ = candle['high'], candle['low'], candle['close'], candle['open']
+        for zone in self.zones:
+            zone_high = zone['zone_high']
+            zone_low = zone['zone_low']
+            if zone_low <= close <= zone_high:
+                return 'body_close_inside'
+            elif (open_ > zone_high and close < zone_low) or (open_ < zone_low and close > zone_high):
+                return 'engulf'
+            elif close > zone_high and open_ > zone_high:
+                return 'body_close_above'
+            elif close < zone_low and open_ < zone_low:
+                return 'body_close_below'
+            else:
+                return 'wick_touch'
+        return 'None'
