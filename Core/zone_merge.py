@@ -1,9 +1,11 @@
 
 import numpy as np
+from Data.timeFrames import timeFrame
 class ZoneMerger:
     def __init__(self, zones, threshold=0.002):
         self.zones = zones
         self.threshold = threshold
+        self.changeIndexNumber()
         self.seperate()
 
     def seperate(self):
@@ -79,4 +81,23 @@ class ZoneMerger:
                     })
             m['liquidity_confluence'] = confluents
         return merged
+    
+    def changeIndexNumber(self):
+        tf = timeFrame()
+        for zone in self.zones:
+            smallest_tf = tf.getSmallestTF()
+            if zone['type'] in ['Buy Side Liq','Sell Side Liq']:
+                if zone.get('index') is not None:
+                    zone['index'] = zone['index'] * tf.getMultiplier(smallest_tf,zone['time_frame'])
+                if zone.get('swept_index') is not None:
+                    zone['swept_index'] = zone['swept_index'] * tf.getMultiplier(smallest_tf,zone['time_frame'])
+                if zone.get('end_index') is not None:
+                    zone['end_index'] = zone['end_index'] * tf.getMultiplier(smallest_tf,zone['time_frame'])
+                if zone.get('touch_indexs') is not None:
+                    zone['touch_indexs'] = [i * tf.getMultiplier(smallest_tf,zone['time_frame']) for i in zone['touch_indexs'] if i is not None]
+            else :
+                if zone.get('index') is not None:
+                    zone['index'] = zone['index'] * tf.getMultiplier(smallest_tf,zone['time_frame'])
+                if zone.get('touch_index') is not None:
+                    zone['touch_index'] = zone['touch_index'] * tf.getMultiplier(smallest_tf,zone['time_frame'])
 
