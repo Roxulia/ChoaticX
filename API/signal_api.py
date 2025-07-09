@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from main import SignalService
+from ../main import SignalService
 
 signal_api = Blueprint('signal_api', __name__)
 service = SignalService()
