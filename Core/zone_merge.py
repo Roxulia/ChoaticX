@@ -26,7 +26,7 @@ class ZoneMerger:
 
             z_high = zone['zone_high'] * (1 + self.threshold)
             z_low = zone['zone_low'] * (1 - self.threshold)
-            available_zones = [z for z in self.core_zones if (z['touch_index'] > zone['index'] and z['touch_index'] is not None) or z['touch_index'] is None]
+            available_zones = [z for z in self.core_zones if (z['touch_index'] is not None and z['touch_index'] > zone['index']  ) or z['touch_index'] is None]
             for j, other in enumerate(available_zones):
                 orig_index = self.core_zones.index(other)
                 if orig_index in used or i == orig_index:
