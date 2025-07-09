@@ -417,3 +417,10 @@ class ZoneDetector:
             results.append({**zone, 'touch_indexs': touches})
 
         return results
+    
+    def get_zones(self):
+        fvg = self.detect_fvg()
+        ob = self.detect_order_blocks()
+        liq = self.detect_liquidity_zones()
+        liq = self.get_liq_touches(liq)
+        return fvg+ob+liq
