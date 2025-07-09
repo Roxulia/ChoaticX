@@ -84,8 +84,9 @@ class ZoneMerger:
     
     def changeIndexNumber(self):
         tf = timeFrame()
+        smallest_tf = tf.getSmallestTF(self.zones)
         for zone in self.zones:
-            smallest_tf = tf.getSmallestTF()
+            
             if zone['type'] in ['Buy Side Liq','Sell Side Liq']:
                 if zone.get('index') is not None:
                     zone['index'] = zone['index'] * tf.getMultiplier(smallest_tf,zone['time_frame'])
