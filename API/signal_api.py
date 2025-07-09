@@ -1,11 +1,15 @@
-from fastapi import APIRouter
+from flask import Blueprint, jsonify
+from main import SignalService
 
-router = APIRouter()
+signal_api = Blueprint('signal_api', __name__)
+service = SignalService()
 
-@router.get("/zones")
+@signal_api.route("/zones", methods=["GET"])
 def get_zones():
-    pass
+    zones = service.get_latest_zones()
+    return jsonify(zones)
 
-@router.get("/signals")
+@signal_api.route("/signals", methods=["GET"])
 def get_signals():
-    pass
+    signals = service.get_current_signals()
+    return jsonify(signals)
