@@ -16,8 +16,8 @@ class BinanceAPI:
         """
         Fetch historical OHLCV data and return as formatted DataFrame
         """
-        
-        klines = self.client.get_historical_klines(symbol,timeFrame.getTimeFrame(interval) , lookback)
+        tf = timeFrame()
+        klines = self.client.get_historical_klines(symbol,tf.getTimeFrame(interval) , lookback)
 
         df = pd.DataFrame(klines, columns=[
             'timestamp', 'open', 'high', 'low', 'close', 'volume',
