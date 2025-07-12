@@ -1,9 +1,20 @@
-class Model:
-    def __init__(self, model, transformer):
-        self.model = model
-        self.transformer = transformer
+import joblib
+from sklearn.ensemble import RandomForestClassifier
 
-    def predict(self, features):
-        transformed = self.transformer.transform(features)
-        prediction = self.model.predict(transformed)
-        return prediction
+class ModelHandler:
+    def __init__(self, model_path='model.pkl'):
+        self.model_path = model_path
+        self.model = RandomForestClassifier()
+
+    def train(self, X, y):
+        self.model.fit(X, y)
+        joblib.dump(self.model, self.model_path)
+
+    def load(self):
+        self.model = joblib.load(self.model_path)
+
+    def predict(self, X):
+        return self.model.predict(X)
+
+    def predict_proba(self, X):
+        return self.model.predict_proba(X)
