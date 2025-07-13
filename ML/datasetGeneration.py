@@ -15,15 +15,62 @@ class DatasetGenerator:
             target_zone = zone.get('target_zone')
             if touch_candle is None:
                 continue  # skip if no touch happened
+            zone_types = zone.get('types',[])
+            timeframes = zone.get('timeframes',[])
+            bull_ob = 0
+            bull_fvg = 0
+            bear_ob = 0
+            bear_fvg = 0
+            min1 = 0
+            min3 = 0
+            min5 = 0
+            min15 = 0
+            h1 =0
+            h4 = 0
+            d1 = 0
+            for a in zone_types:
+                if a == "Bullish OB" :
+                    bull_ob +=1
+                elif a == "Bullish FVG" :
+                    bull_fvg += 1
+                elif a == "Bearish OB":
+                    bear_ob += 1
+                elif a == "Bearish FVG":
+                    bear_fvg += 1
+
+            for t in timeframes:
+                if t == "1min" :
+                    min1 +=1
+                elif t == "3min" :
+                    min3 += 1
+                elif t == "5min":
+                    min5 += 1
+                elif t == "15min":
+                    min15 += 1
+                elif t == "1h" :
+                    h1 += 1
+                elif t == "4h" :
+                    h4 += 1
+                elif t == "1D" :
+                    d1 += 1
 
             # --- Features ---
             features = {
                 'zone_high': zone['zone_high'],
                 'zone_low': zone['zone_low'],
                 'zone_width': zone['zone_high'] - zone['zone_low'],
-                'zone_type': zone.get('types', [zone.get('type')])[0],
+                'bullish_OB_count' : bull_ob, 
+                'bullish_FVG_count' : bull_fvg, 
+                'bearish_OB_count' : bear_ob, 
+                'bearish_FVG_count' : bear_fvg, 
+                '1min_count' : min1,
+                '3min_count' : min3,
+                '5min_count' : min5,
+                '15min_count' : min15,
+                '1h_count' : h1,
+                '4h_count' : h4,
+                '1D_count' : d1,
                 'touch_type': zone.get('touch_type'),
-                'timeframe': zone.get('timeframes', [zone.get('time_frame')])[0],
                 'count': zone.get('count'),
                 'confluent_count' : len(zone.get('liquidity_confluence')),
                 # Candle TA features (assumes TA columns present in candles DataFrame)
@@ -37,9 +84,10 @@ class DatasetGenerator:
                 'rsi': touch_candle.get('rsi', 0),
                 'atr': touch_candle.get('atr', 0)
             }
-
+            buyzones = bull_fvg + bull_ob
+            sellzones = bear_fvg + bear_ob
             # Encode categorical features manually
-            features['is_buy_zone'] = 1 if features['zone_type'] in ['Demand', 'Buy OB', 'Buy Side Liq'] else 0
+            features['is_buy_zone'] = 1 if buyzones > sellzones else 0
             features['touch_wick'] = 1 if features['touch_type'] == 'wick_touch' else 0
             features['touch_body_inside'] = 1 if features['touch_type'] == 'body_close_inside' else 0
 
