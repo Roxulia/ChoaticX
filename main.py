@@ -14,8 +14,8 @@ class SignalService:
         self.signal_gen = SignalGenerator(models={'entry_model': self.model})
 
     def get_latest_zones(self):
-        df = self.api.get_ohlcv(interval= '1h')
-        detector = ZoneDetector(df)
+        df_1h = self.api.get_ohlcv(interval= '1h')
+        detector = ZoneDetector(df_1h)
         zones_1h = detector.get_zones()
         df = self.api.get_ohlcv(interval= '4h')
         detector = ZoneDetector(df,'4h')
@@ -25,7 +25,9 @@ class SignalService:
         zones_1D = detector.get_zones()
         merger = ZoneMerger(zones_1h+zones_4h+zones_1D)
         zones = merger.merge()
-        zones = merger.add_liq_confluence(zones)
+        reactor = ZoneReactor(df_1h, zones)
+        zones = reactor.get_zone_reaction()
+        zones = merger.getNearbyZone(zones)
         return zones
 
     def get_current_signals(self):
@@ -33,10 +35,6 @@ class SignalService:
         zones = self.get_latest_zones()
         reactor = ZoneReactor(df, zones)
         reaction = reactor.get_last_candle_reaction()
-
-        signals = []
-        for zone, reaction in zip(zones, reaction):
-            signal = self.signal_gen.generate(df, zone, reaction)
-            if signal:
-                signals.append(signal)
-        return signals
+        if not reaction == 'None':
+            return self.signal_gen.generate(df.iloc[-1],zones,reaction)
+        return 'None'
