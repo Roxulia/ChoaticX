@@ -50,7 +50,7 @@ class ZoneDetector:
                 if gap >= threshold:
                     # Touch index search — can be optimized further with precomputed conditions if needed
                     touch_indx = next(
-                        (j for j in range(i + 2, length) if opens[j] > next_low and lows[j] < next_low), None
+                        (j for j in range(i + 2, length) if opens[j] > next_low and closes[j] < next_low), None
                     )
                     fvg_indices.append({
                         'index': i,
@@ -77,7 +77,7 @@ class ZoneDetector:
                 gap = prev_low - next_high
                 if gap >= threshold:
                     touch_indx = next(
-                        (j for j in range(i + 2, length) if opens[j] < next_high and highs[j] > next_high), None
+                        (j for j in range(i + 2, length) if opens[j] < next_high and closes[j] > next_high), None
                     )
                     fvg_indices.append({
                         'index': i,
@@ -154,7 +154,7 @@ class ZoneDetector:
                     # Delay touch check until required
                     touch_indx = next(
                         (j for j in range(i + 3, len(self.df))
-                        if opens[j] > zone_high and lows[j] < zone_high),
+                        if opens[j] > zone_high and closes[j] < zone_high),
                         None
                     )
 
@@ -187,7 +187,7 @@ class ZoneDetector:
 
                     touch_indx = next(
                         (j for j in range(i + 3, len(self.df))
-                        if opens[j] < zone_low and highs[j] > zone_low),
+                        if opens[j] < zone_low and closes[j] > zone_low),
                         None
                     )
 
@@ -421,5 +421,4 @@ class ZoneDetector:
         fvg = self.detect_fvg()
         ob = self.detect_order_blocks()
         liq = self.detect_liquidity_zones()
-        liq = self.get_liq_touches(liq)
         return fvg+ob+liq
