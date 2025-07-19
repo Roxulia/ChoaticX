@@ -17,7 +17,7 @@ class ZoneMerger:
         merged = []
         used = set()
 
-        for i, zone in enumerate(self.zones):
+        for i, zone in enumerate(self.core_zones):
             
 
             group = [zone]
@@ -29,10 +29,10 @@ class ZoneMerger:
                 if z['index'] < zone['index'] and ((z['touch_index'] is not None and z['touch_index'] > zone['index']  ) or z['touch_index'] is None)]
             available_liqzones = [
                 z for z in self.liq_zones 
-                if z['start_index'] < zone['index'] and ((z['swept_index'] is not None and z['swept_index'] > zone['index']  ) or z['swept_index'] is None)]
+                if z['index'] < zone['index'] and ((z['swept_index'] is not None and z['swept_index'] > zone['index']  ) or z['swept_index'] is None)]
             for j, other in enumerate(available_corezones+available_liqzones):
-                orig_index = self.core_zones.index(other)
-                if i == orig_index:
+                
+                if i == j:
                     continue
 
                 other_high = other['zone_high'] * (1 + self.threshold)
@@ -46,7 +46,6 @@ class ZoneMerger:
                     (other_low <= z_low and other_high >= z_high)
                 ):
                     group.append(other)
-                    used.add(orig_index)
 
                     # Expand merged zone bounds
                     z_high = max(z_high, other['zone_high'] * (1 + self.threshold))
