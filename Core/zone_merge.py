@@ -103,4 +103,58 @@ class ZoneMerger:
                     zone['index'] = zone['index'] * tf.getMultiplier(smallest_tf,zone['time_frame'])
                 if zone.get('touch_index') is not None:
                     zone['touch_index'] = zone['touch_index'] * tf.getMultiplier(smallest_tf,zone['time_frame'])
+    
+    def getNearbyZone(self,merged):
+        results = []
+        total = len(merged)
+
+        for i, zone in enumerate(merged):
+            this_high = zone.get('zone_high')
+            this_low = zone.get('zone_low')
+            this_index = zone.get('mid_index')
+            print(f'{i}/{total}')
+
+            def compute_nearest(index):
+                min_dist_above = float('inf')
+                min_dist_below = float('inf')
+                nearest_above_zone = None
+                nearest_below_zone = None
+
+                # Cache index-based filtering
+                valid_zones = [
+                                    z for z in merged if (z.get('mid_index',0) < index) and (z['touch_index'] is None or (not z['touch_index'] is None and z['touch_index'] > index))
+                                ]
+
+                for other in valid_zones:
+                    if other is zone:
+                        continue
+
+                    other_high = other.get('zone_high')
+                    other_low = other.get('zone_low')
+                    price_diff = other_high * self.threshold
+                    if other_low > this_high:
+                        dist = other_low - this_high
+                        if dist < min_dist_above and dist >= price_diff:
+                            min_dist_above = dist
+                            nearest_above_zone = other.copy()
+                    elif other_high < this_low:
+                        dist = this_low - other_high
+                        if dist < min_dist_below and dist>=price_diff:
+                            min_dist_below = dist
+                            nearest_below_zone = other.copy()
+
+                return min_dist_above, nearest_above_zone, min_dist_below, nearest_below_zone
+
+            # Handle liquidity zones with multiple touches
+            min_above, above_zone, min_below, below_zone = compute_nearest(this_index)
+
+            updated = zone.copy()
+            updated['distance_to_nearest_zone_above'] = min_above
+            updated['nearest_zone_above'] = above_zone
+            updated['distance_to_nearest_zone_below'] = min_below
+            updated['nearest_zone_below'] = below_zone
+
+            results.append(updated)
+
+        return results
 
