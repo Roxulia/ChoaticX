@@ -6,22 +6,19 @@ class DatasetGenerator:
     def __init__(self, candles, zones_with_targets):
         self.candles = candles
         self.zones = zones_with_targets
+        self.dataset = []
 
-    def extract_features_and_labels(self):
+    def extract_types_tf_counts(self):
         dataset = []
-
-        for zone in self.zones:
-            touch_candle = zone.get('touch_candle')
-            target_zone = zone.get('target_zone')
-            if touch_candle is None:
-                continue
-
-            # Initialize counts
+        for zone in self.dataset:
+        # Initialize counts
             type_counts = {
                 "Bullish OB": 0,
                 "Bullish FVG": 0,
                 "Bearish OB": 0,
-                "Bearish FVG": 0
+                "Bearish FVG": 0,
+                "Buy-Side Liq":0,
+                "Sell-Side Liq" : 0
             }
             tf_counts = {
                 "1min": 0, "3min": 0, "5min": 0, "15min": 0, "1h": 0, "4h": 0, "1D": 0
@@ -38,28 +35,45 @@ class DatasetGenerator:
                     tf_counts[tf] += 1
 
             # Aggregate zone class
-            buyzones = type_counts["Bullish OB"] + type_counts["Bullish FVG"]
-            sellzones = type_counts["Bearish OB"] + type_counts["Bearish FVG"]
+            buyzones = type_counts["Bullish OB"] + type_counts["Bullish FVG"] + type_counts['Buy-Side Liq']
+            sellzones = type_counts["Bearish OB"] + type_counts["Bearish FVG"] + type_counts['Sell-Side Liq']
+
+            data = zone.copy()
+            data['is_buy_zone'] =   1 if buyzones > sellzones else 0
+            data['count_BuOB']   = type_counts['Bullish OB']
+            data['count_BrOB']   = type_counts['Bearish OB']
+            data['count_BuFVG']   = type_counts['Bullish FVG']
+            data['count_BrFVG']   = type_counts['Bearish FVG']
+            data['count_BuLiq']   = type_counts['Buy-Side Liq']
+            data['count_BrLiq']   = type_counts['Sell-Side Liq']
+            data['1min_count'] = tf_counts["1min"]
+            data['3min_count'] = tf_counts["3min"]
+            data['5min_count'] = tf_counts["5min"]
+            data['15min_count'] = tf_counts["15min"]
+            data['1h_count'] = tf_counts["1h"]
+            data['4h_count'] = tf_counts["4h"]
+            data['1D_count'] = tf_counts["1D"]
+            dataset.append(data)
+        self.dataset = dataset
+        return dataset
+    
+    def extract_features_and_labels(self):
+        dataset = []
+
+        for zone in self.zones:
+            touch_candle = zone.get('touch_candle')
+            target_zone = zone.get('target_zone')
+            if touch_candle is None:
+                continue
+
+            
 
             features = {
                 'zone_high': zone['zone_high'],
                 'zone_low': zone['zone_low'],
                 'zone_width': zone['zone_high'] - zone['zone_low'],
 
-                # Type counts
-                'bullish_OB_count': type_counts["Bullish OB"],
-                'bullish_FVG_count': type_counts["Bullish FVG"],
-                'bearish_OB_count': type_counts["Bearish OB"],
-                'bearish_FVG_count': type_counts["Bearish FVG"],
-
-                # Timeframe counts
-                '1min_count': tf_counts["1min"],
-                '3min_count': tf_counts["3min"],
-                '5min_count': tf_counts["5min"],
-                '15min_count': tf_counts["15min"],
-                '1h_count': tf_counts["1h"],
-                '4h_count': tf_counts["4h"],
-                '1D_count': tf_counts["1D"],
+                
 
                 # Misc zone features
                 'count': zone.get('count'),
@@ -80,14 +94,11 @@ class DatasetGenerator:
                 'atr': touch_candle.get('atr', 0),
 
                 # Categorical encoding
-                'is_buy_zone': 1 if buyzones > sellzones else 0,
+                
                 'touch_wick': 1 if zone.get('touch_type') == 'wick_touch' else 0,
                 'touch_body_inside': 1 if zone.get('touch_type') == 'body_close_inside' else 0
             }
-
-            # Label: 1 if price reached another target zone, else 0
-            label = 1 if target_zone is not None else 0
-            dataset.append((features, label))
+            dataset.append((features))
 
         return dataset
 
