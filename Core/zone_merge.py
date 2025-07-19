@@ -15,58 +15,58 @@ class ZoneMerger:
     
     def merge(self):
         merged = []
-        used = set()
+        core_zones = self.core_zones
+        liq_zones = self.liq_zones
+        threshold = self.threshold
 
-        for i, zone in enumerate(self.core_zones):
-            
-
+        for i, zone in enumerate(core_zones):
             group = [zone]
+            z_high = zone['zone_high'] * (1 + threshold)
+            z_low = zone['zone_low'] * (1 - threshold)
+            z_index = zone['index']
 
-            z_high = zone['zone_high'] * (1 + self.threshold)
-            z_low = zone['zone_low'] * (1 - self.threshold)
-            available_corezones = [
-                z for z in self.core_zones 
-                if z['index'] < zone['index'] and ((z['touch_index'] is not None and z['touch_index'] > zone['index']  ) or z['touch_index'] is None)]
-            available_liqzones = [
-                z for z in self.liq_zones 
-                if z['index'] < zone['index'] and ((z['swept_index'] is not None and z['swept_index'] > zone['index']  ) or z['swept_index'] is None)]
-            for j, other in enumerate(available_corezones+available_liqzones):
-                
-                if i == j:
-                    continue
+            # Filter once instead of combining inside loop
+            available_core = [
+                z for z in core_zones 
+                if z['index'] < z_index and (z['touch_index'] is None or z['touch_index'] > z_index)
+            ]
+            available_liq = [
+                z for z in liq_zones 
+                if z['index'] < z_index and (z['swept_index'] is None or z['swept_index'] > z_index)
+            ]
+            available_zones = available_core + available_liq
 
-                other_high = other['zone_high'] * (1 + self.threshold)
-                other_low = other['zone_low'] * (1 - self.threshold)
+            for other in available_zones:
+                other_high = other['zone_high'] * (1 + threshold)
+                other_low = other['zone_low'] * (1 - threshold)
 
-                # Check if zones overlap
-                if (
-                    (other_low <= z_high and other_high >= z_high) or
+                # Check overlap using simple range logic
+                if ((other_low <= z_high and other_high >= z_high) or
                     (other_high >= z_low and other_low <= z_low) or
                     (other_low >= z_low and other_high <= z_high) or
-                    (other_low <= z_low and other_high >= z_high)
-                ):
+                    (other_low <= z_low and other_high >= z_high) ):
                     group.append(other)
+                    z_high = max(z_high, other_high)
+                    z_low = min(z_low, other_low)
 
-                    # Expand merged zone bounds
-                    z_high = max(z_high, other['zone_high'] * (1 + self.threshold))
-                    z_low = min(z_low, other['zone_low'] * (1 - self.threshold))
+            # Use generator expressions for memory efficiency
+            
+            indices = [z['index'] for z in group]
 
-            # Merge metadata
-            merged_zone = {
+            merged.append({
                 'zone_high': max(z['zone_high'] for z in group),
                 'zone_low': min(z['zone_low'] for z in group),
                 'zone_width': max(z['zone_high'] for z in group) - min(z['zone_low'] for z in group),
-                'types': list(set(z['type'] for z in group)),
-                'timeframes': list(set(z['time_frame'] for z in group)),
+                'types': list({z['type'] for z in group}),
+                'timeframes': list({z['time_frame'] for z in group}),
                 'count': len(group),
-                'start_index': min(z['index'] for z in group),
-                'end_index': max(z['index'] for z in group),
-                'mid_index': int(np.mean([z['index'] for z in group])), 
-            }
-
-            merged.append(merged_zone)
+                'start_index': min(indices),
+                'end_index': max(indices),
+                'mid_index': int(sum(indices) / len(indices))
+            })
 
         return merged
+
     
     '''def add_liq_confluence(self,merged):
         for m in merged:
@@ -111,7 +111,7 @@ class ZoneMerger:
             this_high = zone.get('zone_high')
             this_low = zone.get('zone_low')
             this_index = zone.get('mid_index')
-            print(f'{i}/{total}')
+            #print(f'{i}/{total}')
 
             def compute_nearest(index):
                 min_dist_above = float('inf')
