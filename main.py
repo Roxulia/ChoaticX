@@ -3,14 +3,15 @@ from Core.zone_reactions import ZoneReactor
 from Core.zone_merge import ZoneMerger
 from Core.SignalGeneration import SignalGenerator
 from Core.Filter import Filter
-from ML.Model import Model
-from ML.transform import Transformer
+from ML.Model import ModelHandler
+from ML.transform import DataTransformer
 from Data.binanceAPI import BinanceAPI
 
 class SignalService:
     def __init__(self):
         self.api = BinanceAPI()
         #self.model = Model(...)  # Load pretrained model and transformer
+        self.model = None
         self.signal_gen = SignalGenerator(models={'entry_model': self.model})
 
     def get_latest_zones(self):
@@ -38,3 +39,8 @@ class SignalService:
         if not reaction == 'None':
             return self.signal_gen.generate(df.iloc[-1],zones,reaction)
         return 'None'
+
+if __name__ == "__main__" :
+    test = SignalService()
+    df = test.get_latest_zones()
+    print(df[-1])
