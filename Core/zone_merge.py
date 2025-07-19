@@ -17,19 +17,22 @@ class ZoneMerger:
         merged = []
         used = set()
 
-        for i, zone in enumerate(self.core_zones):
-            if i in used:
-                continue
+        for i, zone in enumerate(self.zones):
+            
 
             group = [zone]
-            used.add(i)
 
             z_high = zone['zone_high'] * (1 + self.threshold)
             z_low = zone['zone_low'] * (1 - self.threshold)
-            available_zones = [z for z in self.core_zones if (z['touch_index'] is not None and z['touch_index'] > zone['index']  ) or z['touch_index'] is None]
-            for j, other in enumerate(available_zones):
+            available_corezones = [
+                z for z in self.core_zones 
+                if z['index'] < zone['index'] and ((z['touch_index'] is not None and z['touch_index'] > zone['index']  ) or z['touch_index'] is None)]
+            available_liqzones = [
+                z for z in self.liq_zones 
+                if z['start_index'] < zone['index'] and ((z['swept_index'] is not None and z['swept_index'] > zone['index']  ) or z['swept_index'] is None)]
+            for j, other in enumerate(available_corezones+available_liqzones):
                 orig_index = self.core_zones.index(other)
-                if orig_index in used or i == orig_index:
+                if i == orig_index:
                     continue
 
                 other_high = other['zone_high'] * (1 + self.threshold)
@@ -66,7 +69,7 @@ class ZoneMerger:
 
         return merged
     
-    def add_liq_confluence(self,merged):
+    '''def add_liq_confluence(self,merged):
         for m in merged:
             confluents = []
             available_zones = [z for z in self.liq_zones if (z['swept_index'] is not None and z['swept_index'] > m['start_index'] ) or (z['swept_index'] is None) ]
@@ -80,7 +83,7 @@ class ZoneMerger:
                         'swept': lz.get('swept_index') is not None
                     })
             m['liquidity_confluence'] = confluents
-        return merged
+        return merged'''
     
     def changeIndexNumber(self):
         tf = timeFrame()
