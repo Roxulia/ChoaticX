@@ -1,10 +1,13 @@
 
 import numpy as np
 from Data.timeFrames import timeFrame
+from .zone_reactions import ZoneReactor
+
 class ZoneMerger:
-    def __init__(self, zones, threshold=0.002):
+    def __init__(self,candles, zones, threshold=0.002):
         self.zones = zones
         self.threshold = threshold
+        self.reactor = ZoneReactor(candles)
         self.changeIndexNumber()
         self.seperate()
 
@@ -21,24 +24,22 @@ class ZoneMerger:
 
         for i, zone in enumerate(core_zones):
             group = [zone]
-            z_high = zone['zone_high'] * (1 + threshold)
-            z_low = zone['zone_low'] * (1 - threshold)
+            z_high = zone['zone_high'] 
+            z_low = zone['zone_low'] 
             z_index = zone['index']
+            matched = False
 
             # Filter once instead of combining inside loop
-            available_core = [
-                z for z in core_zones 
-                if z['index'] < z_index and (z['touch_index'] is None or z['touch_index'] > z_index)
-            ]
+            
             available_liq = [
                 z for z in liq_zones 
                 if z['index'] < z_index and (z['swept_index'] is None or z['swept_index'] > z_index)
             ]
-            available_zones = available_core + available_liq
-
-            for other in available_zones:
-                other_high = other['zone_high'] * (1 + threshold)
-                other_low = other['zone_low'] * (1 - threshold)
+            
+            available_merged = [ z for z in merged if z['touch_index'] is None or (not z['touch_index'] is None and z['touch_index'] < z_index)]
+            for other in available_liq:
+                other_high = other['zone_high'] 
+                other_low = other['zone_low'] 
 
                 # Check overlap using simple range logic
                 if ((other_low <= z_high and other_high >= z_high) or
@@ -50,20 +51,35 @@ class ZoneMerger:
                     z_low = min(z_low, other_low)
 
             # Use generator expressions for memory efficiency
-            
-            indices = [z['index'] for z in group]
+            for merged_zone in available_merged:
+                m_high = merged_zone['zone_high'] * (1 + threshold)
+                m_low = merged_zone['zone_low'] * (1 - threshold)
 
-            merged.append({
-                'zone_high': max(z['zone_high'] for z in group),
-                'zone_low': min(z['zone_low'] for z in group),
-                'zone_width': max(z['zone_high'] for z in group) - min(z['zone_low'] for z in group),
-                'types': list({z['type'] for z in group}),
-                'timeframes': list({z['time_frame'] for z in group}),
-                'count': len(group),
-                'start_index': min(indices),
-                'end_index': max(indices),
-                'mid_index': int(sum(indices) / len(indices))
-            })
+                # Check for overlap
+                if not (z_high < m_low or z_low > m_high):
+                    # Merge zone into existing merged zone
+                    merged_zone['zone_high'] = max(merged_zone['zone_high'], zone['zone_high'])
+                    merged_zone['zone_low'] = min(merged_zone['zone_low'], zone['zone_low'])
+                    merged_zone['zone_width'] = merged_zone['zone_high'] - merged_zone['zone_low']
+                    merged_zone['types'].append(zone['type'])
+                    merged_zone['timeframes'].append(zone['time_frame'])
+                    merged_zone['count'] += 1
+                    merged_zone['end_index'] = z_index  # optional
+                    matched = True
+                    break
+            if not matched:  
+                z = {
+                    'zone_high': max(z['zone_high'] for z in group),
+                    'zone_low': min(z['zone_low'] for z in group),
+                    'zone_width': max(z['zone_high'] for z in group) - min(z['zone_low'] for z in group),
+                    'types': [z['type'] for z in group],
+                    'timeframes': [z['time_frame'] for z in group],
+                    'count': len(group),
+                    'zone_index' : z_index,
+                    'end_index' : z_index
+                }  
+                z = self.reactor.get_zone_reaction(z)
+                merged.append(z)
 
         return merged
 
@@ -110,7 +126,7 @@ class ZoneMerger:
         for i, zone in enumerate(merged):
             this_high = zone.get('zone_high')
             this_low = zone.get('zone_low')
-            this_index = zone.get('mid_index')
+            this_index = zone.get('zone_index')
             #print(f'{i}/{total}')
 
             def compute_nearest(index):
@@ -121,7 +137,7 @@ class ZoneMerger:
 
                 # Cache index-based filtering
                 valid_zones = [
-                                    z for z in merged if (z.get('mid_index',0) < index) and (z['touch_index'] is None or (not z['touch_index'] is None and z['touch_index'] > index))
+                                    z for z in merged if (z.get('zone_index',0) < index) and (z['touch_index'] is None or (not z['touch_index'] is None and z['touch_index'] > index))
                                 ]
 
                 for other in valid_zones:
