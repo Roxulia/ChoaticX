@@ -57,6 +57,38 @@ class DatasetGenerator:
         self.dataset = dataset
         return dataset
     
+    def extract_nearby_zones(self):
+        dataset = []
+        for zone in self.dataset:
+            above_zone = zone.get('above_zone')
+            below_zone = zone.get('below_zone')
+
+            if above_zone is None and below_zone is None:
+                data = zone.copy()
+                dataset.append(data)
+            else:
+                data = zone.copy()
+                if above_zone is not None:
+                    
+                    data['above_zone_high'] = above_zone.get('zone_high')
+                    data['above_zone_low'] = above_zone.get('zone_low')
+                    data['above_zone_width'] = above_zone.get('zone_width')
+                    data['above_zone_count'] = above_zone.get('count')
+                    data['above_types'] = above_zone.get('types',[])
+                    data['above_timeframes'] = above_zone.get('timeframes',[])
+                if below_zone is not None:
+                    
+                    data['below_zone_high'] = below_zone.get('zone_high')
+                    data['below_zone_low'] = below_zone.get('zone_low')
+                    data['below_zone_width'] = below_zone.get('zone_width')
+                    data['below_zone_count'] = below_zone.get('count')
+                    data['below_types'] = below_zone.get('types',[])
+                    data['below_timeframes'] = below_zone.get('timeframes',[])
+                dataset.append(data)
+        self.dataset = dataset
+        return dataset
+
+    
     def extract_features_and_labels(self):
         dataset = []
 
@@ -107,7 +139,8 @@ class DatasetGenerator:
     def to_dataframe(self):
         data = self.extract_features_and_labels()
         data = self.extract_types_tf_counts()
+        data = self.extract_nearby_zones()
         df = pd.DataFrame(data)
-        df = df.drop(columns=['types','timeframes','above_zone','below_zone'])
+        df = df.drop(columns=['types','timeframes'])
         df = df.sort_values(by=['end_index'])
         return df
