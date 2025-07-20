@@ -5,8 +5,10 @@ from Core.SignalGeneration import SignalGenerator
 from Core.Filter import Filter
 from ML.Model import ModelHandler
 from ML.transform import DataTransformer
+from ML.datasetGeneration import DatasetGenerator
 from Data.binanceAPI import BinanceAPI
 import time
+import pandas as pd
 
 
 
@@ -18,19 +20,15 @@ class SignalService:
         self.signal_gen = SignalGenerator(models={'entry_model': self.model})
 
     def get_latest_zones(self):
-        df_1h = self.api.get_ohlcv(interval= '1h',lookback='1 years')
+        df_1h = self.api.get_ohlcv(interval= '1h',lookback='2 years')
         detector = ZoneDetector(df_1h)
         zones_1h = detector.get_zones()
-        df = self.api.get_ohlcv(interval= '4h',lookback= '1 years')
+        df = self.api.get_ohlcv(interval= '4h',lookback= '2 years')
         detector = ZoneDetector(df,'4h')
         zones_4h = detector.get_zones()
-        df = self.api.get_ohlcv(interval= '1D',lookback='1 years')
-        detector = ZoneDetector(df,'1D')
-        zones_1D = detector.get_zones()
-        merger = ZoneMerger(zones_1h+zones_4h+zones_1D)
+        
+        merger = ZoneMerger(df_1h,zones_1h+zones_4h)
         zones = merger.merge()
-        reactor = ZoneReactor(df_1h, zones)
-        zones = reactor.get_zone_reaction()
         zones = merger.getNearbyZone(zones)
         return zones
 
@@ -47,6 +45,8 @@ if __name__ == "__main__" :
     test = SignalService()
     start = time.perf_counter()
     df = test.get_latest_zones()
-    print(df[-1])
+    datagen = DatasetGenerator(df)
+    df = datagen.to_dataframe()
+    df.to_csv('dataset.csv')
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")
