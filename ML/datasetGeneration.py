@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 
 class DatasetGenerator:
-    def __init__(self, candles, zones_with_targets):
-        self.candles = candles
+    def __init__(self,  zones_with_targets):
+        
         self.zones = zones_with_targets
         self.dataset = []
 
@@ -62,22 +62,24 @@ class DatasetGenerator:
 
         for zone in self.zones:
             touch_candle = zone.get('touch_candle')
-            target_zone = zone.get('target_zone')
             if touch_candle is None:
                 continue
-
-            
-
             features = {
+                'zone_index' : zone['zone_index'],
+                'end_index' : zone['end_index'],
                 'zone_high': zone['zone_high'],
                 'zone_low': zone['zone_low'],
                 'zone_width': zone['zone_high'] - zone['zone_low'],
-
+                'types' : zone['types'],
+                'timeframes' : zone['timeframes'],
+                'distance_to_above' : zone.get('distance_to_nearest_zone_above'),
+                'distance_to_below' : zone.get('distance_to_nearest_zone_below'),
+                'above_zone' : zone.get('nearest_above_zone'),
+                'below_zone' : zone.get('nearest_below_zone'),
                 
 
                 # Misc zone features
                 'count': zone.get('count'),
-                'confluent_count': len(zone.get('liquidity_confluence', [])),
                 'touch_type': zone.get('touch_type'),
 
                 # Price action
@@ -99,13 +101,13 @@ class DatasetGenerator:
                 'touch_body_inside': 1 if zone.get('touch_type') == 'body_close_inside' else 0
             }
             dataset.append((features))
-
+        self.dataset = dataset
         return dataset
 
     def to_dataframe(self):
         data = self.extract_features_and_labels()
-        features = [x[0] for x in data]
-        labels = [x[1] for x in data]
-        df = pd.DataFrame(features)
-        df['label'] = labels
+        data = self.extract_types_tf_counts()
+        df = pd.DataFrame(data)
+        df = df.drop(columns=['types','timeframes','above_zone','below_zone'])
+        df = df.sort_values(by=['end_index'])
         return df
