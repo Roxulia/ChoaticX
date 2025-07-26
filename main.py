@@ -20,6 +20,9 @@ class SignalService:
         self.signal_gen = SignalGenerator(models={'entry_model': self.model})
 
     def get_latest_zones(self):
+        df_15min = self.api.get_ohlcv(interval= '15min',lookback='2 years')
+        detector = ZoneDetector(df_15min)
+        zones_15min = detector.get_zones()
         df_1h = self.api.get_ohlcv(interval= '1h',lookback='2 years')
         detector = ZoneDetector(df_1h)
         zones_1h = detector.get_zones()
@@ -27,7 +30,7 @@ class SignalService:
         detector = ZoneDetector(df,'4h')
         zones_4h = detector.get_zones()
         
-        merger = ZoneMerger(df_1h,zones_1h+zones_4h)
+        merger = ZoneMerger(df_15min,zones_15min+zones_1h+zones_4h)
         zones = merger.merge()
         zones = merger.getNearbyZone(zones)
         return zones

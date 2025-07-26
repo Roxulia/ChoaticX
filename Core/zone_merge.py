@@ -42,18 +42,15 @@ class ZoneMerger:
                 other_low = other['zone_low'] 
 
                 # Check overlap using simple range logic
-                if ((other_low <= z_high and other_high >= z_high) or
-                    (other_high >= z_low and other_low <= z_low) or
-                    (other_low >= z_low and other_high <= z_high) or
-                    (other_low <= z_low and other_high >= z_high) ):
+                if not (z_high < other_low or z_low > other_high):
                     group.append(other)
                     z_high = max(z_high, other_high)
                     z_low = min(z_low, other_low)
 
             # Use generator expressions for memory efficiency
             for merged_zone in available_merged:
-                m_high = merged_zone['zone_high'] * (1 + threshold)
-                m_low = merged_zone['zone_low'] * (1 - threshold)
+                m_high = merged_zone['zone_high'] 
+                m_low = merged_zone['zone_low'] 
 
                 # Check for overlap
                 if not (z_high < m_low or z_low > m_high):

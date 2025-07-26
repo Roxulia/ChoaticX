@@ -65,6 +65,18 @@ class DatasetGenerator:
 
             if above_zone is None and below_zone is None:
                 data = zone.copy()
+                data['below_zone_high'] = None
+                data['below_zone_low'] = None
+                data['below_zone_width'] = None
+                data['below_zone_count'] = None
+                data['below_types'] = []
+                data['below_timeframes'] = []
+                data['above_zone_high'] = None
+                data['above_zone_low'] = None
+                data['above_zone_width'] = None
+                data['above_zone_count'] = None
+                data['above_types'] = []
+                data['above_timeframes'] = []
                 dataset.append(data)
             else:
                 data = zone.copy()
@@ -81,8 +93,8 @@ class DatasetGenerator:
                     data['above_zone_low'] = None
                     data['above_zone_width'] = None
                     data['above_zone_count'] = None
-                    data['above_types'] = None
-                    data['above_timeframes'] = None
+                    data['above_types'] = []
+                    data['above_timeframes'] = []
 
                 if below_zone is not None:
                     
@@ -97,8 +109,8 @@ class DatasetGenerator:
                     data['below_zone_low'] = None
                     data['below_zone_width'] = None
                     data['below_zone_count'] = None
-                    data['below_types'] = None
-                    data['below_timeframes'] = None
+                    data['below_types'] = []
+                    data['below_timeframes'] = []
 
                 dataset.append(data)
         self.dataset = dataset
@@ -248,6 +260,6 @@ class DatasetGenerator:
         data = self.extract_nearby_zones()
         data = self.extract_nearby_zones_types_tf()
         df = pd.DataFrame(data)
-        df = df.drop(columns=['types','timeframes','above_types','above_timeframes','below_types','below_timeframes'])
-        df = df.sort_values(by=['end_index'])
+        df = df.drop(columns=['types','timeframes','above_zone','below_zone','above_types','above_timeframes','below_types','below_timeframes'])
+        
         return df

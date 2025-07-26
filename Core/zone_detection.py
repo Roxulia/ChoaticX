@@ -5,7 +5,7 @@ class ZoneDetector:
         self.timeframe = timeframe
         self.detect_swings()
 
-    def detect_fvg(self,threshold = 300):
+    def detect_fvg(self,threshold = 100):
         """
         Detect Fair Value Gaps (FVGs)
         """
