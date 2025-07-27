@@ -9,7 +9,7 @@ from ML.datasetGeneration import DatasetGenerator
 from Data.binanceAPI import BinanceAPI
 import time
 import pandas as pd
-
+import json
 
 
 class SignalService:
@@ -49,6 +49,9 @@ if __name__ == "__main__" :
     start = time.perf_counter()
     df = test.get_latest_zones()
     datagen = DatasetGenerator(df)
+    built_by = datagen.extract_built_by_zones(10)
+    with open('output.txt', 'w') as f:
+        f.write(f'{built_by}')
     df = datagen.to_dataframe()
     df.to_csv('dataset.csv')
     end = time.perf_counter()

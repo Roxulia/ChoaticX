@@ -12,6 +12,8 @@
 *.env
 *.venv
 *.csv
+*.json
+output.txt
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

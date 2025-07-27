@@ -20,7 +20,6 @@ class ZoneMerger:
         merged = []
         core_zones = self.core_zones
         liq_zones = self.liq_zones
-        threshold = self.threshold
 
         for i, zone in enumerate(core_zones):
             group = [zone]
@@ -62,6 +61,7 @@ class ZoneMerger:
                     merged_zone['timeframes'].append(zone['time_frame'])
                     merged_zone['count'] += 1
                     merged_zone['end_index'] = z_index  # optional
+                    merged_zone['built_by'].append(zone)
                     matched = True
                     break
             if not matched:  
@@ -73,7 +73,8 @@ class ZoneMerger:
                     'timeframes': [z['time_frame'] for z in group],
                     'count': len(group),
                     'zone_index' : z_index,
-                    'end_index' : z_index
+                    'end_index' : z_index,
+                    'built_by' : [zone for zone in group],
                 }  
                 z = self.reactor.get_zone_reaction(z)
                 merged.append(z)

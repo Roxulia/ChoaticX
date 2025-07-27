@@ -8,6 +8,9 @@ class DatasetGenerator:
         self.zones = zones_with_targets
         self.dataset = []
 
+    def extract_built_by_zones(self,index):
+        return self.zones[index]['built_by']
+
     def extract_types_tf_counts(self):
         dataset = []
         for zone in self.dataset:
