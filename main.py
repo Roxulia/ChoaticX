@@ -4,7 +4,7 @@ from Core.zone_merge import ZoneMerger
 from Core.SignalGeneration import SignalGenerator
 from Core.Filter import Filter
 from ML.Model import ModelHandler
-from ML.transform import DataTransformer
+from ML.dataCleaning import DataCleaner
 from ML.datasetGeneration import DatasetGenerator
 from Data.binanceAPI import BinanceAPI
 import time
