@@ -251,11 +251,15 @@ class DatasetGenerator:
                 # Categorical encoding
                 
                 'touch_wick': 1 if zone.get('touch_type') == 'wick_touch' else 0,
-                'touch_body_inside': 1 if zone.get('touch_type') == 'body_close_inside' else 0
+                'touch_body_inside': 1 if zone.get('touch_type') == 'body_close_inside' else 0,
+                'target_zone' : zone.get('target_zone',None)
             }
             dataset.append((features))
         self.dataset = dataset
         return dataset
+    
+    def extract_label(self):
+        pass
 
     def to_dataframe(self):
         data = self.extract_features_and_labels()
