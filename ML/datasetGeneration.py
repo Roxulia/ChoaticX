@@ -227,8 +227,8 @@ class DatasetGenerator:
                 'timeframes' : zone['timeframes'],
                 'distance_to_above' : zone.get('distance_to_nearest_zone_above'),
                 'distance_to_below' : zone.get('distance_to_nearest_zone_below'),
-                'above_zone' : zone.get('nearest_above_zone'),
-                'below_zone' : zone.get('nearest_below_zone'),
+                'above_zone' : zone.get('nearest_above_zone',None),
+                'below_zone' : zone.get('nearest_below_zone',None),
                 
 
                 # Misc zone features
@@ -259,14 +259,32 @@ class DatasetGenerator:
         return dataset
     
     def extract_label(self):
-        pass
+        dataset = []
+        for zone in self.dataset:
+            target = zone.get('target_zone')
+            above = zone.get('above_zone')
+            below = zone.get('below_zone')
+            data = zone.copy()
+            if target is not None :
+                if above is not None and target is above:
+                    data['target'] = 1
+                elif below is not None and target is below:
+                    data['target'] = -1
+                else:
+                    data['target'] = None
+            else:
+                data['target'] = None
+            dataset.append(data)
+        self.dataset = dataset
+        return dataset
 
     def to_dataframe(self):
         data = self.extract_features_and_labels()
         data = self.extract_types_tf_counts()
         data = self.extract_nearby_zones()
         data = self.extract_nearby_zones_types_tf()
+        data = self.extract_label()
         df = pd.DataFrame(data)
-        df = df.drop(columns=['types','timeframes','above_zone','below_zone','above_types','above_timeframes','below_types','below_timeframes'])
+        df = df.drop(columns=['target_zone','types','timeframes','above_zone','below_zone','above_types','above_timeframes','below_types','below_timeframes'])
         
         return df

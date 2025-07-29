@@ -53,6 +53,10 @@ if __name__ == "__main__" :
     with open('output.txt', 'w') as f:
         f.write(f'{built_by}')
     df = datagen.to_dataframe()
+    cleanner = DataCleaner(df)
+    cleanner.transformTouchType()
+    cleanner.fillNaN()
+    df = cleanner.zoneDataset
     df.to_csv('dataset.csv')
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")
