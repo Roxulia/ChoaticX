@@ -63,6 +63,12 @@ class timeFrame:
         # Get the minimum order value (i.e. smallest timeframe)
         min_order = min(self.getTFOrder(z['time_frame']) for z in all_df if 'time_frame' in z)
         return self.tfOrder[min_order]
+
+    def getlargestTF(self,all_df):
+        if not all_df:
+            return []
+        max = max(self.getTFOrder(z['time_frame']) for z in all_df if 'time_frame' in z)
+        return self.tfOrder[max]
     
     def getBasedZone(self,all_df):
         if not all_df:
@@ -71,6 +77,10 @@ class timeFrame:
         # Filter only zones with that smallest timeframe
         smallest_zones = [z for z in all_df if self.getTFOrder(z['time_frame']) == min_order]
         return smallest_zones
+
+    def getLargestZone(self,all_df):
+        largests = [z for z in all_df if self.getTFOrder(z['time_frame']) == self.tfOrder.index(self.getlargestTF(all_df))]
+        return largests
     
     def getMultiplier(self,smallest,current):
         return self.multiplier[smallest][current]
