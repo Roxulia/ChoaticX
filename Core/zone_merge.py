@@ -2,13 +2,15 @@
 import numpy as np
 from Data.timeFrames import timeFrame
 from .zone_reactions import ZoneReactor
+from Data.indexCalculate import IndexCalculator
 
 class ZoneMerger:
     def __init__(self,candles, zones, threshold=0.002):
         self.zones = zones
         self.threshold = threshold
         self.reactor = ZoneReactor(candles)
-        self.changeIndexNumber()
+        self.indexcalculator = IndexCalculator(self.zones)
+        self.zones  = self.indexcalculator.calculate()
         self.seperate()
 
     def seperate(self):
@@ -80,43 +82,7 @@ class ZoneMerger:
                 merged.append(z)
 
         return merged
-
-    
-    '''def add_liq_confluence(self,merged):
-        for m in merged:
-            confluents = []
-            available_zones = [z for z in self.liq_zones if (z['swept_index'] is not None and z['swept_index'] > m['start_index'] ) or (z['swept_index'] is None) ]
-            for lz in available_zones:
-                if lz['zone_low'] <= m['zone_high'] and lz['zone_high'] >= m['zone_low']:
-                    confluents.append({
-                        'type': lz['type'],
-                        'timeframe': lz['time_frame'],
-                        'zone_low': lz['zone_low'],
-                        'zone_high': lz['zone_high'],
-                        'swept': lz.get('swept_index') is not None
-                    })
-            m['liquidity_confluence'] = confluents
-        return merged'''
-    
-    def changeIndexNumber(self):
-        tf = timeFrame()
-        smallest_tf = tf.getSmallestTF(self.zones)
-        for zone in self.zones:
-            if zone['type'] in ['Buy-Side Liq','Sell-Side Liq']:
-                if zone.get('index') is not None:
-                    zone['index'] = zone['index'] * tf.getMultiplier(smallest_tf,zone['time_frame'])
-                if zone.get('swept_index') is not None:
-                    zone['swept_index'] = zone['swept_index'] * tf.getMultiplier(smallest_tf,zone['time_frame'])
-                if zone.get('end_index') is not None:
-                    zone['end_index'] = zone['end_index'] * tf.getMultiplier(smallest_tf,zone['time_frame'])
-                if zone.get('touch_indexs') is not None:
-                    zone['touch_indexs'] = [i * tf.getMultiplier(smallest_tf,zone['time_frame']) for i in zone['touch_indexs'] if i is not None]
-            else :
-                if zone.get('index') is not None:
-                    zone['index'] = zone['index'] * tf.getMultiplier(smallest_tf,zone['time_frame'])
-                if zone.get('touch_index') is not None:
-                    zone['touch_index'] = zone['touch_index'] * tf.getMultiplier(smallest_tf,zone['time_frame'])
-    
+   
     def getNearbyZone(self,merged):
         results = []
         total = len(merged)

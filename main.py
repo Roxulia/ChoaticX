@@ -1,6 +1,7 @@
 from Core.zone_detection import ZoneDetector
 from Core.zone_reactions import ZoneReactor
 from Core.zone_merge import ZoneMerger
+from Core.zone_confluents import ConfluentsFinder
 from Core.SignalGeneration import SignalGenerator
 from Core.Filter import Filter
 from ML.Model import ModelHandler
@@ -19,20 +20,21 @@ class SignalService:
         self.model = None
         self.signal_gen = SignalGenerator(models={'entry_model': self.model})
 
+    def get_zones(self,interval,lookback):
+        df = self.api.get_ohlcv(interval=interval,lookback=lookback)
+        detector = ZoneDetector(df)
+        zones = detector.get_zones()
+        return zones
+
     def get_latest_zones(self):
-        df_15min = self.api.get_ohlcv(interval= '15min',lookback='2 years')
-        detector = ZoneDetector(df_15min)
-        zones_15min = detector.get_zones()
-        df_1h = self.api.get_ohlcv(interval= '1h',lookback='2 years')
-        detector = ZoneDetector(df_1h)
-        zones_1h = detector.get_zones()
-        df = self.api.get_ohlcv(interval= '4h',lookback= '2 years')
-        detector = ZoneDetector(df,'4h')
-        zones_4h = detector.get_zones()
-        
-        merger = ZoneMerger(df_15min,zones_15min+zones_1h+zones_4h)
-        zones = merger.merge()
-        zones = merger.getNearbyZone(zones)
+        zone_15m = self.get_zones('15min','2 years')
+        zone_1h = self.get_zones('1h','2 years')
+        zone_4h = self.get_zones('4h','2 years')
+        confluentfinder = ConfluentsFinder(zone_15m+zone_1h+zone_4h)
+        zones = confluentfinder.getConfluents()
+        df = self.api.get_ohlcv(interval='15min',lookback='2 years')
+        reactor = ZoneReactor(df)
+        zones = reactor.get_zones_reaction(zones)
         return zones
 
     def get_current_signals(self):
@@ -48,15 +50,7 @@ if __name__ == "__main__" :
     test = SignalService()
     start = time.perf_counter()
     df = test.get_latest_zones()
-    datagen = DatasetGenerator(df)
-    built_by = datagen.extract_built_by_zones(10)
-    with open('output.txt', 'w') as f:
-        f.write(f'{built_by}')
-    df = datagen.to_dataframe()
-    cleanner = DataCleaner(df)
-    cleanner.transformTouchType()
-    cleanner.fillNaN()
-    df = cleanner.zoneDataset
+    df = pd.DataFrame(df)
     df.to_csv('dataset.csv')
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")
