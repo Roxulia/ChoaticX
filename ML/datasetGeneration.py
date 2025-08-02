@@ -8,14 +8,8 @@ class DatasetGenerator:
         self.zones = zones_with_targets
         self.dataset = []
 
-    def extract_built_by_zones(self,index):
-        return self.zones[index]['built_by']
-
-    def extract_types_tf_counts(self):
-        dataset = []
-        for zone in self.dataset:
-        # Initialize counts
-            type_counts = {
+    def perform_counts(self,types = [],timeframes = []):
+        type_counts = {
                 "Bullish OB": 0,
                 "Bullish FVG": 0,
                 "Bearish OB": 0,
@@ -23,24 +17,68 @@ class DatasetGenerator:
                 "Buy-Side Liq":0,
                 "Sell-Side Liq" : 0
             }
-            tf_counts = {
-                "1min": 0, "3min": 0, "5min": 0, "15min": 0, "1h": 0, "4h": 0, "1D": 0
-            }
+        tf_counts = {
+            "1min": 0, "3min": 0, "5min": 0, "15min": 0, "1h": 0, "4h": 0, "1D": 0
+        }
 
-            # Count types
-            for t in zone.get('types', []):
-                if t in type_counts:
-                    type_counts[t] += 1
+        # Count types
+        for t in types:
+            if t in type_counts:
+                type_counts[t] += 1
 
-            # Count timeframes
-            for tf in zone.get('timeframes', []):
-                if tf in tf_counts:
-                    tf_counts[tf] += 1
+        # Count timeframes
+        for tf in timeframes:
+            if tf in tf_counts:
+                tf_counts[tf] += 1
 
-            # Aggregate zone class
-            buyzones = type_counts["Bullish OB"] + type_counts["Bullish FVG"] + type_counts['Buy-Side Liq']
-            sellzones = type_counts["Bearish OB"] + type_counts["Bearish FVG"] + type_counts['Sell-Side Liq']
+        # Aggregate zone class
+        buyzones = type_counts["Bullish OB"] + type_counts["Bullish FVG"] + type_counts['Buy-Side Liq']
+        sellzones = type_counts["Bearish OB"] + type_counts["Bearish FVG"] + type_counts['Sell-Side Liq']
+        return type_counts,tf_counts,buyzones,sellzones
 
+    def extract_built_by_zones(self,index):
+        return self.zones[index]['built_by']
+    
+    def extract_confluent_tf(self):
+        dataset = []
+        for zone in self.dataset:
+            confluents = zone.get('liquidity_confluents',[]) + zone.get('core_confluents',[])
+            types = []
+            timeframes = []
+            for c in confluents:
+                c_type = c.get('type',None)
+                if c_type is not None:
+                    types.append(c_type)
+                c_tf = c.get('timeframe',None)
+                if c_tf is not None:
+                    timeframes.append(c_tf)
+            type_counts,tf_counts,buyzones,sellzones = self.perform_counts(types,timeframes)
+            data = zone.copy()
+            data['conf_is_buy_zone'] =   1 if buyzones > sellzones else 0
+            data['conf_count_BuOB']   = type_counts['Bullish OB']
+            data['conf_count_BrOB']   = type_counts['Bearish OB']
+            data['conf_count_BuFVG']   = type_counts['Bullish FVG']
+            data['conf_count_BrFVG']   = type_counts['Bearish FVG']
+            data['conf_count_BuLiq']   = type_counts['Buy-Side Liq']
+            data['conf_count_BrLiq']   = type_counts['Sell-Side Liq']
+            data['conf_1min_count'] = tf_counts["1min"]
+            data['conf_3min_count'] = tf_counts["3min"]
+            data['conf_5min_count'] = tf_counts["5min"]
+            data['conf_15min_count'] = tf_counts["15min"]
+            data['conf_1h_count'] = tf_counts["1h"]
+            data['conf_4h_count'] = tf_counts["4h"]
+            data['conf_1D_count'] = tf_counts["1D"]
+            dataset.append(data)
+        self.dataset = dataset
+        return dataset
+
+
+    def extract_types_tf_counts(self):
+        dataset = []
+        for zone in self.dataset:
+            types = zone.get('types',[])
+            timeframes = zone.get('timeframes',[])
+            type_counts,tf_counts,buyzones,sellzones = self.perform_counts(types,timeframes)
             data = zone.copy()
             data['is_buy_zone'] =   1 if buyzones > sellzones else 0
             data['count_BuOB']   = type_counts['Bullish OB']
@@ -123,32 +161,9 @@ class DatasetGenerator:
         dataset = []
         for zone in self.dataset:
             data = zone.copy()
-            type_counts = {
-                "Bullish OB": 0,
-                "Bullish FVG": 0,
-                "Bearish OB": 0,
-                "Bearish FVG": 0,
-                "Buy-Side Liq":0,
-                "Sell-Side Liq" : 0
-            }
-            tf_counts = {
-                "1min": 0, "3min": 0, "5min": 0, "15min": 0, "1h": 0, "4h": 0, "1D": 0
-            }
-
-            # Count types
-            for t in zone.get('above_types', []):
-                if t in type_counts:
-                    type_counts[t] += 1
-
-            # Count timeframes
-            for tf in zone.get('above_timeframes', []):
-                if tf in tf_counts:
-                    tf_counts[tf] += 1
-
-            # Aggregate zone class
-            buyzones = type_counts["Bullish OB"] + type_counts["Bullish FVG"] + type_counts['Buy-Side Liq']
-            sellzones = type_counts["Bearish OB"] + type_counts["Bearish FVG"] + type_counts['Sell-Side Liq']
-
+            above_types = zone.get('above_types',[])
+            above_tfs = zone.get('above_timeframes',[])
+            type_counts,tf_counts,buyzones,sellzones = self.perform_counts(above_types,above_tfs)
             
             data['above_is_buy_zone'] =   1 if buyzones > sellzones else 0
             data['above_count_BuOB']   = type_counts['Bullish OB']
@@ -165,33 +180,9 @@ class DatasetGenerator:
             data['above_4h_count'] = tf_counts["4h"]
             data['above_1D_count'] = tf_counts["1D"]
             
-            type_counts = {
-                "Bullish OB": 0,
-                "Bullish FVG": 0,
-                "Bearish OB": 0,
-                "Bearish FVG": 0,
-                "Buy-Side Liq":0,
-                "Sell-Side Liq" : 0
-            }
-            tf_counts = {
-                "1min": 0, "3min": 0, "5min": 0, "15min": 0, "1h": 0, "4h": 0, "1D": 0
-            }
-
-            # Count types
-            for t in zone.get('below_types', []):
-                if t in type_counts:
-                    type_counts[t] += 1
-
-            # Count timeframes
-            for tf in zone.get('below_timeframes', []):
-                if tf in tf_counts:
-                    tf_counts[tf] += 1
-
-            # Aggregate zone class
-            buyzones = type_counts["Bullish OB"] + type_counts["Bullish FVG"] + type_counts['Buy-Side Liq']
-            sellzones = type_counts["Bearish OB"] + type_counts["Bearish FVG"] + type_counts['Sell-Side Liq']
-
-            
+            above_types = zone.get('below_types',[])
+            above_tfs = zone.get('below_timeframes',[])
+            type_counts,tf_counts,buyzones,sellzones = self.perform_counts(above_types,above_tfs)
             data['below_is_buy_zone'] =   1 if buyzones > sellzones else 0
             data['below_count_BuOB']   = type_counts['Bullish OB']
             data['below_count_BrOB']   = type_counts['Bearish OB']
@@ -229,7 +220,8 @@ class DatasetGenerator:
                 'distance_to_below' : zone.get('distance_to_nearest_zone_below'),
                 'above_zone' : zone.get('nearest_above_zone',None),
                 'below_zone' : zone.get('nearest_below_zone',None),
-                
+                'liquidity_confluents' : zone.get('liquidity_confluents',[]),
+                'core_confluents' : zone.get('zore_confluents',[]),
 
                 # Misc zone features
                 'count': zone.get('count'),
@@ -280,6 +272,7 @@ class DatasetGenerator:
 
     def to_dataframe(self):
         data = self.extract_features_and_labels()
+        data = self.extract_confluent_tf()
         data = self.extract_types_tf_counts()
         data = self.extract_nearby_zones()
         data = self.extract_nearby_zones_types_tf()
