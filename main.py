@@ -19,6 +19,7 @@ class SignalService:
         #self.model = Model(...)  # Load pretrained model and transformer
         self.model = None
         self.signal_gen = SignalGenerator(models={'entry_model': self.model})
+        self.output_path = 'dataset.jsonl'
 
     def get_zones(self,interval,lookback):
         df = self.api.get_ohlcv(interval=interval,lookback=lookback)
@@ -27,12 +28,12 @@ class SignalService:
         return zones
 
     def get_latest_zones(self):
-        zone_15m = self.get_zones('15min','2 years')
-        zone_1h = self.get_zones('1h','2 years')
-        zone_4h = self.get_zones('4h','2 years')
+        zone_15m = self.get_zones('15min','1 years')
+        zone_1h = self.get_zones('1h','1 years')
+        zone_4h = self.get_zones('4h','1 years')
         confluentfinder = ConfluentsFinder(zone_15m+zone_1h+zone_4h)
         zones = confluentfinder.getConfluents()
-        df = self.api.get_ohlcv(interval='15min',lookback='2 years')
+        df = self.api.get_ohlcv(interval='15min',lookback='1 years')
         reactor = ZoneReactor(df)
         zones = reactor.get_zones_reaction(zones)
         return zones
@@ -45,12 +46,23 @@ class SignalService:
         if not reaction == 'None':
             return self.signal_gen.generate(df.iloc[-1],zones,reaction)
         return 'None'
+    
+    def get_dataset(self):
+        df = self.get_latest_zones()
+        datagen = DatasetGenerator(df)
+        datagen.get_dataset_list(self.output_path)
+
+    def test_dataset(self):
+        with open(self.output_path, "r") as f:
+            first = f.readline()
+            first_obj = json.loads(first)
+        with open('dataset.json','w') as f:
+            f.write(json.dumps(first_obj))
 
 if __name__ == "__main__" :
     test = SignalService()
     start = time.perf_counter()
-    df = test.get_latest_zones()
-    df = pd.DataFrame(df)
-    df.to_csv('dataset.csv')
+    test.get_dataset()
+    #test.test_dataset()
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")

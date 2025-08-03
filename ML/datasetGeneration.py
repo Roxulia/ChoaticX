@@ -1,12 +1,32 @@
 
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
+import json
+import datetime
+import decimal
 
 class DatasetGenerator:
     def __init__(self,  zones_with_targets):
         
         self.zones = zones_with_targets
         self.dataset = []
+        self.total_line = 0
+
+    def default_json_serializer(self,obj):
+        if isinstance(obj, (datetime.datetime, datetime.date)):
+            return obj.isoformat()
+        elif isinstance(obj, decimal.Decimal):
+            return float(obj)
+        elif isinstance(obj, (np.integer, np.int64, np.int32)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float64, np.float32)):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif hasattr(obj, '__str__'):
+            return str(obj)
+        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
     def perform_counts(self,types = [],timeframes = []):
         type_counts = {
@@ -39,10 +59,10 @@ class DatasetGenerator:
     def extract_built_by_zones(self,index):
         return self.zones[index]['built_by']
     
-    def extract_confluent_tf(self):
-        dataset = []
-        for zone in self.dataset:
-            confluents = zone.get('liquidity_confluents',[]) + zone.get('core_confluents',[])
+    def extract_confluent_tf(self,features):
+        
+        for zone in features:
+            confluents = zone.get('liquidity_confluence',[]) + zone.get('core_confluence',[])
             types = []
             timeframes = []
             for c in confluents:
@@ -53,7 +73,7 @@ class DatasetGenerator:
                 if c_tf is not None:
                     timeframes.append(c_tf)
             type_counts,tf_counts,buyzones,sellzones = self.perform_counts(types,timeframes)
-            data = zone.copy()
+            data = {k: v for k, v in zone.items() if k not in ['liquidity_confluence','core_confluence']}
             data['conf_is_buy_zone'] =   1 if buyzones > sellzones else 0
             data['conf_count_BuOB']   = type_counts['Bullish OB']
             data['conf_count_BrOB']   = type_counts['Bearish OB']
@@ -68,10 +88,36 @@ class DatasetGenerator:
             data['conf_1h_count'] = tf_counts["1h"]
             data['conf_4h_count'] = tf_counts["4h"]
             data['conf_1D_count'] = tf_counts["1D"]
-            dataset.append(data)
-        self.dataset = dataset
-        return dataset
-
+            yield {**data}
+        
+    def extract_confluent_tf_per_zone(self,zone):
+        confluents = zone.get('liquidity_confluence',[]) + zone.get('core_confluence',[])
+        types = []
+        timeframes = []
+        for c in confluents:
+            c_type = c.get('type',None)
+            if c_type is not None:
+                types.append(c_type)
+            c_tf = c.get('timeframe',None)
+            if c_tf is not None:
+                timeframes.append(c_tf)
+        type_counts,tf_counts,buyzones,sellzones = self.perform_counts(types,timeframes)
+        data = {k: v for k, v in zone.items() if k not in ['liquidity_confluence','core_confluence']}
+        data['conf_is_buy_zone'] =   1 if buyzones > sellzones else 0
+        data['conf_count_BuOB']   = type_counts['Bullish OB']
+        data['conf_count_BrOB']   = type_counts['Bearish OB']
+        data['conf_count_BuFVG']   = type_counts['Bullish FVG']
+        data['conf_count_BrFVG']   = type_counts['Bearish FVG']
+        data['conf_count_BuLiq']   = type_counts['Buy-Side Liq']
+        data['conf_count_BrLiq']   = type_counts['Sell-Side Liq']
+        data['conf_1min_count'] = tf_counts["1min"]
+        data['conf_3min_count'] = tf_counts["3min"]
+        data['conf_5min_count'] = tf_counts["5min"]
+        data['conf_15min_count'] = tf_counts["15min"]
+        data['conf_1h_count'] = tf_counts["1h"]
+        data['conf_4h_count'] = tf_counts["4h"]
+        data['conf_1D_count'] = tf_counts["1D"]
+        return data
 
     def extract_types_tf_counts(self):
         dataset = []
@@ -203,13 +249,13 @@ class DatasetGenerator:
 
     def extract_features_and_labels(self):
         dataset = []
-
         for zone in self.zones:
             touch_candle = zone.get('touch_candle')
+            available_zones = zone.get('available_core',[])+zone.get('available_liquidity',[])
             if touch_candle is None:
                 continue
             
-            features= zone.copy()
+            features= {k: v for k, v in zone.items() if k not in ['touch_candle','available_core','available_liquidity']}
             features['candle_volume'] = touch_candle['volume']
             features['candle_open'] = touch_candle['open']
             features['candle_close'] = touch_candle['close']
@@ -217,43 +263,64 @@ class DatasetGenerator:
             features['candle_ema50'] = touch_candle['ema50']
             features['candle_rsi'] = touch_candle['rsi']
             features['candle_atr'] = touch_candle['atr']
-            features['available_zones'] = zone.get('available_core',[])+zone.get('available_liquidity',[])
-            dataset.append((features))
-        self.dataset = dataset
+            features['available_zones'] = available_zones
+            self.total_line += len(available_zones)
+            dataset.append(features)
         return dataset
     
-    def extract_available_zones(self):
-        dataset = []
-        for zone in self.dataset:
-            availables = zone.get('available_zones',[])
+    def extract_available_zones(self,confluents):
+        for zone in confluents:
+            availables = zone.get('available_zones', [])
+            if not availables:
+                continue
+
+            base_data = {k: v for k, v in zone.items() if k != 'available_zones'}
+
             for a_zone in availables:
-                data = zone.copy()
-                for k,v in a_zone.items():
-                    new_key = 'az_' + k
-                    data[new_key] = v
-                dataset.append(data)
-        self.dataset = dataset
-        return dataset
+                temp_zone = self.extract_confluent_tf_per_zone(a_zone)
+                yield {**base_data, **{f'az_{k}': v for k, v in temp_zone.items() if k not in ['available_core','available_liquidity']}}
     
-    def extract_label(self):
-        dataset = []
-        for zone in self.dataset:
+    def extract_label(self,availables):
+        for zone in availables:
             target = zone.get('target_zone')
-            data = zone.copy()
+            base_data = {k: v for k, v in zone.items() if k != 'target_zone'}
             if target is not None :
                 if target['index'] == zone['az_index']:
-                    data['is_target'] = 1
+                    base_data['is_target'] = 1
             else:
-                data['is_target'] = 0
-            dataset.append(data)
-        self.dataset = dataset
-        return dataset
+                base_data['is_target'] = 0
+            yield {**base_data}
 
     def to_dataframe(self):
         data = self.extract_features_and_labels()
         data = self.extract_confluent_tf()
         data = self.extract_label()
         df = pd.DataFrame(data)
-        df = df.drop(columns=['target_zone','types','timeframes','above_zone','below_zone','above_types','above_timeframes','below_types','below_timeframes'])
-        
         return df
+    
+    def get_dataset_list(self,output_path):
+        features = self.extract_features_and_labels()
+        confluents = self.extract_confluent_tf(features)
+        availables = self.extract_available_zones(confluents)
+        data = self.extract_label(availables)
+        
+        with open(output_path, "w") as f:
+            for i, row in enumerate(tqdm(data, desc="Writing to JSONL",total=self.total_line, dynamic_ncols=True)):
+                try:
+                    f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
+                except TypeError as e:
+                    print(f"\n🚨 JSON serialization error at row {i}")
+                    for k, v in row.items():
+                        try:
+                            json.dumps(v,default=self.default_json_serializer)  # test if this key's value is serializable
+                        except TypeError:
+                            print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
+                    raise e  
+                except ValueError as e:
+                    print(f"\n🚨 JSON serialization error at row {i}")
+                    for k,v in row.items():
+                        try:
+                            json.dumps(v,default=self.default_json_serializer)  # test if this key's value is serializable
+                        except ValueError:
+                            print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
+                    raise e

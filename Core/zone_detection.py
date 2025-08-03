@@ -1,11 +1,12 @@
 import numpy as np
+from tqdm import tqdm
 class ZoneDetector:
     def __init__(self, df, timeframe="1h"):
         self.df = df
         self.timeframe = timeframe
         self.detect_swings()
 
-    def detect_fvg(self,threshold = 100):
+    def detect_fvg(self,threshold = 300):
         """
         Detect Fair Value Gaps (FVGs)
         """
@@ -32,7 +33,7 @@ class ZoneDetector:
         prev_volatility_5 = close_rolling.std().values
         momentum_5 = closes - np.roll(closes, 5)
 
-        for i in range(5, length - 1):
+        for i in tqdm(range(5, length - 1),desc='Extracting FVG'):
             prev_high = highs[i - 1]
             prev_low = lows[i - 1]
             next_high = highs[i + 1]
@@ -119,7 +120,7 @@ class ZoneDetector:
         rsi = self.df['rsi'].values
         atr_mean = self.df['atr_mean'].values
 
-        for i in range(5, len(self.df) - 2):
+        for i in tqdm(range(5, len(self.df) - 2),desc='Extracting OBs'):
             open_, close_ = opens[i], closes[i]
             high_, low_ = highs[i], lows[i]
             prev_close = closes[i - 1]
@@ -305,7 +306,7 @@ class ZoneDetector:
         def process_zone(candidates, direction):
             result = []
             used = set()
-            for i, base in enumerate(candidates):
+            for i, base in tqdm(enumerate(candidates),desc = 'extracting Liquidity Zones'):
                 if base['index'] in used:
                     continue
 

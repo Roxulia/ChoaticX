@@ -13,6 +13,7 @@
 *.venv
 *.csv
 *.json
+*.jsonl
 output.txt
 
 # User-specific files (MonoDevelop/Xamarin Studio)

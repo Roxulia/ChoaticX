@@ -2,14 +2,12 @@ import pandas as pd
 import numpy as np
 from Data.timeFrames import timeFrame
 from Data.indexCalculate import IndexCalculator
-
+from tqdm import tqdm
 class ConfluentsFinder():
     def __init__(self,zones):
         self.zones = zones
         self. timeframes = timeFrame()
         self.indexCalculate = IndexCalculator(self.zones)
-        
-        
 
     def seperate(self):
         self.liq_zones = [z for z in self.zones if  z['type'] in ['Buy-Side Liq','Sell-Side Liq']]
@@ -17,9 +15,9 @@ class ConfluentsFinder():
         self.based_zones = self.timeframes.getBasedZone(self.zones)
 
     def add_core_confluence(self):
-        for m in self.based_zones:
+        for m in tqdm(self.based_zones,desc='Adding Core Confluents'):
             confluents = []
-            available_zones = [z for z in self.core_zones if (z['touch_index'] is not None and z['touch_index'] > m['index'] ) or (z['touch_index'] is None) ]
+            available_zones = [z for z in self.core_zones if (z['index'] < m['index'] and (z['touch_index'] is not None and z['touch_index'] > m['index'] ) or (z['touch_index'] is None )) ]
             for lz in available_zones:
                 if lz['zone_low'] <= m['zone_high'] and lz['zone_high'] >= m['zone_low']:
                     confluents.append({
@@ -33,9 +31,9 @@ class ConfluentsFinder():
             m['available_core'] = available_zones
 
     def add_liq_confluence(self):
-        for m in self.based_zones:
+        for m in tqdm(self.based_zones,desc = 'Adding Liq Confluents'):
             confluents = []
-            available_zones = [z for z in self.liq_zones if (z['swept_index'] is not None and z['swept_index'] > m['index'] ) or (z['swept_index'] is None) ]
+            available_zones = [z for z in self.liq_zones if (z['index'] < m['index'] and (z['swept_index'] is not None and z['swept_index'] > m['index'] ) or (z['swept_index'] is None )) ]
             for lz in available_zones:
                 if lz['zone_low'] <= m['zone_high'] and lz['zone_high'] >= m['zone_low']:
                     confluents.append({

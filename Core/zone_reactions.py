@@ -1,3 +1,4 @@
+from tqdm import tqdm
 class ZoneReactor:
     def __init__(self, candles):
         self.candles = candles
@@ -7,7 +8,7 @@ class ZoneReactor:
         num_candles = len(candles)
         zone_high = zone['zone_high']
         zone_low = zone['zone_low']
-        end_idx = zone['end_index']
+        end_idx = zone['index']
 
         touch_type = None
         touch_index = None
@@ -48,10 +49,10 @@ class ZoneReactor:
         candles = self.candles[['high', 'low', 'open', 'close']].to_numpy()
         num_candles = len(candles)
 
-        for zone in zones:
+        for zone in tqdm(zones, desc="Getting Zone Reactions"):
             zone_high = zone['zone_high']
             zone_low = zone['zone_low']
-            end_idx = zone['end_index']
+            end_idx = zone['index']
 
             touch_type = None
             touch_index = None
