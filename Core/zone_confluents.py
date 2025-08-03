@@ -30,6 +30,7 @@ class ConfluentsFinder():
                         'touched': lz.get('touch_index') is not None
                     })
             m['core_confluence'] = confluents
+            m['available_core'] = available_zones
 
     def add_liq_confluence(self):
         for m in self.based_zones:
@@ -45,6 +46,7 @@ class ConfluentsFinder():
                         'swept': lz.get('swept_index') is not None
                     })
             m['liquidity_confluence'] = confluents
+            m['available_liquidity'] = available_zones
     
     def getConfluents(self):
         self.zones = self.indexCalculate.calculate()

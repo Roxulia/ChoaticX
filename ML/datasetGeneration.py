@@ -208,45 +208,30 @@ class DatasetGenerator:
             touch_candle = zone.get('touch_candle')
             if touch_candle is None:
                 continue
-            features = {
-                'zone_index' : zone['zone_index'],
-                'end_index' : zone['end_index'],
-                'zone_high': zone['zone_high'],
-                'zone_low': zone['zone_low'],
-                'zone_width': zone['zone_high'] - zone['zone_low'],
-                'types' : zone['types'],
-                'timeframes' : zone['timeframes'],
-                'distance_to_above' : zone.get('distance_to_nearest_zone_above'),
-                'distance_to_below' : zone.get('distance_to_nearest_zone_below'),
-                'above_zone' : zone.get('nearest_above_zone',None),
-                'below_zone' : zone.get('nearest_below_zone',None),
-                'liquidity_confluents' : zone.get('liquidity_confluents',[]),
-                'core_confluents' : zone.get('zore_confluents',[]),
-
-                # Misc zone features
-                'count': zone.get('count'),
-                'touch_type': zone.get('touch_type'),
-
-                # Price action
-                'close': touch_candle['close'],
-                'open': touch_candle['open'],
-                'high': touch_candle['high'],
-                'low': touch_candle['low'],
-                'volume': touch_candle['volume'],
-
-                # TA indicators
-                'ema20': touch_candle.get('ema20', 0),
-                'ema50': touch_candle.get('ema50', 0),
-                'rsi': touch_candle.get('rsi', 0),
-                'atr': touch_candle.get('atr', 0),
-
-                # Categorical encoding
-                
-                'touch_wick': 1 if zone.get('touch_type') == 'wick_touch' else 0,
-                'touch_body_inside': 1 if zone.get('touch_type') == 'body_close_inside' else 0,
-                'target_zone' : zone.get('target_zone',None)
-            }
+            
+            features= zone.copy()
+            features['candle_volume'] = touch_candle['volume']
+            features['candle_open'] = touch_candle['open']
+            features['candle_close'] = touch_candle['close']
+            features['candle_ema20'] = touch_candle['ema20']
+            features['candle_ema50'] = touch_candle['ema50']
+            features['candle_rsi'] = touch_candle['rsi']
+            features['candle_atr'] = touch_candle['atr']
+            features['available_zones'] = zone.get('available_core',[])+zone.get('available_liquidity',[])
             dataset.append((features))
+        self.dataset = dataset
+        return dataset
+    
+    def extract_available_zones(self):
+        dataset = []
+        for zone in self.dataset:
+            availables = zone.get('available_zones',[])
+            for a_zone in availables:
+                data = zone.copy()
+                for k,v in a_zone.items():
+                    new_key = 'az_' + k
+                    data[new_key] = v
+                dataset.append(data)
         self.dataset = dataset
         return dataset
     
@@ -254,18 +239,12 @@ class DatasetGenerator:
         dataset = []
         for zone in self.dataset:
             target = zone.get('target_zone')
-            above = zone.get('above_zone')
-            below = zone.get('below_zone')
             data = zone.copy()
             if target is not None :
-                if above is not None and target is above:
-                    data['target'] = 1
-                elif below is not None and target is below:
-                    data['target'] = -1
-                else:
-                    data['target'] = None
+                if target['index'] == zone['az_index']:
+                    data['is_target'] = 1
             else:
-                data['target'] = None
+                data['is_target'] = 0
             dataset.append(data)
         self.dataset = dataset
         return dataset
@@ -273,9 +252,6 @@ class DatasetGenerator:
     def to_dataframe(self):
         data = self.extract_features_and_labels()
         data = self.extract_confluent_tf()
-        data = self.extract_types_tf_counts()
-        data = self.extract_nearby_zones()
-        data = self.extract_nearby_zones_types_tf()
         data = self.extract_label()
         df = pd.DataFrame(data)
         df = df.drop(columns=['target_zone','types','timeframes','above_zone','below_zone','above_types','above_timeframes','below_types','below_timeframes'])

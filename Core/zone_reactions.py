@@ -100,11 +100,11 @@ class ZoneReactor:
         zone_targets = []
         for zone in zones:
             touch_index = zone['touch_index']
-        
+            available_zones = zone.get('available_core',[])+ zone.get('available_liquidity',[])
             if touch_index is not None:
                 # Step 2: Look for next zone that price touches
                 target_zone = None
-                for next_zone in zones:
+                for next_zone in available_zones:
                     if next_zone == zone:
                         continue
                     next_high = next_zone['zone_high']
