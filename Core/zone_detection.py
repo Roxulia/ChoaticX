@@ -368,7 +368,6 @@ class ZoneDetector:
                     'zone_low': zone_low,
                     'count': len(group),
                     'index' : group[0]['index'],
-                    'indexs': [g['index'] for g in group],
                     'end_index': end_idx,
                     'swept_index': swept_index,
                     'liquidity_height': liquidity_height,
@@ -389,9 +388,9 @@ class ZoneDetector:
 
         buy_side = process_zone(lows, 'Buy-Side')
         sell_side = process_zone(highs, 'Sell-Side')
-        result = self.get_liq_touches(buy_side + sell_side)
+        #result = self.get_liq_touches(buy_side + sell_side)
 
-        return result
+        return buy_side+sell_side
     
     def get_liq_touches(self, liquidity_zones):
         lows = self.df['low'].values

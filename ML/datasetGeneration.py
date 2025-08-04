@@ -63,6 +63,7 @@ class DatasetGenerator:
         
         for zone in features:
             confluents = zone.get('liquidity_confluence',[]) + zone.get('core_confluence',[])
+            data = {k: v for k, v in zone.items() if k not in ['liquidity_confluence','core_confluence']}
             types = []
             timeframes = []
             for c in confluents:
@@ -73,7 +74,7 @@ class DatasetGenerator:
                 if c_tf is not None:
                     timeframes.append(c_tf)
             type_counts,tf_counts,buyzones,sellzones = self.perform_counts(types,timeframes)
-            data = {k: v for k, v in zone.items() if k not in ['liquidity_confluence','core_confluence']}
+            
             data['conf_is_buy_zone'] =   1 if buyzones > sellzones else 0
             data['conf_count_BuOB']   = type_counts['Bullish OB']
             data['conf_count_BrOB']   = type_counts['Bearish OB']
@@ -92,6 +93,7 @@ class DatasetGenerator:
         
     def extract_confluent_tf_per_zone(self,zone):
         confluents = zone.get('liquidity_confluence',[]) + zone.get('core_confluence',[])
+        data = {k: v for k, v in zone.items() if k not in ['liquidity_confluence','core_confluence']}
         types = []
         timeframes = []
         for c in confluents:
@@ -102,7 +104,7 @@ class DatasetGenerator:
             if c_tf is not None:
                 timeframes.append(c_tf)
         type_counts,tf_counts,buyzones,sellzones = self.perform_counts(types,timeframes)
-        data = {k: v for k, v in zone.items() if k not in ['liquidity_confluence','core_confluence']}
+        
         data['conf_is_buy_zone'] =   1 if buyzones > sellzones else 0
         data['conf_count_BuOB']   = type_counts['Bullish OB']
         data['conf_count_BrOB']   = type_counts['Bearish OB']
@@ -252,17 +254,23 @@ class DatasetGenerator:
         for zone in self.zones:
             touch_candle = zone.get('touch_candle')
             available_zones = zone.get('available_core',[])+zone.get('available_liquidity',[])
-            if touch_candle is None:
-                continue
-            
             features= {k: v for k, v in zone.items() if k not in ['touch_candle','available_core','available_liquidity']}
-            features['candle_volume'] = touch_candle['volume']
-            features['candle_open'] = touch_candle['open']
-            features['candle_close'] = touch_candle['close']
-            features['candle_ema20'] = touch_candle['ema20']
-            features['candle_ema50'] = touch_candle['ema50']
-            features['candle_rsi'] = touch_candle['rsi']
-            features['candle_atr'] = touch_candle['atr']
+            if touch_candle is None:
+                features['candle_volume'] = None
+                features['candle_open'] = None
+                features['candle_close'] = None
+                features['candle_ema20'] = None
+                features['candle_ema50'] = None
+                features['candle_rsi'] = None
+                features['candle_atr'] = None
+            else:
+                features['candle_volume'] = touch_candle['volume']
+                features['candle_open'] = touch_candle['open']
+                features['candle_close'] = touch_candle['close']
+                features['candle_ema20'] = touch_candle['ema20']
+                features['candle_ema50'] = touch_candle['ema50']
+                features['candle_rsi'] = touch_candle['rsi']
+                features['candle_atr'] = touch_candle['atr']
             features['available_zones'] = available_zones
             self.total_line += len(available_zones)
             dataset.append(features)
@@ -271,10 +279,9 @@ class DatasetGenerator:
     def extract_available_zones(self,confluents):
         for zone in confluents:
             availables = zone.get('available_zones', [])
+            base_data = {k: v for k, v in zone.items() if k != 'available_zones'}
             if not availables:
                 continue
-
-            base_data = {k: v for k, v in zone.items() if k != 'available_zones'}
 
             for a_zone in availables:
                 temp_zone = self.extract_confluent_tf_per_zone(a_zone)
@@ -287,17 +294,12 @@ class DatasetGenerator:
             if target is not None :
                 if target['index'] == zone['az_index']:
                     base_data['is_target'] = 1
+                else:
+                    base_data['is_target'] = 0
             else:
-                base_data['is_target'] = 0
+                base_data['is_target'] = None
             yield {**base_data}
 
-    def to_dataframe(self):
-        data = self.extract_features_and_labels()
-        data = self.extract_confluent_tf()
-        data = self.extract_label()
-        df = pd.DataFrame(data)
-        return df
-    
     def get_dataset_list(self,output_path):
         features = self.extract_features_and_labels()
         confluents = self.extract_confluent_tf(features)

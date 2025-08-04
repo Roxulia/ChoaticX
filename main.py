@@ -51,6 +51,11 @@ class SignalService:
         df = self.get_latest_zones()
         datagen = DatasetGenerator(df)
         datagen.get_dataset_list(self.output_path)
+        return datagen.total_line
+    
+    def clean_dataset(self,total):
+        datacleaner = DataCleaner(self.output_path,batch_size=1000,total_line=total)
+        datacleaner.perform_clean()
 
     def test_dataset(self):
         with open(self.output_path, "r") as f:
@@ -62,7 +67,8 @@ class SignalService:
 if __name__ == "__main__" :
     test = SignalService()
     start = time.perf_counter()
-    test.get_dataset()
+    total = test.get_dataset()
+    test.clean_dataset(total)
     #test.test_dataset()
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")
