@@ -91,47 +91,46 @@ class ZoneReactor:
 
         return results
 
-    def get_next_target_zone(self,zones):
+    def get_next_target_zone(self, zones):
         """
         For each zone, identify the next target zone (price moves into it after touch).
-
-        Returns:
-            List of zones with `target_zone` metadata.
+        Optimized for speed.
         """
         zone_targets = []
-        for zone in zones:
-            touch_index = zone['touch_index']
-            available_zones = zone.get('available_core',[])+ zone.get('available_liquidity',[])
-            if touch_index is not None:
-                # Step 2: Look for next zone that price touches
-                target_zone = None
+        candles = self.candles  # avoid attribute access in loop
+        candle_len = len(candles)
+
+        for zone in tqdm(zones, desc='Adding Target zones'):
+            touch_index = zone.get('touch_index')
+            available_zones = zone.get('available_core', []) + zone.get('available_liquidity', [])
+
+            target_zone = None
+            if touch_index is not None and 0 <= touch_index < candle_len - 1:
+                future_candles = candles.iloc[touch_index + 1:]
+
                 for next_zone in available_zones:
                     if next_zone == zone:
                         continue
+
                     next_high = next_zone['zone_high']
                     next_low = next_zone['zone_low']
 
-                    # Check from touch_index forward
-                    for j in range(touch_index + 1, len(self.candles)):
-                        candle = self.candles.iloc[j]
-                        high, low, open_, close = candle['high'], candle['low'], candle['open'], candle['close']
+                    # Vectorized mask for better performance
+                    condition = (
+                        ((future_candles['open'] > next_high) & (future_candles['close'] < next_high)) |
+                        ((future_candles['open'] < next_low) & (future_candles['close'] > next_low)) |
+                        ((future_candles['high'] < next_high) & (future_candles['low'] > next_low))
+                    )
 
-                        if (open_ > next_high and close < next_high ) or (open_ < next_low and close > next_low ) or (high < next_high and low > next_low):
-                            target_zone = next_zone
-                            break
+                    if condition.any():
+                        target_zone = next_zone
+                        break  # found the first valid target
 
-                    if target_zone:
-                        break  # Stop after finding first target zone
-                zone_copy = zone.copy()
-                zone_copy['target_zone'] = target_zone
-                zone_targets.append(zone_copy)
-
-            else:
-                zone_copy = zone.copy()
-                zone_copy['target_zone'] = None
-                zone_targets.append(zone_copy)
+            # No deep copy, just build dict as needed
+            zone_targets.append({**zone, 'target_zone': target_zone})
 
         return zone_targets
+
 
     
     def get_last_candle_reaction(self,zones):

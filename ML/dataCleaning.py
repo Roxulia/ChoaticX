@@ -7,7 +7,7 @@ class DataCleaner:
     def __init__(self,data_path,batch_size,total_line,csv_path='dataset.csv'):
         self.scaler = StandardScaler()
         self.data_path = data_path
-        self.total_line = total_line
+        self.total_line = np.ceil(total_line / batch_size)
         self.csv_path = csv_path    
         self.batch_size = batch_size
         self.below_above_col = ['below_zone_high','below_zone_low','below_zone_width','below_zone_count',
@@ -41,25 +41,7 @@ class DataCleaner:
             '1D'   : 7
         }
         self.columns = [
-            "index", "type", "ema 20", "ema 50", "atr", "rsi", "atr_mean", "zone_high", "zone_low", "zone_width",
-            "body_size", "wick_ratio", "volume_on_creation", "avg_volume_past_5", "prev_volatility_5", "momentum_5",
-            "touch_index", "time_frame", "touch_type", "candle_volume", "candle_open", "candle_close",
-            "candle_ema20", "candle_ema50", "candle_rsi", "candle_atr", "conf_is_buy_zone",
-            "conf_count_BuOB", "conf_count_BrOB", "conf_count_BuFVG", "conf_count_BrFVG", "conf_count_BuLiq",
-            "conf_count_BrLiq", "conf_1min_count", "conf_3min_count", "conf_5min_count", "conf_15min_count",
-            "conf_1h_count", "conf_4h_count", "conf_1D_count", "is_target", "level", "count", "end_index",
-            "swept_index", "liquidity_height", "equal_level_deviation", "avg_volume_around_zone",
-            "duration_between_first_last_touch", "avg_swing_strength", "avg_ema_20", "avg_ema_50", "avg_rsi",
-            "avg_atr", "avg_atr_mean", "az_index", "az_type", "az_ema 20", "az_ema 50", "az_atr",
-            "az_rsi", "az_atr_mean", "az_zone_high", "az_zone_low", "az_zone_width", "az_body_size", "az_wick_ratio",
-            "az_volume_on_creation", "az_avg_volume_past_5", "az_prev_volatility_5", "az_momentum_5", "az_time_frame",
-            "az_conf_is_buy_zone", "az_conf_count_BuOB", "az_conf_count_BrOB", "az_conf_count_BuFVG",
-            "az_conf_count_BrFVG", "az_conf_count_BuLiq", "az_conf_count_BrLiq", "az_conf_1min_count",
-            "az_conf_3min_count", "az_conf_5min_count", "az_conf_15min_count", "az_conf_1h_count",
-            "az_conf_4h_count", "az_conf_1D_count", "az_level", "az_count", "az_end_index",
-            "az_swept_index", "az_liquidity_height", "az_equal_level_deviation", "az_avg_volume_around_zone",
-            "az_duration_between_first_last_touch", "az_avg_swing_strength", "az_avg_ema_20", "az_avg_ema_50",
-            "az_avg_rsi", "az_avg_atr", "az_avg_atr_mean"
+            'type', 'conf_is_buy_zone', 'az_conf_15min_count', 'touch_index', 'az_avg_ema_50', 'az_swept_index', 'conf_1min_count', 'conf_count_BrLiq', 'time_frame', 'az_conf_count_BuFVG', 'prev_volatility_5', 'conf_count_BuOB', 'conf_4h_count', 'az_ema 50', 'az_conf_count_BuOB', 'avg_ema_20', 'candle_ema20', 'conf_1h_count', 'level', 'candle_atr', 'avg_rsi', 'az_conf_count_BrOB', 'az_body_size', 'az_zone_high', 'az_avg_rsi', 'az_touch_index', 'conf_5min_count', 'az_zone_low', 'avg_atr', 'az_avg_atr_mean', 'az_rsi', 'atr_mean', 'count', 'az_conf_count_BrLiq', 'az_avg_swing_strength', 'az_conf_1D_count', 'az_time_frame', 'az_end_index', 'az_conf_count_BrFVG', 'duration_between_first_last_touch', 'candle_ema50', 'avg_ema_50', 'swept_index', 'az_conf_1min_count', 'avg_atr_mean', 'az_conf_3min_count', 'az_equal_level_deviation', 'wick_ratio', 'touch_type', 'liquidity_height', 'az_level', 'candle_rsi', 'az_duration_between_first_last_touch', 'conf_3min_count', 'body_size', 'az_conf_1h_count', 'zone_high', 'az_avg_volume_around_zone', 'az_conf_count_BuLiq', 'az_conf_is_buy_zone', 'az_liquidity_height', 'candle_open', 'az_type', 'az_ema 20', 'az_atr_mean', 'end_index', 'conf_count_BuFVG', 'conf_15min_count', 'az_conf_5min_count', 'az_avg_ema_20', 'conf_count_BrFVG', 'atr', 'az_avg_volume_past_5', 'conf_count_BuLiq', 'index', 'candle_close', 'az_wick_ratio', 'az_conf_4h_count', 'az_avg_atr', 'conf_count_BrOB', 'candle_volume', 'az_index', 'az_count', 'avg_volume_past_5', 'avg_volume_around_zone', 'avg_swing_strength', 'equal_level_deviation', 'ema 50', 'momentum_5', 'volume_on_creation', 'az_prev_volatility_5', 'az_atr', 'az_volume_on_creation', 'zone_width', 'rsi', 'az_momentum_5', 'az_zone_width', 'is_target', 'ema 20', 'zone_low', 'conf_1D_count'
         ]
 
     
@@ -69,26 +51,20 @@ class DataCleaner:
             batch.append(record)
             if len(batch) == self.batch_size:
                 df =  pd.DataFrame(batch)
-                for col in self.columns:
-                    if col not in df.columns:
-                        df[col] = pd.NA
-                df = df[self.columns]
                 df = self.remove_untouched(df)
                 df = self.remove_columns(df)
                 df = self.transformCategoryTypes(df)
-                
-                yield df
+                df = df.reindex(columns=self.columns, fill_value=pd.NA)
                 batch = []
+                yield df
+                
         if batch:
             df =  pd.DataFrame(batch)
-            for col in self.columns:
-                if col not in df.columns:
-                    df[col] = pd.NA
-            df = df[self.columns]
             df = self.remove_untouched(df)
             df = self.remove_columns(df)
             df = self.transformCategoryTypes(df)
-            
+            df = df.reindex(columns=self.columns, fill_value=pd.NA)
+
             yield df
     
     def get_data_from_file(self):
@@ -98,10 +74,12 @@ class DataCleaner:
                 yield data
 
     def perform_clean(self):
-        is_first = True
-        for i,df in tqdm(enumerate(self.to_dataframe()),desc='Performing Data Cleaning'):
-            df.to_csv(self.csv_path, mode='a', header=is_first, index=False)
-            is_first = False
+        
+        pd.DataFrame(columns=self.columns).to_csv(self.csv_path, index=False)
+        for i,df in tqdm(enumerate(self.to_dataframe()),desc='Performing Data Cleaning',total=self.total_line,dynamic_ncols=True):
+            
+            df.to_csv(self.csv_path, mode='a', header=False, index=False)
+            
 
     def transformCategoryTypes(self,df):
         columns = list(df.columns)

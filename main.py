@@ -28,14 +28,15 @@ class SignalService:
         return zones
 
     def get_latest_zones(self):
-        zone_15m = self.get_zones('15min','1 years')
-        zone_1h = self.get_zones('1h','1 years')
-        zone_4h = self.get_zones('4h','1 years')
+        zone_15m = self.get_zones('15min','3 months')
+        zone_1h = self.get_zones('1h','3 months')
+        zone_4h = self.get_zones('4h','3 months')
         confluentfinder = ConfluentsFinder(zone_15m+zone_1h+zone_4h)
         zones = confluentfinder.getConfluents()
-        df = self.api.get_ohlcv(interval='15min',lookback='1 years')
+        df = self.api.get_ohlcv(interval='15min',lookback='3 months')
         reactor = ZoneReactor(df)
         zones = reactor.get_zones_reaction(zones)
+        zones = reactor.get_next_target_zone(zones)
         return zones
 
     def get_current_signals(self):
@@ -58,11 +59,14 @@ class SignalService:
         datacleaner.perform_clean()
 
     def test_dataset(self):
-        with open(self.output_path, "r") as f:
-            first = f.readline()
-            first_obj = json.loads(first)
-        with open('dataset.json','w') as f:
-            f.write(json.dumps(first_obj))
+        with open(self.output_path) as f:
+            keys = set()
+            for i, line in enumerate(f):
+                obj = json.loads(line)
+                keys.update(obj.keys())
+            print(f"🧩 Total unique keys: {len(keys)}")
+            print(keys)
+
 
 if __name__ == "__main__" :
     test = SignalService()

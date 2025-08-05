@@ -274,6 +274,7 @@ class DatasetGenerator:
             features['available_zones'] = available_zones
             self.total_line += len(available_zones)
             dataset.append(features)
+            #print(features.keys())
         return dataset
     
     def extract_available_zones(self,confluents):
