@@ -10,7 +10,8 @@ class DataCleaner:
         self.total_line = np.ceil(total_line / batch_size)
         self.csv_path = csv_path    
         self.batch_size = batch_size
-        self.below_above_col = ['below_zone_high','below_zone_low','below_zone_width','below_zone_count',
+        self.below_above_col = ['distance_to_above','distance_to_below',
+                                'below_zone_high','below_zone_low','below_zone_width','below_zone_count',
                                 'above_zone_high','above_zone_low','above_zone_width','above_zone_count',
                                 'above_is_buy_zone','above_count_BuOB','above_count_BrOB','above_count_BuFVG','above_count_BrFVG','above_count_BuLiq','above_count_BrLiq',
                                 'above_1min_count','above_3min_count','above_5min_count','above_15min_count','above_1h_count','above_4h_count','above_1D_count',
@@ -43,6 +44,7 @@ class DataCleaner:
         self.columns = [
             'type', 'conf_is_buy_zone', 'az_conf_15min_count', 'touch_index', 'az_avg_ema_50', 'az_swept_index', 'conf_1min_count', 'conf_count_BrLiq', 'time_frame', 'az_conf_count_BuFVG', 'prev_volatility_5', 'conf_count_BuOB', 'conf_4h_count', 'az_ema 50', 'az_conf_count_BuOB', 'avg_ema_20', 'candle_ema20', 'conf_1h_count', 'level', 'candle_atr', 'avg_rsi', 'az_conf_count_BrOB', 'az_body_size', 'az_zone_high', 'az_avg_rsi', 'az_touch_index', 'conf_5min_count', 'az_zone_low', 'avg_atr', 'az_avg_atr_mean', 'az_rsi', 'atr_mean', 'count', 'az_conf_count_BrLiq', 'az_avg_swing_strength', 'az_conf_1D_count', 'az_time_frame', 'az_end_index', 'az_conf_count_BrFVG', 'duration_between_first_last_touch', 'candle_ema50', 'avg_ema_50', 'swept_index', 'az_conf_1min_count', 'avg_atr_mean', 'az_conf_3min_count', 'az_equal_level_deviation', 'wick_ratio', 'touch_type', 'liquidity_height', 'az_level', 'candle_rsi', 'az_duration_between_first_last_touch', 'conf_3min_count', 'body_size', 'az_conf_1h_count', 'zone_high', 'az_avg_volume_around_zone', 'az_conf_count_BuLiq', 'az_conf_is_buy_zone', 'az_liquidity_height', 'candle_open', 'az_type', 'az_ema 20', 'az_atr_mean', 'end_index', 'conf_count_BuFVG', 'conf_15min_count', 'az_conf_5min_count', 'az_avg_ema_20', 'conf_count_BrFVG', 'atr', 'az_avg_volume_past_5', 'conf_count_BuLiq', 'index', 'candle_close', 'az_wick_ratio', 'az_conf_4h_count', 'az_avg_atr', 'conf_count_BrOB', 'candle_volume', 'az_index', 'az_count', 'avg_volume_past_5', 'avg_volume_around_zone', 'avg_swing_strength', 'equal_level_deviation', 'ema 50', 'momentum_5', 'volume_on_creation', 'az_prev_volatility_5', 'az_atr', 'az_volume_on_creation', 'zone_width', 'rsi', 'az_momentum_5', 'az_zone_width', 'is_target', 'ema 20', 'zone_low', 'conf_1D_count'
         ]
+        self.columns_to_remove = ['swept_index','end_index','duration_between_first_last_touch','touch_index','level','az_touch_index','az_touch_type','az_swept_index','az_end_index','az_level','az_duration_between_first_last_touch']
 
     
     def to_dataframe(self):
@@ -54,6 +56,7 @@ class DataCleaner:
                 df = self.remove_untouched(df)
                 df = self.remove_columns(df)
                 df = self.transformCategoryTypes(df)
+                df = self.fillNaN(df)
                 df = df.reindex(columns=self.columns, fill_value=pd.NA)
                 batch = []
                 yield df
@@ -63,6 +66,7 @@ class DataCleaner:
             df = self.remove_untouched(df)
             df = self.remove_columns(df)
             df = self.transformCategoryTypes(df)
+            df = self.fillNaN(df)
             df = df.reindex(columns=self.columns, fill_value=pd.NA)
 
             yield df
@@ -96,9 +100,10 @@ class DataCleaner:
         return df
 
     def fillNaN(self,df):
-        df['distance_to_above'] = df['distance_to_above'].fillna(0)
-        df['distance_to_below'] = df['distance_to_below'].fillna(0)
-        df[self.below_above_col] = df[self.below_above_col].fillna(0)
+        columns = list(df.columns)
+        valid_cols = [col for col in self.below_above_col if col in columns]
+        df[valid_cols] = df[valid_cols].fillna(0)
+        df[columns] = df[columns].fillna(0)
         df.replace([float('inf'), float('-inf')], 0, inplace=True)
         return df
     
@@ -107,7 +112,7 @@ class DataCleaner:
         return df
 
     def remove_columns(self,df):
-        df_new = df.drop(columns=[col for col in ['az_touch_index','az_touch_type'] if col in df.columns])
+        df_new = df.drop(columns=[col for col in self.columns_to_remove if col in df.columns])
         return df_new
 
 
