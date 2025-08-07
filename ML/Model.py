@@ -4,15 +4,20 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import SGDClassifier
 from xgboost import XGBClassifier
+from tqdm import tqdm
 
 class ModelHandler:
-    def __init__(self, model_type='rf', model_path='model.pkl', n_estimators_step=10):
+    def __init__(self,total_line,data_path,chunk = 1000,model_type='rf', model_path='model.pkl', n_estimators_step=10):
         """
         model_type: 'rf' (RandomForest), 'sgd' (SGDClassifier), or 'xgb' (XGBoost)
         """
         self.model_type = model_type
         self.model_path = model_path
+        self.data_path = data_path
+        self.target_col = 'is_target'
+        self.chunk = chunk
         self.n_estimators_step = n_estimators_step
+        self.total_line = total_line
         self.classes = None
         self.model = self._init_model()
 
@@ -22,7 +27,7 @@ class ModelHandler:
         elif self.model_type == 'sgd':
             return SGDClassifier()
         elif self.model_type == 'xgb':
-            return XGBClassifier(use_label_encoder=False, eval_metric='logloss', n_estimators=self.n_estimators_step)
+            return XGBClassifier( eval_metric='logloss', n_estimators=self.n_estimators_step)
         else:
             raise ValueError(f"Unsupported model type: {self.model_type}")
 
@@ -51,7 +56,7 @@ class ModelHandler:
                 self.model.set_params(n_estimators=new_estimators)
                 self.model.fit(X_batch, y_batch, xgb_model=prev_booster)
 
-    def data_generator(self,file_path,target_col, chunksize=1000):
+    def data_generator(self):
         """
         Generator that yields X, y batches from a CSV file.
 
@@ -65,13 +70,13 @@ class ModelHandler:
             X (ndarray): Features batch.
             y (ndarray): Target batch.
         """
-        for chunk in pd.read_csv(file_path, chunksize=chunksize):
-            X = chunk.drop(column = [target_col]).values
-            y = chunk[target_col].values
+        for chunk in pd.read_csv(self.data_path, chunksize=self.chunk):
+            X = chunk.drop(columns = [self.target_col]).values
+            y = chunk[self.target_col].values
             yield X, y
 
     def train(self):
-        for i, (X_batch, y_batch) in enumerate(self.data_generator()):
+        for i, (X_batch, y_batch) in tqdm(enumerate(self.data_generator()),desc="Model Training",total=self.total_line,dynamic_ncols=True):
             self.partial_train(X_batch, y_batch, iteration=i)
         joblib.dump(self.model, self.model_path)
         

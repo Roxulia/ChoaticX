@@ -11,15 +11,18 @@ from Data.binanceAPI import BinanceAPI
 import time
 import pandas as pd
 import json
-
-
+from dotenv import load_dotenv
+import os
 class SignalService:
     def __init__(self):
+        load_dotenv()
         self.api = BinanceAPI()
         #self.model = Model(...)  # Load pretrained model and transformer
         self.model = None
         self.signal_gen = SignalGenerator(models={'entry_model': self.model})
-        self.output_path = 'dataset.jsonl'
+        self.output_path = os.getenv(key='RAW_DATA')
+        self.csv_path = os.getenv(key='CLEANED_DATA')
+        self.model_path = os.getenv(key='MODEL_PATH')
 
     def get_zones(self,interval,lookback):
         df = self.api.get_ohlcv(interval=interval,lookback=lookback)
@@ -56,7 +59,11 @@ class SignalService:
     
     def clean_dataset(self,total):
         datacleaner = DataCleaner(self.output_path,batch_size=1000,total_line=total)
-        datacleaner.perform_clean()
+        return datacleaner.perform_clean()
+        
+    def train_model(self,total):
+        model_trainer = ModelHandler(data_path=self.csv_path,model_path=self.model_path,model_type='xgb',total_line=total)
+        model_trainer.train()
 
     def test_dataset(self):
         with open(self.output_path) as f:
@@ -72,7 +79,8 @@ if __name__ == "__main__" :
     test = SignalService()
     start = time.perf_counter()
     total = test.get_dataset()
-    test.clean_dataset(total)
+    total = test.clean_dataset(total)
     #test.test_dataset()
+    test.train_model(total)
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")

@@ -83,6 +83,8 @@ class DataCleaner:
         for i,df in tqdm(enumerate(self.to_dataframe()),desc='Performing Data Cleaning',total=self.total_line,dynamic_ncols=True):
             
             df.to_csv(self.csv_path, mode='a', header=False, index=False)
+
+        return self.total_line
             
 
     def transformCategoryTypes(self,df):
