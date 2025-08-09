@@ -21,7 +21,8 @@ class SignalService:
         self.model = None
         self.signal_gen = SignalGenerator(models={'entry_model': self.model})
         self.output_path = os.getenv(key='RAW_DATA')
-        self.csv_path = os.getenv(key='CLEANED_DATA')
+        self.train_path = os.getenv(key='TRAIN_DATA')
+        self.test_path = os.getenv(key='TEST_DATA')
         self.model_path = os.getenv(key='MODEL_PATH')
 
     def get_zones(self,interval,lookback):
@@ -58,11 +59,11 @@ class SignalService:
         return datagen.total_line
     
     def clean_dataset(self,total):
-        datacleaner = DataCleaner(self.output_path,batch_size=1000,total_line=total)
+        datacleaner = DataCleaner(self.output_path,batch_size=1000,total_line=total,train_path=self.train_path,test_path=self.test_path)
         return datacleaner.perform_clean()
         
     def train_model(self,total):
-        model_trainer = ModelHandler(data_path=self.csv_path,model_path=self.model_path,model_type='xgb',total_line=total)
+        model_trainer = ModelHandler(data_path=self.train_path,model_path=self.model_path,model_type='xgb',total_line=total)
         model_trainer.train()
 
     def test_dataset(self):

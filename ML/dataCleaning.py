@@ -3,12 +3,15 @@ import pandas as pd
 import numpy as np
 import json
 from tqdm import tqdm
+from .dataSplitting import DataSplit
 class DataCleaner:
-    def __init__(self,data_path,batch_size,total_line,csv_path='dataset.csv'):
+    def __init__(self,data_path,batch_size,total_line,train_path,test_path):
         self.scaler = StandardScaler()
         self.data_path = data_path
         self.total_line = np.ceil(total_line / batch_size)
-        self.csv_path = csv_path    
+        self.train_path = train_path
+        self.test_path = test_path 
+        self.datasplit =  DataSplit(random_state=42)
         self.batch_size = batch_size
         self.below_above_col = ['distance_to_above','distance_to_below',
                                 'below_zone_high','below_zone_low','below_zone_width','below_zone_count',
@@ -53,21 +56,23 @@ class DataCleaner:
             batch.append(record)
             if len(batch) == self.batch_size:
                 df =  pd.DataFrame(batch)
+                df = df.reindex(columns=self.columns, fill_value=pd.NA)
                 df = self.remove_untouched(df)
                 df = self.remove_columns(df)
                 df = self.transformCategoryTypes(df)
                 df = self.fillNaN(df)
-                df = df.reindex(columns=self.columns, fill_value=pd.NA)
+                
                 batch = []
                 yield df
                 
         if batch:
+            df = df.reindex(columns=self.columns, fill_value=pd.NA)
             df =  pd.DataFrame(batch)
             df = self.remove_untouched(df)
             df = self.remove_columns(df)
             df = self.transformCategoryTypes(df)
             df = self.fillNaN(df)
-            df = df.reindex(columns=self.columns, fill_value=pd.NA)
+            
 
             yield df
     
@@ -79,10 +84,16 @@ class DataCleaner:
 
     def perform_clean(self):
         
-        pd.DataFrame(columns=self.columns).to_csv(self.csv_path, index=False)
+        header = True
         for i,df in tqdm(enumerate(self.to_dataframe()),desc='Performing Data Cleaning',total=self.total_line,dynamic_ncols=True):
-            
-            df.to_csv(self.csv_path, mode='a', header=False, index=False)
+            train,test = self.datasplit.split(df)
+            if header:
+                train.to_csv(self.train_path, mode='w', header=True, index=False)
+                test.to_csv(self.test_path,mode='w', header=True, index=False)
+                header = False
+            else:
+                train.to_csv(self.train_path, mode='a', header=False, index=False)
+                test.to_csv(self.test_path,mode='a', header=False, index=False)
 
         return self.total_line
             
