@@ -66,8 +66,9 @@ class DataCleaner:
                 yield df
                 
         if batch:
-            df = df.reindex(columns=self.columns, fill_value=pd.NA)
+            
             df =  pd.DataFrame(batch)
+            df = df.reindex(columns=self.columns, fill_value=pd.NA)
             df = self.remove_untouched(df)
             df = self.remove_columns(df)
             df = self.transformCategoryTypes(df)
@@ -95,7 +96,7 @@ class DataCleaner:
                 train.to_csv(self.train_path, mode='a', header=False, index=False)
                 test.to_csv(self.test_path,mode='a', header=False, index=False)
 
-        return self.total_line
+        return int(np.ceil(self.total_line*0.7))
             
 
     def transformCategoryTypes(self,df):
@@ -116,7 +117,7 @@ class DataCleaner:
         columns = list(df.columns)
         valid_cols = [col for col in self.below_above_col if col in columns]
         df[valid_cols] = df[valid_cols].fillna(0)
-        df[columns] = df[columns].fillna(0)
+        df[columns] = df[columns].fillna(0.0)
         df.replace([float('inf'), float('-inf')], 0, inplace=True)
         return df
     

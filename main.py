@@ -63,8 +63,13 @@ class SignalService:
         return datacleaner.perform_clean()
         
     def train_model(self,total):
-        model_trainer = ModelHandler(data_path=self.train_path,model_path=self.model_path,model_type='xgb',total_line=total)
-        model_trainer.train()
+        model_trainer = ModelHandler(model_path=self.model_path,model_type='xgb',total_line=total)
+        model_trainer.train(self.train_path)
+
+    def test_model(self):
+        model_trainer = ModelHandler(model_path=self.model_path,model_type='xgb',total_line=total)
+        model_trainer.load()
+        model_trainer.test_result(self.test_path)
 
     def test_dataset(self):
         with open(self.output_path) as f:
@@ -77,11 +82,13 @@ class SignalService:
 
 
 if __name__ == "__main__" :
+    pd.set_option('future.no_silent_downcasting', True)
     test = SignalService()
     start = time.perf_counter()
     total = test.get_dataset()
     total = test.clean_dataset(total)
     #test.test_dataset()
     test.train_model(total)
+    test.test_model()
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")
