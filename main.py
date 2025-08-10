@@ -24,6 +24,7 @@ class SignalService:
         self.train_path = os.getenv(key='TRAIN_DATA')
         self.test_path = os.getenv(key='TEST_DATA')
         self.model_path = os.getenv(key='MODEL_PATH')
+        self.storage_path = os.getenv(key='ZONE_STORAGE')
 
     def get_zones(self,interval,lookback):
         df = self.api.get_ohlcv(interval=interval,lookback=lookback)
@@ -43,9 +44,18 @@ class SignalService:
         zones = reactor.get_next_target_zone(zones)
         return zones
 
+    def get_untouched_zones(self):
+        total = self.get_dataset()
+        zones = []
+        with open(self.storage_path,'r') as f:
+            for line in f:
+                data = json.loads(line)
+                zones.append(data)
+        return zones
+
     def get_current_signals(self):
         df = self.api.get_ohlcv()
-        zones = self.get_latest_zones()
+        zones = self.get_untouched_zones()
         reactor = ZoneReactor(df, zones)
         reaction = reactor.get_last_candle_reaction()
         if not reaction == 'None':
@@ -55,7 +65,7 @@ class SignalService:
     def get_dataset(self):
         df = self.get_latest_zones()
         datagen = DatasetGenerator(df)
-        datagen.get_dataset_list(self.output_path)
+        datagen.get_dataset_list(self.output_path,self.storage_path)
         return datagen.total_line
     
     def clean_dataset(self,total):
@@ -67,7 +77,7 @@ class SignalService:
         model_trainer.train(self.train_path)
 
     def test_model(self):
-        model_trainer = ModelHandler(model_path=self.model_path,model_type='xgb',total_line=total)
+        model_trainer = ModelHandler(model_path=self.model_path,model_type='xgb')
         model_trainer.load()
         model_trainer.test_result(self.test_path)
 
@@ -80,15 +90,20 @@ class SignalService:
             print(f"🧩 Total unique keys: {len(keys)}")
             print(keys)
 
+    def data_extraction(self):
+        total = self.get_dataset()
+        total = self.clean_dataset(total)
+        return total
+
+    def training_process(self,total):
+        test.train_model(total)
+        test.test_model()
+
 
 if __name__ == "__main__" :
     pd.set_option('future.no_silent_downcasting', True)
     test = SignalService()
     start = time.perf_counter()
-    total = test.get_dataset()
-    total = test.clean_dataset(total)
-    #test.test_dataset()
-    test.train_model(total)
-    test.test_model()
+    test.data_extraction()
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")

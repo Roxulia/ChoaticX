@@ -301,29 +301,45 @@ class DatasetGenerator:
                 base_data['is_target'] = None
             yield {**base_data}
 
-    def get_dataset_list(self,output_path):
+    def get_dataset_list(self,dataset_path,storage_file):
         features = self.extract_features_and_labels()
         confluents = self.extract_confluent_tf(features)
         availables = self.extract_available_zones(confluents)
         data = self.extract_label(availables)
+        dataset_start = True
+        storage_start = True
         
-        with open(output_path, "w") as f:
-            for i, row in enumerate(tqdm(data, desc="Writing to JSONL",total=self.total_line, dynamic_ncols=True)):
-                try:
-                    f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
-                except TypeError as e:
-                    print(f"\n🚨 JSON serialization error at row {i}")
-                    for k, v in row.items():
-                        try:
-                            json.dumps(v,default=self.default_json_serializer)  # test if this key's value is serializable
-                        except TypeError:
-                            print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
-                    raise e  
-                except ValueError as e:
-                    print(f"\n🚨 JSON serialization error at row {i}")
-                    for k,v in row.items():
-                        try:
-                            json.dumps(v,default=self.default_json_serializer)  # test if this key's value is serializable
-                        except ValueError:
-                            print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
-                    raise e
+        for i, row in enumerate(tqdm(data, desc="Writing to JSONL",total=self.total_line, dynamic_ncols=True)):
+            try:
+                if row['touch_type'] is not None:
+                    if dataset_start:
+                        with open(dataset_path, "w") as f:
+                            f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
+                        dataset_start = False
+                    else:
+                        with open(dataset_path, "a") as f:
+                            f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
+                else:
+                    if storage_start:
+                        with open(storage_file, "w") as f:
+                            f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
+                        storage_start = False
+                    else:
+                        with open(storage_file, "a") as f:
+                            f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
+            except TypeError as e:
+                print(f"\n🚨 JSON serialization error at row {i}")
+                for k, v in row.items():
+                    try:
+                        json.dumps(v,default=self.default_json_serializer)  # test if this key's value is serializable
+                    except TypeError:
+                        print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
+                raise e  
+            except ValueError as e:
+                print(f"\n🚨 JSON serialization error at row {i}")
+                for k,v in row.items():
+                    try:
+                        json.dumps(v,default=self.default_json_serializer)  # test if this key's value is serializable
+                    except ValueError:
+                        print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
+                raise e

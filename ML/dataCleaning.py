@@ -57,7 +57,6 @@ class DataCleaner:
             if len(batch) == self.batch_size:
                 df =  pd.DataFrame(batch)
                 df = df.reindex(columns=self.columns, fill_value=pd.NA)
-                df = self.remove_untouched(df)
                 df = self.remove_columns(df)
                 df = self.transformCategoryTypes(df)
                 df = self.fillNaN(df)
@@ -69,7 +68,6 @@ class DataCleaner:
             
             df =  pd.DataFrame(batch)
             df = df.reindex(columns=self.columns, fill_value=pd.NA)
-            df = self.remove_untouched(df)
             df = self.remove_columns(df)
             df = self.transformCategoryTypes(df)
             df = self.fillNaN(df)
@@ -121,21 +119,14 @@ class DataCleaner:
         df.replace([float('inf'), float('-inf')], 0, inplace=True)
         return df
     
-    def remove_untouched(self,df):
-        df = df.dropna(subset = ['touch_type'])
-        return df
-
     def remove_columns(self,df):
         df_new = df.drop(columns=[col for col in self.columns_to_remove if col in df.columns])
         return df_new
 
-
-    def fit_transform(self, df):
-        X = df.drop('label', axis=1)
-        y = df['label']
-        X_scaled = self.scaler.fit_transform(X)
-        return X_scaled, y
-
-    def transform(self, df):
-        X = df.drop('label', axis=1)
-        return self.scaler.transform(X)
+    def preprocess_input(self,input):
+        df =  pd.DataFrame(input)
+        df = df.reindex(columns=self.columns, fill_value=pd.NA)
+        df = self.remove_columns(df)
+        df = self.transformCategoryTypes(df)
+        df = self.fillNaN(df)
+        return df.drop(columns=['is_target'])
