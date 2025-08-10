@@ -5,8 +5,8 @@ import json
 from tqdm import tqdm
 from .dataSplitting import DataSplit
 class DataCleaner:
-    def __init__(self,data_path,batch_size,total_line,train_path,test_path):
-        self.scaler = StandardScaler()
+    def __init__(self,data_path,train_path,test_path,total_line=1000,batch_size=1000):
+        
         self.data_path = data_path
         self.total_line = np.ceil(total_line / batch_size)
         self.train_path = train_path

@@ -8,7 +8,7 @@ from sklearn.metrics import classification_report, confusion_matrix, roc_auc_sco
 from tqdm import tqdm
 
 class ModelHandler:
-    def __init__(self,total_line,chunk = 1000,model_type='rf', model_path='model.pkl', n_estimators_step=10):
+    def __init__(self,total_line=1000,chunk = 1000,model_type='rf', model_path='model.pkl', n_estimators_step=10):
         """
         model_type: 'rf' (RandomForest), 'sgd' (SGDClassifier), or 'xgb' (XGBoost)
         """
@@ -95,3 +95,7 @@ class ModelHandler:
 
     def predict_proba(self, X):
         return self.model.predict_proba(X)
+    
+    def get_model(self):
+        self.load()
+        return self.model

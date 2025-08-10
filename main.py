@@ -12,19 +12,20 @@ import time
 import pandas as pd
 import json
 from dotenv import load_dotenv
+from tqdm import tqdm
+
 import os
 class SignalService:
     def __init__(self):
         load_dotenv()
         self.api = BinanceAPI()
-        #self.model = Model(...)  # Load pretrained model and transformer
-        self.model = None
-        self.signal_gen = SignalGenerator(models={'entry_model': self.model})
         self.output_path = os.getenv(key='RAW_DATA')
         self.train_path = os.getenv(key='TRAIN_DATA')
         self.test_path = os.getenv(key='TEST_DATA')
         self.model_path = os.getenv(key='MODEL_PATH')
         self.storage_path = os.getenv(key='ZONE_STORAGE')
+        self.model = ModelHandler(model_path=self.model_path,model_type='xgb')
+        self.signal_gen = SignalGenerator(self.model)
 
     def get_zones(self,interval,lookback):
         df = self.api.get_ohlcv(interval=interval,lookback=lookback)
@@ -57,9 +58,24 @@ class SignalService:
         df = self.api.get_ohlcv()
         zones = self.get_untouched_zones()
         reactor = ZoneReactor(df, zones)
-        reaction = reactor.get_last_candle_reaction()
+        reaction,zone_index = reactor.get_last_candle_reaction()
         if not reaction == 'None':
-            return self.signal_gen.generate(df.iloc[-1],zones,reaction)
+            use_zones = []
+            for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
+                if zone['index'] == zone_index:
+                    zone['candle_volume'] = df['volume']
+                    zone['candle_open'] = df['open']
+                    zone['candle_close'] = df['close']
+                    zone['candle_ema20'] = df['ema20']
+                    zone['candle_ema50'] = df['ema50']
+                    zone['candle_rsi'] = df['rsi']
+                    zone['candle_atr'] = df['atr']
+                    zone['touch_type'] = reaction
+                    use_zones.append(zone)
+            datacleaner = DataCleaner(self.output_path,train_path=self.train_path,test_path=self.test_path)
+            use_zones = datacleaner.preprocess_input(use_zones)
+            signal,tp,sl =  self.signal_gen.generate(use_zones)
+            
         return 'None'
     
     def get_dataset(self):
