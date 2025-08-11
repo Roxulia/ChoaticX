@@ -1,10 +1,10 @@
 from tqdm import tqdm
 class ZoneReactor:
-    def __init__(self, candles):
-        self.candles = candles
+    def __init__(self):
+        pass
 
-    def get_zone_reaction(self,zone):
-        candles = self.candles[['high', 'low', 'open', 'close']].to_numpy()
+    def get_zone_reaction(self,zone,candles_data):
+        candles = candles_data[['high', 'low', 'open', 'close']].to_numpy()
         num_candles = len(candles)
         zone_high = zone['zone_high']
         zone_low = zone['zone_low']
@@ -23,7 +23,7 @@ class ZoneReactor:
 
             if (open_ > zone_high and low < zone_high) or (open_ < zone_low and high > zone_low):
                 touch_index = i
-                touch_candle = self.candles.iloc[i]  # Only access DataFrame here if touched
+                touch_candle = candles_data.iloc[i]  # Only access DataFrame here if touched
 
                 if zone_low <= close <= zone_high:
                     touch_type = 'body_close_inside'
@@ -44,9 +44,9 @@ class ZoneReactor:
         zone_copy['touch_candle'] = touch_candle
         return zone_copy
     
-    def get_zones_reaction(self,zones):
+    def get_zones_reaction(self,zones,candles_data):
         results = []
-        candles = self.candles[['high', 'low', 'open', 'close']].to_numpy()
+        candles = candles_data[['high', 'low', 'open', 'close']].to_numpy()
         num_candles = len(candles)
 
         for zone in tqdm(zones, desc="Getting Zone Reactions"):
@@ -68,7 +68,7 @@ class ZoneReactor:
 
                 if (open_ > zone_high and low < zone_high) or (open_ < zone_low and high > zone_low):
                     touch_index = i
-                    touch_candle = self.candles.iloc[i]  # Only access DataFrame here if touched
+                    touch_candle = candles_data.iloc[i]  # Only access DataFrame here if touched
 
                     if zone_low <= close <= zone_high:
                         touch_type = 'body_close_inside'
@@ -91,13 +91,13 @@ class ZoneReactor:
 
         return results
 
-    def get_next_target_zone(self, zones):
+    def get_next_target_zone(self, zones,candles_data):
         """
         For each zone, identify the next target zone (price moves into it after touch).
         Optimized for speed.
         """
         zone_targets = []
-        candles = self.candles  # avoid attribute access in loop
+        candles = candles_data  # avoid attribute access in loop
         candle_len = len(candles)
 
         for zone in tqdm(zones, desc='Adding Target zones'):
@@ -133,8 +133,7 @@ class ZoneReactor:
 
 
     
-    def get_last_candle_reaction(self,zones):
-        candle = self.candles.iloc[-1]
+    def get_last_candle_reaction(self,zones,candle):
         high, low, close, open_ = candle['high'], candle['low'], candle['close'], candle['open']
         for zone in zones:
             zone_high = zone['zone_high']

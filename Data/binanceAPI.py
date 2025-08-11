@@ -41,6 +41,24 @@ class BinanceAPI:
         data['rsi'] = ta.momentum.rsi(data['close'], window=5)  # Faster RSI for quicker signal
         data['atr_mean'] = data['atr'].rolling(window=50).mean()
         return data
+    
+    def get_latest_candle(self,symbol='BTCUSDT',interval = '1h'):
+        tf = timeFrame()
+        klines = self.client.get_historical_klines(symbol,tf.getTimeFrame(interval) , limit = 100)
+
+        df = pd.DataFrame(klines, columns=[
+            'timestamp', 'open', 'high', 'low', 'close', 'volume',
+            'close_time', 'quote_asset_volume', 'number_of_trades',
+            'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
+        ])
+
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+        df.set_index('timestamp', inplace=True)
+
+        df = df[['open', 'high', 'low', 'close', 'volume']]
+        df = df.apply(pd.to_numeric).astype('float32')
+        df = self.add_TA(df)
+        return df.iloc[-1]
 
 
 

@@ -24,7 +24,7 @@ class SignalService:
         self.test_path = os.getenv(key='TEST_DATA')
         self.model_path = os.getenv(key='MODEL_PATH')
         self.storage_path = os.getenv(key='ZONE_STORAGE')
-        self.model = ModelHandler(model_path=self.model_path,model_type='xgb')
+        self.model = ModelHandler(model_path=self.model_path,model_type='xgb').get_model()
         self.signal_gen = SignalGenerator(self.model)
 
     def get_zones(self,interval,lookback):
@@ -34,19 +34,19 @@ class SignalService:
         return zones
 
     def get_latest_zones(self):
-        zone_15m = self.get_zones('15min','3 months')
-        zone_1h = self.get_zones('1h','3 months')
-        zone_4h = self.get_zones('4h','3 months')
+        zone_15m = self.get_zones('1h','2 years')
+        zone_1h = self.get_zones('4h','2 years')
+        zone_4h = self.get_zones('1D',' 2 years')
         confluentfinder = ConfluentsFinder(zone_15m+zone_1h+zone_4h)
         zones = confluentfinder.getConfluents()
-        df = self.api.get_ohlcv(interval='15min',lookback='3 months')
-        reactor = ZoneReactor(df)
-        zones = reactor.get_zones_reaction(zones)
-        zones = reactor.get_next_target_zone(zones)
+        df = self.api.get_ohlcv(interval='1h',lookback='2 years')
+        reactor = ZoneReactor()
+        zones = reactor.get_zones_reaction(zones,df)
+        zones = reactor.get_next_target_zone(zones,df)
         return zones
 
     def get_untouched_zones(self):
-        total = self.get_dataset()
+        
         zones = []
         with open(self.storage_path,'r') as f:
             for line in f:
@@ -55,28 +55,29 @@ class SignalService:
         return zones
 
     def get_current_signals(self):
-        df = self.api.get_ohlcv()
+        candle = self.api.get_latest_candle()
         zones = self.get_untouched_zones()
-        reactor = ZoneReactor(df, zones)
-        reaction,zone_index = reactor.get_last_candle_reaction()
+        reactor = ZoneReactor()
+        reaction,zone_index = reactor.get_last_candle_reaction(zones,candle)
         if not reaction == 'None':
             use_zones = []
             for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
                 if zone['index'] == zone_index:
-                    zone['candle_volume'] = df['volume']
-                    zone['candle_open'] = df['open']
-                    zone['candle_close'] = df['close']
-                    zone['candle_ema20'] = df['ema20']
-                    zone['candle_ema50'] = df['ema50']
-                    zone['candle_rsi'] = df['rsi']
-                    zone['candle_atr'] = df['atr']
+                    zone['candle_volume'] = candle['volume']
+                    zone['candle_open'] = candle['open']
+                    zone['candle_close'] = candle['close']
+                    zone['candle_ema20'] = candle['ema20']
+                    zone['candle_ema50'] = candle['ema50']
+                    zone['candle_rsi'] = candle['rsi']
+                    zone['candle_atr'] = candle['atr']
                     zone['touch_type'] = reaction
                     use_zones.append(zone)
             datacleaner = DataCleaner(self.output_path,train_path=self.train_path,test_path=self.test_path)
             use_zones = datacleaner.preprocess_input(use_zones)
-            signal,tp,sl =  self.signal_gen.generate(use_zones)
-            
-        return 'None'
+            return self.signal_gen.generate(use_zones)
+        else:
+            print('Zones are not touched yet')
+            return 'None'
     
     def get_dataset(self):
         df = self.get_latest_zones()
@@ -120,6 +121,8 @@ if __name__ == "__main__" :
     pd.set_option('future.no_silent_downcasting', True)
     test = SignalService()
     start = time.perf_counter()
-    test.data_extraction()
+    #total = test.data_extraction()
+    #test.training_process(total)
+    print(test.get_current_signals())
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")
