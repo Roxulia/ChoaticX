@@ -12,16 +12,17 @@ class SignalGenerator:
         predicted_result = self.models.predict(zones)
         zones['is_target'] = predicted_result
         target = zones.loc[zones['is_target']==1]
-        if target:
-            if target['zone_low'] > target['az_zone_high']:
-                tp = target['az_zone_high']
-                sl = target['zone_high']
-                entry = target['zone_low']
+        if not target.empty:
+            row = target[0]
+            if row['zone_low'] > row['az_zone_high']:
+                tp = row['az_zone_high']
+                sl = row['zone_high']
+                entry = row['zone_low']
                 signal = 'Short'
             else:
-                tp = target['az_zone_low']
-                sl = target['zone_low']
-                entry = target['zone_high']
+                tp = row['az_zone_low']
+                sl = row['zone_low']
+                entry = row['zone_high']
                 signal = 'Long'
             if self.filter(entry,sl,tp):
                 return f'Signal : {signal},Entry price : {entry},TP : {tp},SL : {sl}'

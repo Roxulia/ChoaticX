@@ -138,14 +138,15 @@ class ZoneReactor:
         for zone in zones:
             zone_high = zone['zone_high']
             zone_low = zone['zone_low']
-            if zone_low <= close <= zone_high:
-                return 'body_close_inside',zone['index']
-            elif (open_ > zone_high and close < zone_low) or (open_ < zone_low and close > zone_high):
-                return 'engulf',zone['index']
-            elif close > zone_high and open_ > zone_high:
-                return 'body_close_above',zone['index']
-            elif close < zone_low and open_ < zone_low:
-                return 'body_close_below',zone['index']
-            else:
-                return 'wick_touch',zone['index']
+            if (zone_low > open_ and zone_low <= high) or (zone_high < open_ and zone_high >= low):
+                if zone_low <= close <= zone_high:
+                    return 'body_close_inside',zone['index']
+                elif (open_ > zone_high and close < zone_low) or (open_ < zone_low and close > zone_high):
+                    return 'engulf',zone['index']
+                elif close > zone_high and open_ > zone_high:
+                    return 'body_close_above',zone['index']
+                elif close < zone_low and open_ < zone_low:
+                    return 'body_close_below',zone['index']
+                else:
+                    return 'wick_touch',zone['index']
         return 'None'

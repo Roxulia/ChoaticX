@@ -60,7 +60,7 @@ class DataCleaner:
                 df = self.remove_columns(df)
                 df = self.transformCategoryTypes(df)
                 df = self.fillNaN(df)
-                
+                df = df.astype('float32')
                 batch = []
                 yield df
                 
@@ -71,7 +71,7 @@ class DataCleaner:
             df = self.remove_columns(df)
             df = self.transformCategoryTypes(df)
             df = self.fillNaN(df)
-            
+            df = df.astype('float32')
 
             yield df
     
@@ -129,4 +129,5 @@ class DataCleaner:
         df = self.remove_columns(df)
         df = self.transformCategoryTypes(df)
         df = self.fillNaN(df)
+        df = df.astype('float32')
         return df.drop(columns=['is_target'])
