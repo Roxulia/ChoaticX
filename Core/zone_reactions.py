@@ -149,4 +149,4 @@ class ZoneReactor:
                     return 'body_close_below',zone['index']
                 else:
                     return 'wick_touch',zone['index']
-        return 'None'
+        return 'None','None'

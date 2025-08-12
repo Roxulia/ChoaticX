@@ -1,15 +1,20 @@
 from flask import Blueprint, jsonify
-from main import SignalService
+from Services.signalService import SignalService
 
-signal_api = Blueprint('signal_api', __name__)
-service = SignalService()
+class SignalAPI:
+    def __init__(self):
+        self.blueprint = Blueprint('signal_api', __name__)
+        self.service = SignalService()
+        self._register_routes()
 
-@signal_api.route("/zones", methods=["GET"])
-def get_zones():
-    zones = service.get_latest_zones()
-    return jsonify(zones)
+    def _register_routes(self):
+        self.blueprint.add_url_rule("/zones", view_func=self.get_zones, methods=["GET"])
+        self.blueprint.add_url_rule("/signals", view_func=self.get_signals, methods=["GET"])
 
-@signal_api.route("/signals", methods=["GET"])
-def get_signals():
-    signals = service.get_current_signals()
-    return jsonify(signals)
+    def get_zones(self):
+        zones = self.service.get_untouched_zones()
+        return jsonify(zones)
+
+    def get_signals(self):
+        signals = self.service.get_current_signals()
+        return jsonify(signals)
