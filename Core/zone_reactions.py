@@ -62,7 +62,7 @@ class ZoneReactor:
             if end_idx >= num_candles - 1:
                 results.append(zone)
                 continue
-            i = end_idx+1
+            i = end_idx+2
             while i < num_candles:
                 high, low, open_, close = candles[i]
 
@@ -142,6 +142,7 @@ class ZoneReactor:
             below_zone = zone.get('nearest_zone_below', None)
 
             if above_zone is None or below_zone is None:
+                #zone_targets.append({**zone, 'target': 0})
                 continue
 
             if touch_index is not None and 0 <= touch_index < candle_len - 1:
@@ -173,7 +174,7 @@ class ZoneReactor:
                 if first_above is not None and (first_below is None or first_above < first_below):
                     target_zone = 1
                 elif first_below is not None and (first_above is None or first_below < first_above):
-                    target_zone = -1
+                    target_zone = 0
                 else:
                     target_zone = 0  # No target
 

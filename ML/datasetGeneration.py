@@ -272,7 +272,7 @@ class DatasetGenerator:
                 features['candle_rsi'] = touch_candle['rsi']
                 features['candle_atr'] = touch_candle['atr']
             features['available_zones'] = available_zones
-            self.total_line += 2
+            self.total_line += 1
             dataset.append(features)
             #print(features.keys())
         return dataset
@@ -323,7 +323,7 @@ class DatasetGenerator:
         features = self.extract_features_and_labels()
         confluents = self.extract_confluent_tf(features)
         data = self.extract_nearby_zone_data(confluents)
-        
+        columns = set()
         dataset_start = True
         storage_start = True
         
@@ -333,18 +333,26 @@ class DatasetGenerator:
                     if dataset_start:
                         with open(dataset_path, "w") as f:
                             f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
+                            for k,v in row.items():
+                                columns.add(k)
                         dataset_start = False
                     else:
                         with open(dataset_path, "a") as f:
                             f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
+                            for k,v in row.items():
+                                columns.add(k)
                 else:
                     if storage_start:
                         with open(storage_file, "w") as f:
                             f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
+                            for k,v in row.items():
+                                columns.add(k)
                         storage_start = False
                     else:
                         with open(storage_file, "a") as f:
                             f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
+                            for k,v in row.items():
+                                columns.add(k)
             except TypeError as e:
                 print(f"\n🚨 JSON serialization error at row {i}")
                 for k, v in row.items():
@@ -361,4 +369,4 @@ class DatasetGenerator:
                     except ValueError:
                         print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
                 raise e
-            
+        return list(columns)

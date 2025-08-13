@@ -34,14 +34,14 @@ class SignalService:
         return zones
 
     def get_latest_zones(self):
-        zone_15m = self.get_zones('1h','2 years')
-        zone_1h = self.get_zones('4h','2 years')
-        zone_4h = self.get_zones('1D',' 2 years')
+        zone_15m = self.get_zones('15min','2 years')
+        zone_1h = self.get_zones('1h','2 years')
+        zone_4h = self.get_zones('4h',' 2 years')
         confluentfinder = ConfluentsFinder(zone_15m+zone_1h+zone_4h)
         zones = confluentfinder.getConfluents()
         nearByZones = NearbyZones(zones)
         zones = nearByZones.getNearbyZone()
-        df = self.api.get_ohlcv(interval='1h',lookback='2 years')
+        df = self.api.get_ohlcv(interval='15min',lookback='2 years')
         reactor = ZoneReactor()
         zones = reactor.get_zones_reaction(zones,df)
         zones = reactor.getTargetFromTwoZones(zones,df)
@@ -84,11 +84,11 @@ class SignalService:
     def get_dataset(self):
         df = self.get_latest_zones()
         datagen = DatasetGenerator(df)
-        datagen.get_dataset_list(self.output_path,self.storage_path)
-        return datagen.total_line
+        cols = datagen.get_dataset_list(self.output_path,self.storage_path)
+        return datagen.total_line,cols
     
-    def clean_dataset(self,total):
-        datacleaner = DataCleaner(self.output_path,batch_size=1000,total_line=total,train_path=self.train_path,test_path=self.test_path)
+    def clean_dataset(self,total,cols):
+        datacleaner = DataCleaner(cols,self.output_path,batch_size=1000,total_line=total,train_path=self.train_path,test_path=self.test_path)
         return datacleaner.perform_clean()
         
     def train_model(self,total):
@@ -110,8 +110,8 @@ class SignalService:
             print(keys)
 
     def data_extraction(self):
-        total = self.get_dataset()
-        total = self.clean_dataset(total)
+        total,cols = self.get_dataset()
+        total = self.clean_dataset(total,cols)
         return total
 
     def training_process(self,total):

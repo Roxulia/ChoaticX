@@ -14,7 +14,7 @@ class ModelHandler:
         """
         self.model_type = model_type
         self.model_path = model_path
-        self.target_col = 'is_target'
+        self.target_col = 'target'
         self.chunk = chunk
         self.n_estimators_step = n_estimators_step
         self.total_line = total_line

@@ -9,7 +9,7 @@ class NearbyZones():
     def getNearbyZone(self):
         results = []
 
-        for i, zone in tqdm(enumerate(self.based_zones),desc="Adding Nearby Zones"):
+        for i, zone in tqdm(enumerate(self.based_zones),desc="Adding Nearby Zones",dynamic_ncols=True):
             this_high = zone.get('zone_high')
             this_low = zone.get('zone_low')
             valid_zones = zone.get('available_core',[])+zone.get('available_liquidity',[])

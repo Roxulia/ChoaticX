@@ -5,7 +5,7 @@ import json
 from tqdm import tqdm
 from .dataSplitting import DataSplit
 class DataCleaner:
-    def __init__(self,data_path,train_path,test_path,total_line=1000,batch_size=1000):
+    def __init__(self,columns,data_path,train_path,test_path,total_line=1000,batch_size=1000):
         
         self.data_path = data_path
         self.total_line = np.ceil(total_line / batch_size)
@@ -27,27 +27,32 @@ class DataCleaner:
             'body_close_below' : 4,
             'wick_touch' : 5
         }
-        self.zone_types = {
-            'Bearish FVG' : 1,
-            'Bullish FVG' : 2,
-            'Bearish OB' : 3,
-            'Bullish OB' : 4,
-            'Buy-Side Liq' : 5,
-            'Sell-Side Liq' : 6
-        }
-        self.timeframes = {
-            '1min' : 1,
-            '3min' : 2,
-            '5min' : 3,
-            '15min': 4,
-            '1h'   : 5,
-            '4h'   : 6,
-            '1D'   : 7
-        }
-        self.columns = [
-            'type', 'conf_is_buy_zone', 'az_conf_15min_count', 'touch_index', 'az_avg_ema_50', 'az_swept_index', 'conf_1min_count', 'conf_count_BrLiq', 'time_frame', 'az_conf_count_BuFVG', 'prev_volatility_5', 'conf_count_BuOB', 'conf_4h_count', 'az_ema 50', 'az_conf_count_BuOB', 'avg_ema_20', 'candle_ema20', 'conf_1h_count', 'level', 'candle_atr', 'avg_rsi', 'az_conf_count_BrOB', 'az_body_size', 'az_zone_high', 'az_avg_rsi', 'az_touch_index', 'conf_5min_count', 'az_zone_low', 'avg_atr', 'az_avg_atr_mean', 'az_rsi', 'atr_mean', 'count', 'az_conf_count_BrLiq', 'az_avg_swing_strength', 'az_conf_1D_count', 'az_time_frame', 'az_end_index', 'az_conf_count_BrFVG', 'duration_between_first_last_touch', 'candle_ema50', 'avg_ema_50', 'swept_index', 'az_conf_1min_count', 'avg_atr_mean', 'az_conf_3min_count', 'az_equal_level_deviation', 'wick_ratio', 'touch_type', 'liquidity_height', 'az_level', 'candle_rsi', 'az_duration_between_first_last_touch', 'conf_3min_count', 'body_size', 'az_conf_1h_count', 'zone_high', 'az_avg_volume_around_zone', 'az_conf_count_BuLiq', 'az_conf_is_buy_zone', 'az_liquidity_height', 'candle_open', 'az_type', 'az_ema 20', 'az_atr_mean', 'end_index', 'conf_count_BuFVG', 'conf_15min_count', 'az_conf_5min_count', 'az_avg_ema_20', 'conf_count_BrFVG', 'atr', 'az_avg_volume_past_5', 'conf_count_BuLiq', 'index', 'candle_close', 'az_wick_ratio', 'az_conf_4h_count', 'az_avg_atr', 'conf_count_BrOB', 'candle_volume', 'az_index', 'az_count', 'avg_volume_past_5', 'avg_volume_around_zone', 'avg_swing_strength', 'equal_level_deviation', 'ema 50', 'momentum_5', 'volume_on_creation', 'az_prev_volatility_5', 'az_atr', 'az_volume_on_creation', 'zone_width', 'rsi', 'az_momentum_5', 'az_zone_width', 'is_target', 'ema 20', 'zone_low', 'conf_1D_count'
+        self.zone_types = [
+            'Bearish FVG',
+            'Bullish FVG',
+            'Bearish OB',
+            'Bullish OB' ,
+            'Buy-Side Liq' ,
+            'Sell-Side Liq' 
         ]
-        self.columns_to_remove = ['swept_index','end_index','duration_between_first_last_touch','touch_index','level','az_touch_index','az_touch_type','az_swept_index','az_end_index','az_level','az_duration_between_first_last_touch']
+        self.timeframes = [
+            '1min',
+            '3min',
+            '5min',
+            '15min',
+            '1h',
+            '4h',
+            '1D'
+        ]
+        self.columns = columns
+        self.columns_to_remove = ['swept_index','end_index','duration_between_first_last_touch',
+                                  'touch_index','level','az_touch_index','az_touch_type','az_swept_index',
+                                  'az_end_index','az_level','az_duration_between_first_last_touch',
+                                  'above_zone_touch_type','above_zone_touch_index','above_zone_level',
+                                  'above_zone_swept_index','above_zone_end_index','above_zone_duration_between_first_last_touch',
+                                  'below_zone_touch_type','below_zone_touch_index','below_zone_level',
+                                  'below_zone_swept_index','below_zone_end_index','below_zone_duration_between_first_last_touch',
+                                  ]
 
     
     def to_dataframe(self):
@@ -100,15 +105,23 @@ class DataCleaner:
     def transformCategoryTypes(self,df):
         columns = list(df.columns)
         if 'touch_type' in columns : 
-            df['touch_type'] = df['touch_type'].apply(lambda x : self.touch_types[x])
+            df['touch_type'] = df['touch_type'].apply(lambda x : self.touch_types[x] if x is not None else 0)
         if 'type' in columns : 
-            df['type'] = df['type'].apply(lambda x : self.zone_types[x])
+            df['type'] = df['type'].apply(lambda x : self.zone_types.index(x)+1 if x  in self.zone_types else 0)
         if 'time_frame' in columns : 
-            df['time_frame'] = df['time_frame'].apply(lambda x : self.timeframes[x])
+            df['time_frame'] = df['time_frame'].apply(lambda x : self.timeframes.index(x)+1 if x in self.timeframes else 0)
         if 'az_type' in columns : 
-            df['az_type'] = df['az_type'].apply(lambda x : self.zone_types[x])
+            df['az_type'] = df['az_type'].apply(lambda x : self.zone_types.index(x)+1 if x  in self.zone_types else 0)
         if 'az_time_frame' in columns : 
-            df['az_time_frame'] = df['az_time_frame'].apply(lambda x : self.timeframes[x])
+            df['az_time_frame'] = df['az_time_frame'].apply(lambda x : self.timeframes.index(x)+1 if x in self.timeframes else 0)
+        if 'above_zone_type' in columns : 
+            df['above_zone_type'] = df['above_zone_type'].apply(lambda x : self.zone_types.index(x)+1 if x  in self.zone_types else 0)
+        if 'above_zone_time_frame' in columns : 
+            df['above_zone_time_frame'] = df['above_zone_time_frame'].apply(lambda x : self.timeframes.index(x)+1 if x in self.timeframes else 0)
+        if 'below_zone_type' in columns : 
+            df['below_zone_type'] = df['below_zone_type'].apply(lambda x : self.zone_types.index(x)+1 if x  in self.zone_types else 0)
+        if 'below_zone_time_frame' in columns : 
+            df['below_zone_time_frame'] = df['below_zone_time_frame'].apply(lambda x : self.timeframes.index(x)+1 if x in self.timeframes else 0)
         return df
 
     def fillNaN(self,df):
@@ -130,4 +143,5 @@ class DataCleaner:
         df = self.transformCategoryTypes(df)
         df = self.fillNaN(df)
         df = df.astype('float32')
-        return df.drop(columns=['is_target'])
+        columns = ['is_target','target']
+        return df.drop(columns=[col for col in columns if col in df.columns])
