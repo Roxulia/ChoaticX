@@ -131,6 +131,52 @@ class ZoneReactor:
 
         return zone_targets
 
+    def getTargetFromTwoZones(self, zones, candles_data):
+        zone_targets = []
+        candles = candles_data
+        candle_len = len(candles)
+
+        for zone in tqdm(zones, desc='Adding Target zones'):
+            touch_index = zone.get('touch_index')
+            above_zone = zone.get('nearest_zone_above', None)
+            below_zone = zone.get('nearest_zone_below', None)
+
+            if touch_index is not None and 0 <= touch_index < candle_len - 1:
+                future_candles = candles.iloc[touch_index + 1:]
+
+                # Above zone conditions
+                next_high1 = above_zone['zone_high']
+                next_low1 = above_zone['zone_low']
+                cond1 = (
+                    ((future_candles['open'] > next_high1) & (future_candles['close'] < next_high1)) |
+                    ((future_candles['open'] < next_low1) & (future_candles['close'] > next_low1)) |
+                    ((future_candles['high'] < next_high1) & (future_candles['low'] > next_low1))
+                )
+
+                # Below zone conditions
+                next_high2 = below_zone['zone_high']
+                next_low2 = below_zone['zone_low']
+                cond2 = (
+                    ((future_candles['open'] > next_high2) & (future_candles['close'] < next_high2)) |
+                    ((future_candles['open'] < next_low2) & (future_candles['close'] > next_low2)) |
+                    ((future_candles['high'] < next_high2) & (future_candles['low'] > next_low2))
+                )
+
+                # Find the first True index for each condition
+                first_above = cond1.idxmax() if cond1.any() else None
+                first_below = cond2.idxmax() if cond2.any() else None
+
+                # Pick whichever happened first
+                if first_above is not None and (first_below is None or first_above < first_below):
+                    target_zone = 1
+                elif first_below is not None and (first_above is None or first_below < first_above):
+                    target_zone = -1
+                else:
+                    target_zone = 0  # No target
+
+                zone_targets.append({**zone, 'target': target_zone})
+
+        return zone_targets
 
     
     def get_last_candle_reaction(self,zones,candle):

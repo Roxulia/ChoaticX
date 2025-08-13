@@ -4,6 +4,7 @@ from Core.zone_merge import ZoneMerger
 from Core.zone_confluents import ConfluentsFinder
 from Core.SignalGeneration import SignalGenerator
 from Core.Filter import Filter
+from Core.zone_nearby import NearbyZones
 from ML.Model import ModelHandler
 from ML.dataCleaning import DataCleaner
 from ML.datasetGeneration import DatasetGenerator
@@ -38,10 +39,12 @@ class SignalService:
         zone_4h = self.get_zones('1D',' 2 years')
         confluentfinder = ConfluentsFinder(zone_15m+zone_1h+zone_4h)
         zones = confluentfinder.getConfluents()
+        nearByZones = NearbyZones(zones)
+        zones = nearByZones.getNearbyZone()
         df = self.api.get_ohlcv(interval='1h',lookback='2 years')
         reactor = ZoneReactor()
         zones = reactor.get_zones_reaction(zones,df)
-        zones = reactor.get_next_target_zone(zones,df)
+        zones = reactor.getTargetFromTwoZones(zones,df)
         return zones
 
     def get_untouched_zones(self):
