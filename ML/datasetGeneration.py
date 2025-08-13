@@ -272,7 +272,7 @@ class DatasetGenerator:
                 features['candle_rsi'] = touch_candle['rsi']
                 features['candle_atr'] = touch_candle['atr']
             features['available_zones'] = available_zones
-            self.total_line += len(available_zones)
+            self.total_line += 2
             dataset.append(features)
             #print(features.keys())
         return dataset
@@ -287,6 +287,24 @@ class DatasetGenerator:
             for a_zone in availables:
                 temp_zone = self.extract_confluent_tf_per_zone(a_zone)
                 yield {**base_data, **{f'az_{k}': v for k, v in temp_zone.items() if k not in ['available_core','available_liquidity']}}
+    
+    def extract_nearby_zone_data(self,confluents):
+        for zone in confluents:
+            above_zone = zone.get('nearest_zone_above',None)
+            below_zone = zone.get('nearest_zone_below',None)
+            base_data = {k: v for k, v in zone.items() if k not in ['nearest_zone_above','nearest_zone_below','available_zones']}
+            if above_zone is None and below_zone is None:
+                yield {**base_data}
+            else:
+                temp_ab = {}
+                temp_bl = {}
+                if above_zone:
+                    temp_zone = self.extract_confluent_tf_per_zone(above_zone)
+                    temp_ab = {f'above_zone_{k}': v for k, v in temp_zone.items() if k not in ['available_core','available_liquidity','nearest_zone_above','nearest_zone_below']}
+                if below_zone:
+                    temp_zone = self.extract_confluent_tf_per_zone(below_zone)
+                    temp_bl = {f'below_zone_{k}': v for k, v in temp_zone.items() if k not in ['available_core','available_liquidity','nearest_zone_above','nearest_zone_below']}
+                yield {**base_data, **temp_ab,**temp_bl}
     
     def extract_label(self,availables):
         for zone in availables:
@@ -304,8 +322,8 @@ class DatasetGenerator:
     def get_dataset_list(self,dataset_path,storage_file):
         features = self.extract_features_and_labels()
         confluents = self.extract_confluent_tf(features)
-        availables = self.extract_available_zones(confluents)
-        data = self.extract_label(availables)
+        data = self.extract_nearby_zone_data(confluents)
+        
         dataset_start = True
         storage_start = True
         
@@ -343,3 +361,4 @@ class DatasetGenerator:
                     except ValueError:
                         print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
                 raise e
+            

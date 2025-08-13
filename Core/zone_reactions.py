@@ -141,6 +141,9 @@ class ZoneReactor:
             above_zone = zone.get('nearest_zone_above', None)
             below_zone = zone.get('nearest_zone_below', None)
 
+            if above_zone is None or below_zone is None:
+                continue
+
             if touch_index is not None and 0 <= touch_index < candle_len - 1:
                 future_candles = candles.iloc[touch_index + 1:]
 

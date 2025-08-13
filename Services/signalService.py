@@ -117,3 +117,18 @@ class SignalService:
     def training_process(self,total):
         self.train_model(total)
         self.test_model()
+
+    def test_process(self):
+        df = self.get_latest_zones()
+        
+        datagen = DatasetGenerator(df)
+        data = datagen.extract_features_and_labels()
+        data = datagen.extract_confluent_tf(data)
+        data = datagen.extract_nearby_zone_data(data)
+        count = 0
+        for d in data:
+            if count > 0:
+                break
+            for k,v in d.items():
+                print(k)
+            count+=1
