@@ -33,7 +33,8 @@ class DataCleaner:
             'Bearish OB',
             'Bullish OB' ,
             'Buy-Side Liq' ,
-            'Sell-Side Liq' 
+            'Sell-Side Liq' ,
+            'ATH'
         ]
         self.timeframes = [
             '1min',

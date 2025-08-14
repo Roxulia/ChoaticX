@@ -53,7 +53,7 @@ class ZoneReactor:
             zone_high = zone['zone_high']
             zone_low = zone['zone_low']
             end_idx = zone['index']
-
+            
             touch_type = None
             touch_index = None
             touch_candle = None

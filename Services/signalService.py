@@ -34,14 +34,15 @@ class SignalService:
         return zones
 
     def get_latest_zones(self):
-        zone_15m = self.get_zones('15min','2 years')
-        zone_1h = self.get_zones('1h','2 years')
-        zone_4h = self.get_zones('4h',' 2 years')
-        confluentfinder = ConfluentsFinder(zone_15m+zone_1h+zone_4h)
+        #zone_15m = self.get_zones('15min','1 years')
+        zone_1h = self.get_zones('1h','1 years')
+        zone_4h = self.get_zones('4h',' 1 years')
+        confluentfinder = ConfluentsFinder(zone_1h+zone_4h)
         zones = confluentfinder.getConfluents()
-        nearByZones = NearbyZones(zones)
+        
+        df = self.api.get_ohlcv(interval='1h',lookback='1 years')
+        nearByZones = NearbyZones(zones,df)
         zones = nearByZones.getNearbyZone()
-        df = self.api.get_ohlcv(interval='15min',lookback='2 years')
         reactor = ZoneReactor()
         zones = reactor.get_zones_reaction(zones,df)
         zones = reactor.getTargetFromTwoZones(zones,df)
