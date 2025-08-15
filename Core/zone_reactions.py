@@ -53,23 +53,11 @@ class ZoneReactor:
             zone_high = zone['zone_high']
             zone_low = zone['zone_low']
             end_idx = zone['index']
-            
-            touch_type = None
-            touch_index = None
-            touch_candle = None
-
-            # Skip zones that go beyond candles
-            if end_idx >= num_candles - 1:
-                results.append(zone)
-                continue
-            i = end_idx+2
-            while i < num_candles:
-                high, low, open_, close = candles[i]
-
-                if (open_ > zone_high and low < zone_high) or (open_ < zone_low and high > zone_low):
-                    touch_index = i
-                    touch_candle = candles_data.iloc[i]  # Only access DataFrame here if touched
-
+            zone_type = zone['type']
+            if zone_type  in ['Buy-Side Liq','Sell-Side Liq']:
+                touch_index = zone.get('swept_index',None)
+                if touch_index is not None:
+                    touch_candle = candles.iloc[touch_index]
                     if zone_low <= close <= zone_high:
                         touch_type = 'body_close_inside'
                     elif (open_ > zone_high and close < zone_low) or (open_ < zone_low and close > zone_high):
@@ -80,14 +68,54 @@ class ZoneReactor:
                         touch_type = 'body_close_below'
                     else:
                         touch_type = 'wick_touch'
-                    break
-                i+=1
+                    zone_copy = zone.copy()
+                    zone_copy['touch_type'] = touch_type
+                    zone_copy['touch_index'] = touch_index
+                    zone_copy['touch_candle'] = touch_candle
+                    results.append(zone_copy)
+                    continue
+                else:
+                    zone_copy = zone.copy()
+                    zone_copy['touch_type'] = None
+                    zone_copy['touch_index'] = None
+                    zone_copy['touch_candle'] = None
+                    results.append(zone_copy)
+                    continue
+            else:
+                touch_type = None
+                touch_index = None
+                touch_candle = None
 
-            zone_copy = zone.copy()
-            zone_copy['touch_type'] = touch_type
-            zone_copy['touch_index'] = touch_index
-            zone_copy['touch_candle'] = touch_candle
-            results.append(zone_copy)
+                # Skip zones that go beyond candles
+                if end_idx >= num_candles - 1:
+                    results.append(zone)
+                    continue
+                i = end_idx+2
+                while i < num_candles:
+                    high, low, open_, close = candles[i]
+
+                    if (open_ > zone_high and low < zone_high) or (open_ < zone_low and high > zone_low):
+                        touch_index = i
+                        touch_candle = candles_data.iloc[i]  # Only access DataFrame here if touched
+
+                        if zone_low <= close <= zone_high:
+                            touch_type = 'body_close_inside'
+                        elif (open_ > zone_high and close < zone_low) or (open_ < zone_low and close > zone_high):
+                            touch_type = 'engulf'
+                        elif close > zone_high and open_ > zone_high:
+                            touch_type = 'body_close_above'
+                        elif close < zone_low and open_ < zone_low:
+                            touch_type = 'body_close_below'
+                        else:
+                            touch_type = 'wick_touch'
+                        break
+                    i+=1
+
+                zone_copy = zone.copy()
+                zone_copy['touch_type'] = touch_type
+                zone_copy['touch_index'] = touch_index
+                zone_copy['touch_candle'] = touch_candle
+                results.append(zone_copy)
 
         return results
 
