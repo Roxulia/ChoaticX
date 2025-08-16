@@ -14,10 +14,32 @@ class ConfluentsFinder():
         self.core_zones = [z for z in self.zones if z['type'] not in ['Buy-Side Liq','Sell-Side Liq']]
         self.based_zones = self.timeframes.getBasedZone(self.zones)
 
+    def get_available_cores(self,zone):
+        touch_index = zone.get('touch_index',None)
+        available_core = []
+        for z in self.core_zones:
+            z_touch_index = z.get('touch_index',None)
+            if touch_index is None and z_touch_index is None:
+                available_core.append(z)
+            elif touch_index < z_touch_index:
+                available_core.append(z)
+        return available_core
+
+    def get_available_liq(self,zone):
+        available_liq = []
+        touch_index = zone.get('touch_index',None)
+        for z in self.liq_zones:
+            z_touch_index = z.get('swept_index',None)
+            if touch_index is None and z_touch_index is None :
+                available_liq.append(z)
+            elif touch_index < z_touch_index:
+                available_liq.append(z)
+        return available_liq
+
     def add_core_confluence(self):
         for m in tqdm(self.based_zones,desc='Adding Core Confluents'):
             confluents = []
-            available_zones = [z for z in self.core_zones if ( (z['touch_index'] is not None and z['touch_index'] > m['index'] ) or (z['touch_index'] is None )) ]
+            available_zones = self.get_available_cores(m)
             for lz in available_zones:
                 if lz['zone_low'] <= m['zone_high'] and lz['zone_high'] >= m['zone_low']:
                     confluents.append({
@@ -33,7 +55,7 @@ class ConfluentsFinder():
     def add_liq_confluence(self):
         for m in tqdm(self.based_zones,desc = 'Adding Liq Confluents'):
             confluents = []
-            available_zones = [z for z in self.liq_zones if ( (z['swept_index'] is not None and z['swept_index'] > m['index'] ) or (z['swept_index'] is None )) ]
+            available_zones = self.get_available_liq(m)
             for lz in available_zones:
                 if lz['zone_low'] <= m['zone_high'] and lz['zone_high'] >= m['zone_low']:
                     confluents.append({
