@@ -5,6 +5,7 @@ from Core.zone_confluents import ConfluentsFinder
 from Core.SignalGeneration import SignalGenerator
 from Core.Filter import Filter
 from Core.zone_nearby import NearbyZones
+from Core.ATH_Handler import ATHHandler
 from ML.Model import ModelHandler
 from ML.dataCleaning import DataCleaner
 from ML.datasetGeneration import DatasetGenerator
@@ -47,6 +48,8 @@ class SignalService:
         zones = confluentfinder.getConfluents()
         
         df = self.api.get_ohlcv(interval='1h',lookback='1 years')
+        athHandler = ATHHandler(df)
+        athHandler.updateATH()
         nearByZones = NearbyZones(zones,df)
         zones = nearByZones.getNearbyZone()
         reactor = ZoneReactor()
@@ -66,9 +69,12 @@ class SignalService:
     def get_current_signals(self):
         candle = self.api.get_latest_candle()
         zones = self.get_untouched_zones()
+        athHandler = ATHHandler()
+        ATH = athHandler.getATHFromStorage()
         reactor = ZoneReactor()
         reaction,zone_index = reactor.get_last_candle_reaction(zones,candle)
         if not reaction == 'None':
+            nearbyzone = NearbyZones()
             use_zones = []
             for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
                 if zone['index'] == zone_index:
@@ -80,6 +86,11 @@ class SignalService:
                     zone['candle_rsi'] = candle['rsi']
                     zone['candle_atr'] = candle['atr']
                     zone['touch_type'] = reaction
+                    dist_above,above_zone,dist_below,below_zone = nearbyzone.getAboveBelowZones(zone,zones,ATH)
+                    zone['distance_to_nearest_zone_above'] = dist_above
+                    zone['nearest_zone_above'] = above_zone
+                    zone['distance_to_nearest_zone_below'] = dist_below
+                    zone['nearest_zone_below'] = below_zone
                     use_zones.append(zone)
             datacleaner = DataCleaner(self.output_path,train_path=self.train_path,test_path=self.test_path)
             use_zones = datacleaner.preprocess_input(use_zones)

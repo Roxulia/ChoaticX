@@ -65,6 +65,8 @@ class BinanceAPI:
         df = df.apply(pd.to_numeric).astype('float32')
         df = self.add_TA(df)
         return df.iloc[-1]
+    
+
 
 
 

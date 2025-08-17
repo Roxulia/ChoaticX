@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 class NearbyZones():
-    def __init__(self,based_zones,candles,threshold = 0.002):
+    def __init__(self,based_zones=[],candles=[],threshold = 0.002):
         self.based_zones = based_zones
         self.threshold = threshold
         self.candles = candles
@@ -94,6 +94,34 @@ class NearbyZones():
         }
 
         return ath
+    
+    def getAboveBelowZones(self,zone,zones,ATH):
+        this_high = zone.get('zone_high',None)
+        this_low = zone.get('zone_low',None)
+        min_dist_below = float('inf')
+        nearest_above_zone = ATH
+        min_dist_above =  this_high- nearest_above_zone['zone_low']
+        nearest_below_zone = None
+
+        for other in zones:
+            if other['index'] == zone['index']:
+                continue
+            
+            other_high = other.get('zone_high')
+            other_low = other.get('zone_low')
+            price_diff = other_high * self.threshold
+            if other_low > this_high:
+                dist = other_low - this_high
+                if dist < min_dist_above and dist >= price_diff:
+                    min_dist_above = dist
+                    nearest_above_zone = other.copy()
+            elif other_high < this_low:
+                dist = this_low - other_high
+                if dist < min_dist_below and dist>=price_diff:
+                    min_dist_below = dist
+                    nearest_below_zone = other.copy()
+
+        return min_dist_above, nearest_above_zone, min_dist_below, nearest_below_zone
 
 
 
