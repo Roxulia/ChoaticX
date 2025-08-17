@@ -29,6 +29,8 @@ class SignalService:
 
     def get_zones(self,interval,lookback):
         df = self.api.get_ohlcv(interval=interval,lookback=lookback)
+        if df is None:
+            return None
         detector = ZoneDetector(df)
         zones = detector.get_zones()
         return zones
@@ -36,7 +38,11 @@ class SignalService:
     def get_latest_zones(self):
         #zone_15m = self.get_zones('15min','1 years')
         zone_1h = self.get_zones('1h','1 years')
+        if zone_1h is None:
+            return None
         zone_4h = self.get_zones('4h',' 1 years')
+        if zone_4h is None:
+            return None
         confluentfinder = ConfluentsFinder(zone_1h+zone_4h)
         zones = confluentfinder.getConfluents()
         
@@ -84,6 +90,8 @@ class SignalService:
     
     def get_dataset(self):
         df = self.get_latest_zones()
+        if df is None:
+            return None,None
         datagen = DatasetGenerator(df)
         cols = datagen.get_dataset_list(self.output_path,self.storage_path)
         return datagen.total_line,cols
@@ -112,6 +120,8 @@ class SignalService:
 
     def data_extraction(self):
         total,cols = self.get_dataset()
+        if total is None:
+            return None
         total = self.clean_dataset(total,cols)
         return total
 

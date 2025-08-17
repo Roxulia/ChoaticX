@@ -57,7 +57,7 @@ class ZoneReactor:
             if zone_type  in ['Buy-Side Liq','Sell-Side Liq']:
                 touch_index = zone.get('swept_index',None)
                 if touch_index is not None:
-                    touch_candle = candles.iloc[touch_index]
+                    touch_candle = candles_data.iloc[touch_index]
                     if zone_low <= close <= zone_high:
                         touch_type = 'body_close_inside'
                     elif (open_ > zone_high and close < zone_low) or (open_ < zone_low and close > zone_high):
@@ -170,7 +170,7 @@ class ZoneReactor:
             below_zone = zone.get('nearest_zone_below', None)
 
             if above_zone is None or below_zone is None:
-                #zone_targets.append({**zone, 'target': 0})
+                zone_targets.append({**zone, 'target': None})
                 continue
 
             if touch_index is not None and 0 <= touch_index < candle_len - 1:
@@ -204,7 +204,7 @@ class ZoneReactor:
                 elif first_below is not None and (first_above is None or first_below < first_above):
                     target_zone = 0
                 else:
-                    target_zone = 0  # No target
+                    target_zone = None  # No target
 
                 zone_targets.append({**zone, 'target': target_zone})
 

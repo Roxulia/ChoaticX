@@ -329,7 +329,7 @@ class DatasetGenerator:
         
         for i, row in enumerate(tqdm(data, desc="Writing to JSONL",total=self.total_line, dynamic_ncols=True)):
             try:
-                if row['touch_type'] is not None:
+                if row['touch_index'] is not None:
                     if dataset_start:
                         with open(dataset_path, "w") as f:
                             f.write(json.dumps(row , default=self.default_json_serializer) + "\n")

@@ -39,17 +39,26 @@ class NearbyZones():
                             nearest_below_zone = other.copy()
 
                 return min_dist_above, nearest_above_zone, min_dist_below, nearest_below_zone
+            if valid_zones == []:
+                updated = zone.copy()
+                updated['distance_to_nearest_zone_above'] = None
+                updated['nearest_zone_above'] = None
+                updated['distance_to_nearest_zone_below'] = None
+                updated['nearest_zone_below'] = None
 
-            # Handle liquidity zones with multiple touches
-            min_above, above_zone, min_below, below_zone = compute_nearest(valid_zones)
+                results.append(updated)
+            else:
 
-            updated = zone.copy()
-            updated['distance_to_nearest_zone_above'] = min_above
-            updated['nearest_zone_above'] = above_zone
-            updated['distance_to_nearest_zone_below'] = min_below
-            updated['nearest_zone_below'] = below_zone
+                # Handle liquidity zones with multiple touches
+                min_above, above_zone, min_below, below_zone = compute_nearest(valid_zones)
 
-            results.append(updated)
+                updated = zone.copy()
+                updated['distance_to_nearest_zone_above'] = min_above
+                updated['nearest_zone_above'] = above_zone
+                updated['distance_to_nearest_zone_below'] = min_below
+                updated['nearest_zone_below'] = below_zone
+
+                results.append(updated)
 
         return results
     

@@ -13,8 +13,10 @@ class SignalAPI:
 
     def get_zones(self):
         zones = self.service.get_untouched_zones()
-        return jsonify(zones)
+        if zones is None:
+            return jsonify({"error": "No zones found"}), 500
+        return jsonify(zones),200
 
     def get_signals(self):
         signals = self.service.get_current_signals()
-        return jsonify(signals)
+        return jsonify(signals),200
