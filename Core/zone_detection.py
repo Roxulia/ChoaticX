@@ -23,6 +23,7 @@ class ZoneDetector:
         atr = self.df['atr'].values
         rsi = self.df['rsi'].values
         atr_mean = self.df['atr_mean'].values
+        timestamps = self.df['timestamp'].values
 
         length = len(self.df)
 
@@ -71,7 +72,9 @@ class ZoneDetector:
                         'prev_volatility_5': prev_volatility_5[i],
                         'momentum_5': momentum_5[i],
                         'touch_index': touch_indx,
+                        'touch_time' : timestamps[touch_indx] if touch_indx is not None and touch_indx < len(timestamps) else None,
                         'time_frame': self.timeframe,
+                        'timestamp' : timestamps[i]
                     })
 
             elif next_high < prev_low:
@@ -98,7 +101,9 @@ class ZoneDetector:
                         'prev_volatility_5': prev_volatility_5[i],
                         'momentum_5': momentum_5[i],
                         'touch_index': touch_indx,
+                        'touch_time' : timestamps[touch_indx] if touch_indx is not None and touch_indx < len(timestamps) else None,
                         'time_frame': self.timeframe,
+                        'timestamp' : timestamps[i]
                     })
 
         return fvg_indices
@@ -119,6 +124,7 @@ class ZoneDetector:
         atr = self.df['atr'].values
         rsi = self.df['rsi'].values
         atr_mean = self.df['atr_mean'].values
+        timestamps = self.df['timestamp'].values
 
         for i in tqdm(range(5, len(self.df) - 2),desc='Extracting OBs'):
             open_, close_ = opens[i], closes[i]
@@ -177,7 +183,9 @@ class ZoneDetector:
                         'prev_volatility_5': prev_volatility_5,
                         'momentum_5': momentum_5,
                         'touch_index': touch_indx,
+                        'touch_time' : timestamps[touch_indx] if touch_indx is not None and touch_indx < len(timestamps) else None,
                         'time_frame': self.timeframe,
+                        'timestamp' : timestamps[i]
                     })
 
             # --- Bearish OB Detection ---
@@ -210,7 +218,9 @@ class ZoneDetector:
                         'prev_volatility_5': prev_volatility_5,
                         'momentum_5': momentum_5,
                         'touch_index': touch_indx,
+                        'touch_time' : timestamps[touch_indx] if touch_indx is not None and touch_indx < len(timestamps) else None,
                         'time_frame': self.timeframe,
+                        'timestamp' : timestamps[i]
                     })
 
         return ob_list
@@ -242,14 +252,18 @@ class ZoneDetector:
                             'ema 50' : self.df.iloc[i]['ema50'],
                             'atr' : self.df.iloc[i]['atr'],
                             'rsi' : self.df.iloc[i]['rsi'],
-                            'atr_mean' : self.df.iloc[i]['atr_mean']})
+                            'atr_mean' : self.df.iloc[i]['atr_mean'],
+                            'timestamp' : self.df.iloc[i]['timestamp']
+                            })
             elif is_swing_low:
                 self.swings.append({'index': i, 'Type': 'Swing Low', 'Price': center_low,'swing_strength':window,
                             'ema 20' : self.df.iloc[i]['ema20'],
                             'ema 50' : self.df.iloc[i]['ema50'],
                             'atr' : self.df.iloc[i]['atr'],
                             'rsi' : self.df.iloc[i]['rsi'],
-                            'atr_mean' : self.df.iloc[i]['atr_mean']})
+                            'atr_mean' : self.df.iloc[i]['atr_mean'],
+                            'timestamp' : self.df.iloc[i]['timestamp']
+                            })
 
     def label_structure_from_swings(self):
         labeled_swings = []
@@ -348,7 +362,7 @@ class ZoneDetector:
                 rsis = [g['rsi'] for g in group if 'rsi' in g]
                 atrs = [g['atr'] for g in group if 'atr' in g]
                 atr_means = [g['atr_mean'] for g in group if 'atr_mean' in g]
-
+                timestamps = [g['timestamp'] for g in group if 'timestamp' in g]
                 # Find sweep candle
                 start = end_idx + 1
                 swept_index = None
@@ -370,6 +384,7 @@ class ZoneDetector:
                     'index' : group[0]['index'],
                     'end_index': end_idx,
                     'swept_index': swept_index,
+                    'swept_time': timestamps[swept_index] if swept_index is not None and swept_index < len(timestamps) else None,
                     'liquidity_height': liquidity_height,
                     'equal_level_deviation': equal_level_deviation,
                     'avg_volume_around_zone': avg_volume,
@@ -381,6 +396,7 @@ class ZoneDetector:
                     'avg_atr' : np.mean(atrs),
                     'avg_atr_mean' : np.mean(atr_means),
                     'time_frame' : self.timeframe,
+                    'timestamp' : timestamps[0]
                 })
 
 

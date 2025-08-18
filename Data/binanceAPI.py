@@ -33,6 +33,7 @@ class BinanceAPI:
             df = df[['open', 'high', 'low', 'close', 'volume']]
             df = df.apply(pd.to_numeric).astype('float32')
             df = self.add_TA(df)
+            df['timestamp'] = df.index
             return df
         except:
             print("Unexcepted Error Occur")
@@ -64,6 +65,7 @@ class BinanceAPI:
         df = df[['open', 'high', 'low', 'close', 'volume']]
         df = df.apply(pd.to_numeric).astype('float32')
         df = self.add_TA(df)
+        df['timestamp'] = df.index
         return df.iloc[-1]
     
 

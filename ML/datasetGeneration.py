@@ -263,6 +263,7 @@ class DatasetGenerator:
                 features['candle_ema50'] = None
                 features['candle_rsi'] = None
                 features['candle_atr'] = None
+                features['candle_timestamp'] = None
             else:
                 features['candle_volume'] = touch_candle['volume']
                 features['candle_open'] = touch_candle['open']
@@ -271,6 +272,7 @@ class DatasetGenerator:
                 features['candle_ema50'] = touch_candle['ema50']
                 features['candle_rsi'] = touch_candle['rsi']
                 features['candle_atr'] = touch_candle['atr']
+                features['candle_timestamp'] = touch_candle['timestamp']
             features['available_zones'] = available_zones
             self.total_line += 1
             dataset.append(features)
@@ -319,6 +321,37 @@ class DatasetGenerator:
                 base_data['is_target'] = None
             yield {**base_data}
 
+    def store_untouch_zones(self,storage_file,start = True):
+        features = self.extract_features_and_labels()
+        confluents = self.extract_confluent_tf(features)
+        data = self.extract_nearby_zone_data(confluents)
+        
+        for i,row in enumerate(tqdm(data,desc="Writing to untouch zone storage file")):
+            try:
+                if start:
+                        with open(storage_file, "w") as f:
+                            f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
+                        start = False
+                else:
+                    with open(storage_file, "a") as f:
+                        f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
+            except TypeError as e:
+                print(f"\n🚨 JSON serialization error at row {i}")
+                for k, v in row.items():
+                    try:
+                        json.dumps(v,default=self.default_json_serializer)  # test if this key's value is serializable
+                    except TypeError:
+                        print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
+                raise e  
+            except ValueError as e:
+                print(f"\n🚨 JSON serialization error at row {i}")
+                for k,v in row.items():
+                    try:
+                        json.dumps(v,default=self.default_json_serializer)  # test if this key's value is serializable
+                    except ValueError:
+                        print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
+                raise e
+
     def get_dataset_list(self,dataset_path,storage_file):
         features = self.extract_features_and_labels()
         confluents = self.extract_confluent_tf(features)
@@ -329,7 +362,7 @@ class DatasetGenerator:
         
         for i, row in enumerate(tqdm(data, desc="Writing to JSONL",total=self.total_line, dynamic_ncols=True)):
             try:
-                if row['touch_index'] is not None:
+                if row['touch_type'] is not None :
                     if dataset_start:
                         with open(dataset_path, "w") as f:
                             f.write(json.dumps(row , default=self.default_json_serializer) + "\n")

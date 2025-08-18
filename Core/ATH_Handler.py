@@ -37,6 +37,7 @@ class ATHHandler():
             'momentum_5': momentum_5.iloc[index],
             'type': 'ATH',
             'index': index,
+            'timestamp' : ATH_zone['timestamp']
         }
 
         return ath

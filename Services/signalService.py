@@ -72,12 +72,13 @@ class SignalService:
         athHandler = ATHHandler()
         ATH = athHandler.getATHFromStorage()
         reactor = ZoneReactor()
-        reaction,zone_index = reactor.get_last_candle_reaction(zones,candle)
+        reaction,zone_timestamp = reactor.get_last_candle_reaction(zones,candle)
         if not reaction == 'None':
             nearbyzone = NearbyZones()
             use_zones = []
             for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
-                if zone['index'] == zone_index:
+                curr_timestamp = pd.to_datetime(zone['timestamp'])
+                if curr_timestamp == zone_timestamp:
                     zone['candle_volume'] = candle['volume']
                     zone['candle_open'] = candle['open']
                     zone['candle_close'] = candle['close']
@@ -99,6 +100,25 @@ class SignalService:
             print('Zones are not touched yet')
             return 'None'
     
+    def update_untouched_zones(self):
+        
+        df_from_candle = self.get_latest_zones()
+        if df_from_candle is not None:
+            temp_df = []
+            for i,row in enumerate(df_from_candle):
+                if row['touch_type'] is not None:
+                    continue
+                else:
+                    temp_df.append(row)
+            df_from_storage = self.get_untouched_zones()
+            if df_from_storage is None:
+                datagen = DatasetGenerator(temp_df)
+                datagen.store_untouch_zones(self.storage_path)
+            else:
+                df_final = self.merge_lists_by_key(df_from_storage,temp_df,key="timestamp")
+                datagen = DatasetGenerator(df_final)
+                datagen.store_untouch_zones(self.storage_path)
+
     def get_dataset(self):
         df = self.get_latest_zones()
         if df is None:
@@ -154,3 +174,19 @@ class SignalService:
             for k,v in d.items():
                 print(k)
             count+=1
+
+    def merge_lists_by_key(self,old_list, new_list, key="id"):
+        # Convert old list to dict keyed by primary key
+        merged = {d[key]: d for d in old_list}
+
+        for new_item in new_list:
+            pk = new_item[key]
+            if pk in merged:
+                # Update existing entry with new values
+                merged[pk].update(new_item)
+            else:
+                # Insert new entry
+                merged[pk] = new_item
+
+        # Return back as list
+        return list(merged.values())

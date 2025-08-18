@@ -15,43 +15,42 @@ class ConfluentsFinder():
         self.based_zones = self.timeframes.getBasedZone(self.zones)
 
     def get_available_cores(self,zone):
-        touch_index = zone.get('touch_index',None)
+        touch_time = zone.get('touch_time',None)
+        swept_time = zone.get('swept_time',None)
         available_core = []
-        if touch_index is None:
+        if touch_time is None and swept_time is None:
             return []
         for z in self.core_zones:
-            z_touch_index = z.get('touch_index',None)
-            if z_touch_index is None:
+            z_touch_time = z.get('touch_time',None)
+            if z_touch_time is None:
                 available_core.append(z)
-            elif touch_index < z_touch_index:
+            elif touch_time < z_touch_time:
                 available_core.append(z)
         return available_core
 
     def get_available_liq(self,zone):
         available_liq = []
-        touch_index = zone.get('touch_index',None)
-        if touch_index is None:
+        touch_time= zone.get('touch_time',None)
+        swept_time = zone.get('swept_time',None)
+        if touch_time is None and swept_time is None:
             return []
         for z in self.liq_zones:
-            z_touch_index = z.get('swept_index',None)
-            if z_touch_index is None :
+            z_touch_time = z.get('swept_time',None)
+            if z_touch_time is None :
                 available_liq.append(z)
-            elif touch_index < z_touch_index:
+            elif touch_time < z_touch_time:
                 available_liq.append(z)
         return available_liq
 
     def add_core_confluence(self):
         for m in tqdm(self.based_zones,desc='Adding Core Confluents'):
             confluents = []
-            available_zones = [z for z in self.core_zones if ( (z['touch_index'] is not None and z['touch_index'] > m['index'] ) or (z['touch_index'] is None )) ]
+            available_zones = [z for z in self.core_zones if ( (z['touch_time'] is not None and z['touch_time'] > m['timestamp'] ) or (z['touch_time'] is None )) ]
             for lz in available_zones:
                 if lz['zone_low'] <= m['zone_high'] and lz['zone_high'] >= m['zone_low']:
                     confluents.append({
                         'type': lz['type'],
                         'timeframe': lz['time_frame'],
-                        'zone_low': lz['zone_low'],
-                        'zone_high': lz['zone_high'],
-                        'touched': lz.get('touch_index') is not None
                     })
             m['core_confluence'] = confluents
             
@@ -59,15 +58,12 @@ class ConfluentsFinder():
     def add_liq_confluence(self):
         for m in tqdm(self.based_zones,desc = 'Adding Liq Confluents'):
             confluents = []
-            available_zones = [z for z in self.liq_zones if ( (z['swept_index'] is not None and z['swept_index'] > m['index'] ) or (z['swept_index'] is None )) ]
+            available_zones = [z for z in self.liq_zones if ( (z['swept_time'] is not None and z['swept_time'] > m['timestamp'] ) or (z['swept_time'] is None )) ]
             for lz in available_zones:
                 if lz['zone_low'] <= m['zone_high'] and lz['zone_high'] >= m['zone_low']:
                     confluents.append({
                         'type': lz['type'],
                         'timeframe': lz['time_frame'],
-                        'zone_low': lz['zone_low'],
-                        'zone_high': lz['zone_high'],
-                        'swept': lz.get('swept_index') is not None
                     })
             m['liquidity_confluence'] = confluents
 
