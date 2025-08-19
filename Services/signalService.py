@@ -74,12 +74,14 @@ class SignalService:
         reactor = ZoneReactor()
         datagen = DatasetGenerator()
         reaction,zone_timestamp = reactor.get_last_candle_reaction(zones,candle)
+        zone_to_remove = []
         if not reaction == 'None':
             nearbyzone = NearbyZones()
             use_zones = []
             for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
                 curr_timestamp = pd.to_datetime(zone['timestamp'])
                 if curr_timestamp == zone_timestamp:
+                    zone_to_remove.append(zone_timestamp)
                     zone['candle_volume'] = candle['volume']
                     zone['candle_open'] = candle['open']
                     zone['candle_close'] = candle['close']
@@ -97,10 +99,18 @@ class SignalService:
                     use_zones.append(temp_zone)
             datacleaner = DataCleaner(self.output_path,train_path=self.train_path,test_path=self.test_path)
             use_zones = datacleaner.preprocess_input(use_zones)
-            return self.signal_gen.generate(use_zones)
+            signal = self.signal_gen.generate(use_zones)
         else:
             print('Zones are not touched yet')
-            return 'None'
+            signal = 'None'
+        dataToStore = self.remove_data_from_lists_by_key(zones,zone_to_remove,key='timestamp')
+        try:
+            with open(self.storage_path, "w") as f:
+                for i, row in enumerate(tqdm(dataToStore, desc="Writing to untouch zone storage file")):
+                    f.write(json.dumps(row) + "\n")
+        except Exception as e:
+            print(f"Error writing to file: {e}")
+        return signal
     
     def update_untouched_zones(self):
         
@@ -192,3 +202,13 @@ class SignalService:
 
         # Return back as list
         return list(merged.values())
+    
+    def remove_data_from_lists_by_key(self, data_list,to_remove, key ):
+        """
+        Remove items from a list of dictionaries where the specified key matches the given value.
+        """
+        result = []
+        for item in data_list:
+            if item[key] not in to_remove:
+                result.append(item)
+        return result
