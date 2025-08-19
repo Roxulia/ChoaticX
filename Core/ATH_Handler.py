@@ -1,11 +1,29 @@
 import os
 import json
 from dotenv import load_dotenv
+import datetime
+import decimal
+import numpy as np
 class ATHHandler():
     def __init__(self,candles=[]):
         self.storage = os.getenv(key='ATH_DATA')
         self.candles = candles
 
+    def default_json_serializer(self,obj):
+        if isinstance(obj, (datetime.datetime, datetime.date)):
+            return obj.isoformat()
+        elif isinstance(obj, decimal.Decimal):
+            return float(obj)
+        elif isinstance(obj, (np.integer, np.int64, np.int32)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float64, np.float32)):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif hasattr(obj, '__str__'):
+            return str(obj)
+        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+    
     def getATHFromCandles(self):
         data = self.candles
         if data is None or data.empty:
@@ -72,7 +90,7 @@ class ATHHandler():
     def store(self,data):
         try:
             with open(self.storage, 'w') as f:
-                json.dump(data, f, indent=4)
+                json.dump(data, f, indent=4,default=self.default_json_serializer)
             return True
         except:
             print("File Storage Error")

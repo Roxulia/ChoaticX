@@ -7,7 +7,7 @@ import datetime
 import decimal
 
 class DatasetGenerator:
-    def __init__(self,  zones_with_targets):
+    def __init__(self,  zones_with_targets = []):
         
         self.zones = zones_with_targets
         self.dataset = []
@@ -265,14 +265,7 @@ class DatasetGenerator:
                 features['candle_atr'] = None
                 features['candle_timestamp'] = None
             else:
-                features['candle_volume'] = touch_candle['volume']
-                features['candle_open'] = touch_candle['open']
-                features['candle_close'] = touch_candle['close']
-                features['candle_ema20'] = touch_candle['ema20']
-                features['candle_ema50'] = touch_candle['ema50']
-                features['candle_rsi'] = touch_candle['rsi']
-                features['candle_atr'] = touch_candle['atr']
-                features['candle_timestamp'] = touch_candle['timestamp']
+                features = {**features,**{f'candle_{k}': v for k,v in touch_candle.items()}}
             features['available_zones'] = available_zones
             self.total_line += 1
             dataset.append(features)
@@ -307,6 +300,23 @@ class DatasetGenerator:
                     temp_zone = self.extract_confluent_tf_per_zone(below_zone)
                     temp_bl = {f'below_zone_{k}': v for k, v in temp_zone.items() if k not in ['available_core','available_liquidity','nearest_zone_above','nearest_zone_below']}
                 yield {**base_data, **temp_ab,**temp_bl}
+
+    def extract_nearby_zone_data_per_zone(self,zone):
+        above_zone = zone.get('nearest_zone_above',None)
+        below_zone = zone.get('nearest_zone_below',None)
+        base_data = {k: v for k, v in zone.items() if k not in ['nearest_zone_above','nearest_zone_below','available_zones']}
+        if above_zone is None and below_zone is None:
+            return {**base_data}
+        else:
+            temp_ab = {}
+            temp_bl = {}
+            if above_zone:
+                temp_zone = self.extract_confluent_tf_per_zone(above_zone)
+                temp_ab = {f'above_zone_{k}': v for k, v in temp_zone.items() if k not in ['available_core','available_liquidity','nearest_zone_above','nearest_zone_below']}
+            if below_zone:
+                temp_zone = self.extract_confluent_tf_per_zone(below_zone)
+                temp_bl = {f'below_zone_{k}': v for k, v in temp_zone.items() if k not in ['available_core','available_liquidity','nearest_zone_above','nearest_zone_below']}
+            return {**base_data, **temp_ab,**temp_bl}
     
     def extract_label(self,availables):
         for zone in availables:
@@ -321,6 +331,11 @@ class DatasetGenerator:
                 base_data['is_target'] = None
             yield {**base_data}
 
+    def clearNoneTarget(self,data):
+        for row in data:
+            if row.get('target') is not None:
+                yield row
+    
     def store_untouch_zones(self,storage_file,start = True):
         features = self.extract_features_and_labels()
         confluents = self.extract_confluent_tf(features)
@@ -356,6 +371,7 @@ class DatasetGenerator:
         features = self.extract_features_and_labels()
         confluents = self.extract_confluent_tf(features)
         data = self.extract_nearby_zone_data(confluents)
+        #data = self.clearNoneTarget(data)
         columns = set()
         dataset_start = True
         storage_start = True

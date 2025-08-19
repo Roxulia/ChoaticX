@@ -5,7 +5,7 @@ class ZoneReactor:
         pass
 
     def get_zone_reaction(self,zone,candles_data):
-        candles = candles_data[['timestamp', 'high', 'low', 'open', 'close']].copy()
+        candles = candles_data.copy()
         candles['timestamp'] = pd.to_datetime(candles['timestamp'])
         
         zone_high = zone['zone_high']
@@ -46,7 +46,7 @@ class ZoneReactor:
     
     def get_zones_reaction(self, zones, candles_data):
         results = []
-        candles = candles_data[['timestamp', 'high', 'low', 'open', 'close']].copy()
+        candles = candles_data.copy()
         candles['timestamp'] = pd.to_datetime(candles['timestamp'])
 
         for zone in tqdm(zones, desc="Getting Zone Reactions"):
@@ -127,7 +127,7 @@ class ZoneReactor:
         Optimized for speed.
         """
         zone_targets = []
-        candles = candles_data[['timestamp', 'high', 'low', 'open', 'close']].copy()
+        candles = candles_data.copy()
         candles['timestamp'] = pd.to_datetime(candles['timestamp'])
 
         for zone in tqdm(zones, desc='Adding Target zones'):
@@ -164,7 +164,7 @@ class ZoneReactor:
 
     def getTargetFromTwoZones(self, zones, candles_data):
         zone_targets = []
-        candles = candles_data[['timestamp', 'high', 'low', 'open', 'close']].copy()
+        candles = candles_data.copy()
         candles['timestamp'] = pd.to_datetime(candles['timestamp'])
 
         for zone in tqdm(zones, desc='Adding Target zones'):

@@ -72,6 +72,7 @@ class SignalService:
         athHandler = ATHHandler()
         ATH = athHandler.getATHFromStorage()
         reactor = ZoneReactor()
+        datagen = DatasetGenerator()
         reaction,zone_timestamp = reactor.get_last_candle_reaction(zones,candle)
         if not reaction == 'None':
             nearbyzone = NearbyZones()
@@ -92,7 +93,8 @@ class SignalService:
                     zone['nearest_zone_above'] = above_zone
                     zone['distance_to_nearest_zone_below'] = dist_below
                     zone['nearest_zone_below'] = below_zone
-                    use_zones.append(zone)
+                    temp_zone = datagen.extract_nearby_zone_data_per_zone(zone)
+                    use_zones.append(temp_zone)
             datacleaner = DataCleaner(self.output_path,train_path=self.train_path,test_path=self.test_path)
             use_zones = datacleaner.preprocess_input(use_zones)
             return self.signal_gen.generate(use_zones)

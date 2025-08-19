@@ -53,6 +53,11 @@ class DataCleaner:
                                   'above_zone_swept_index','above_zone_end_index','above_zone_duration_between_first_last_touch',
                                   'below_zone_touch_type','below_zone_touch_index','below_zone_level',
                                   'below_zone_swept_index','below_zone_end_index','below_zone_duration_between_first_last_touch',
+                                  'index','az_index','above_zone_index','below_zone_index',
+                                  'timestamp','az_timestamp','above_zone_timestamp','below_zone_timestamp',
+                                  'candle_timestamp','touch_time','swept_time',
+                                  'az_touch_time','above_zone_touch_time','below_zone_touch_time',
+                                  'az_swept_time','above_zone_swept_time','below_zone_swept_time',
                                   ]
 
     
@@ -64,6 +69,7 @@ class DataCleaner:
                 df =  pd.DataFrame(batch)
                 df = df.reindex(columns=self.columns, fill_value=pd.NA)
                 df = self.remove_columns(df)
+                df = df.dropna(subset=['target'])
                 df = self.transformCategoryTypes(df)
                 df = self.fillNaN(df)
                 df = df.astype('float32')
@@ -75,6 +81,7 @@ class DataCleaner:
             df =  pd.DataFrame(batch)
             df = df.reindex(columns=self.columns, fill_value=pd.NA)
             df = self.remove_columns(df)
+            df = df.dropna(subset=['target'])
             df = self.transformCategoryTypes(df)
             df = self.fillNaN(df)
             df = df.astype('float32')

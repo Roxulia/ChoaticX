@@ -9,7 +9,7 @@ class SchedulerManager:
     def start(self):
         # Plan B example:
         # 1. Update zones every 3 hours
-        self.scheduler.add_job(self.service.update_untouched_zones, 'interval', hours=3)
+        self.scheduler.add_job(self.service.update_untouched_zones, 'interval', hours=4)
 
         # 2. Check signals on every 1h candle close
         self.scheduler.add_job(self.service.get_current_signals, 'interval', hours=1)
