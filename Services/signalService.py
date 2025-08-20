@@ -36,18 +36,21 @@ class SignalService:
         zones = detector.get_zones()
         return zones
 
-    def get_latest_zones(self):
-        #zone_15m = self.get_zones('15min','1 years')
-        zone_1h = self.get_zones('1h','1 years')
+    def get_latest_zones(self,lookback='1 years'):
+        
+        zone_1h = self.get_zones('1h',lookback)
         if zone_1h is None:
             return None
-        zone_4h = self.get_zones('4h',' 1 years')
+        zone_4h = self.get_zones('4h',lookback)
         if zone_4h is None:
             return None
-        confluentfinder = ConfluentsFinder(zone_1h+zone_4h)
+        zone_1D = self.get_zones('1D',lookback)
+        if zone_1D is None:
+            return None 
+        confluentfinder = ConfluentsFinder(zone_1h+zone_4h+zone_1D)
         zones = confluentfinder.getConfluents()
         
-        df = self.api.get_ohlcv(interval='1h',lookback='1 years')
+        df = self.api.get_ohlcv(interval='1h',lookback=lookback)
         athHandler = ATHHandler(df)
         athHandler.updateATH()
         nearByZones = NearbyZones(zones,df)
@@ -114,7 +117,7 @@ class SignalService:
     
     def update_untouched_zones(self):
         
-        df_from_candle = self.get_latest_zones()
+        df_from_candle = self.get_latest_zones('6 months')
         if df_from_candle is not None:
             temp_df = []
             for i,row in enumerate(df_from_candle):
@@ -132,7 +135,7 @@ class SignalService:
                 datagen.store_untouch_zones(self.storage_path)
 
     def get_dataset(self):
-        df = self.get_latest_zones()
+        df = self.get_latest_zones('3 years')
         if df is None:
             return None,None
         datagen = DatasetGenerator(df)

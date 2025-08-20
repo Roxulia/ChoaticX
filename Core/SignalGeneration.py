@@ -1,9 +1,14 @@
 import pandas as pd
 from .Filter import Filter
+from dotenv import load_dotenv
+import os
 class SignalGenerator:
     def __init__(self, models):
         self.models = models
         self.filter = Filter()
+        self.signal_storage = os.getenv(key='SIGNAL_STORAGE')
+        if not os.path.exists(self.signal_storage):
+            os.makedirs(self.signal_storage)
 
     def generate(self,zones:pd.DataFrame):
         signal = None
@@ -25,8 +30,27 @@ class SignalGenerator:
                 entry = row['zone_high']
                 signal = 'Long'
             if self.filter(entry,sl,tp):
+                row['signal'] = signal
+                row['entry'] = entry
+                row['tp'] = tp  
+                row['sl'] = sl
+                row['result'] = 'Pending'
+                header = self.get_signals_count() == 0
+                if header:
+                    row.to_csv(self.signal_storage, mode='w', header=True, index=False)
+                else:
+                    row.to_csv(self.signal_storage, mode='a', header=False, index=False)
                 return f'Signal : {signal},Entry price : {entry},TP : {tp},SL : {sl}'
             else:
                 return 'None'
         else:
             return 'None'
+        
+    def get_signals_count(self):
+        signals = []
+        if os.path.exists(self.signal_storage):
+            with open(self.signal_storage, 'r') as f:
+                for line in f:
+                    data = pd.read_csv(line)
+                    signals.append(data)
+        return len(signals) if signals else 0
