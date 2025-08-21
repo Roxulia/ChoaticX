@@ -68,6 +68,19 @@ class BinanceAPI:
         df['timestamp'] = df.index
         return df.iloc[-1]
     
+    def store_OHLCV(self, symbol='BTCUSDT', interval='1h',lookback='3 years'):
+        """
+        Store OHLCV data to a CSV file
+        """
+        df = self.get_ohlcv(symbol, interval, lookback)
+        if df is None:
+            print("Failed to fetch data.")
+            return None
+        file_path = f"{symbol}_{interval}_{lookback}.csv"
+        df.to_csv(file_path)
+        print(f"Data stored to {file_path}")
+        return file_path
+    
 
 
 

@@ -17,9 +17,12 @@ from tqdm import tqdm
 import os
 
 class BackTestHandler:
-    def __init__(self):
+    def __init__(self,time_frames = ['1h','4h','1D'],lookback = '3 years'):
         load_dotenv()
         self.api = BinanceAPI()
+        self.ohclv_paths=[]
+        self.time_frames = time_frames
+        self.lookback = lookback
         self.output_path = os.getenv(key='RAW_DATA')
         self.train_path = os.getenv(key='TRAIN_DATA')
         self.test_path = os.getenv(key='TEST_DATA')
@@ -40,7 +43,43 @@ class BackTestHandler:
                 signals.append(signal)
         
         return signals
+    
+    def warm_up(self):
+        if not self.initial_state():
+            print("Failed to initialize state with OHLCV data.")
+            return False
+        
+        warm_up_dfs = self.load_warm_up_dfs()
+        if not warm_up_dfs:
+            print("No warm-up data loaded.")
+            return False
+        
+        zones = []
+        for df in tqdm(warm_up_dfs, desc="Warming up with OHLCV data"):
+            detector = ZoneDetector(df)
+            zones.append(detector.get_zones())
+        confluentfinder = ConfluentsFinder(zones)
+        confluent_zones = confluentfinder.getConfluents()
+        return True
 
-    def get_latest_zones(self):
-        # Implementation similar to SignalService
-        pass
+    def load_warm_up_dfs(self):
+        warm_up_dfs = []
+        for path in tqdm(self.ohclv_paths, desc="Warming up with OHLCV data"):
+            df = pd.read_csv(path)
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            start_date = df['timestamp'].min()
+            cutoff_date = start_date + pd.DateOffset(months=3)
+            warmup_df = df[df['timestamp'] < cutoff_date]
+            warm_up_dfs.append(warmup_df)
+        return warm_up_dfs
+
+    def initial_state(self):
+        for tf in self.time_frames:
+            path = self.api.store_OHLCV(symbol='BTCUSDT', interval=tf, lookback=self.lookback)
+            if path is not None:
+                self.ohclv_paths.append(path)
+        
+        if not self.ohclv_paths:
+            print("No data fetched for the specified time frames.")
+            return False
+        return True
