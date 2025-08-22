@@ -53,13 +53,23 @@ class BackTestHandler:
         if not warm_up_dfs:
             print("No warm-up data loaded.")
             return False
-        
-        zones = []
-        for df in tqdm(warm_up_dfs, desc="Warming up with OHLCV data"):
-            detector = ZoneDetector(df)
-            zones.append(detector.get_zones())
-        confluentfinder = ConfluentsFinder(zones)
-        confluent_zones = confluentfinder.getConfluents()
+        try:
+            zones = []
+            for df in tqdm(warm_up_dfs, desc="Warming up with OHLCV data"):
+                detector = ZoneDetector(df)
+                zones.append(detector.get_zones())
+            confluentfinder = ConfluentsFinder(zones)
+            confluent_zones = confluentfinder.getConfluents()
+            based_candles = warm_up_dfs[0]
+            nearby_zones = NearbyZones(confluent_zones, based_candles)
+            confluent_zones = nearby_zones.getNearbyZone()
+            reactor = ZoneReactor()
+            result_zones = reactor.get_zones_reaction(confluent_zones,df)
+            result_zones = reactor.getTargetFromTwoZones(result_zones,df)
+            self.warmups = result_zones
+        except Exception as e:
+            print(f"Error during warm-up: {e}")
+            return False
         return True
 
     def load_warm_up_dfs(self):
