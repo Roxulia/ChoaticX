@@ -60,13 +60,8 @@ class BackTestHandler:
                 zones.append(detector.get_zones())
             confluentfinder = ConfluentsFinder(zones)
             confluent_zones = confluentfinder.getConfluents()
-            based_candles = warm_up_dfs[0]
-            nearby_zones = NearbyZones(confluent_zones, based_candles)
-            confluent_zones = nearby_zones.getNearbyZone()
-            reactor = ZoneReactor()
-            result_zones = reactor.get_zones_reaction(confluent_zones,df)
-            result_zones = reactor.getTargetFromTwoZones(result_zones,df)
-            self.warmups = result_zones
+            datagen = DatasetGenerator(confluent_zones)
+            self.warmups = datagen.extract_confluent_tf()
         except Exception as e:
             print(f"Error during warm-up: {e}")
             return False
