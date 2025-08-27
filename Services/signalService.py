@@ -10,6 +10,7 @@ from ML.Model import ModelHandler
 from ML.dataCleaning import DataCleaner
 from ML.datasetGeneration import DatasetGenerator
 from Data.binanceAPI import BinanceAPI
+from Utility.UtilityClass import UtilityFunctions
 import pandas as pd
 import json
 from dotenv import load_dotenv
@@ -19,6 +20,7 @@ import os
 class SignalService:
     def __init__(self):
         load_dotenv()
+        self.utility = UtilityFunctions()
         self.api = BinanceAPI()
         self.output_path = os.getenv(key='RAW_DATA')
         self.train_path = os.getenv(key='TRAIN_DATA')
@@ -106,7 +108,7 @@ class SignalService:
         else:
             print('Zones are not touched yet')
             signal = 'None'
-        dataToStore = self.remove_data_from_lists_by_key(zones,zone_to_remove,key='timestamp')
+        dataToStore = self.utility.remove_data_from_lists_by_key(zones,zone_to_remove,key='timestamp')
         try:
             with open(self.storage_path, "w") as f:
                 for i, row in enumerate(tqdm(dataToStore, desc="Writing to untouch zone storage file")):
@@ -130,7 +132,7 @@ class SignalService:
                 datagen = DatasetGenerator(temp_df)
                 datagen.store_untouch_zones(self.storage_path)
             else:
-                df_final = self.merge_lists_by_key(df_from_storage,temp_df,key="timestamp")
+                df_final = self.utility.merge_lists_by_key(df_from_storage,temp_df,key="timestamp")
                 datagen = DatasetGenerator(df_final)
                 datagen.store_untouch_zones(self.storage_path)
 
@@ -190,28 +192,4 @@ class SignalService:
                 print(k)
             count+=1
 
-    def merge_lists_by_key(self,old_list, new_list, key="id"):
-        # Convert old list to dict keyed by primary key
-        merged = {d[key]: d for d in old_list}
-
-        for new_item in new_list:
-            pk = new_item[key]
-            if pk in merged:
-                # Update existing entry with new values
-                merged[pk].update(new_item)
-            else:
-                # Insert new entry
-                merged[pk] = new_item
-
-        # Return back as list
-        return list(merged.values())
     
-    def remove_data_from_lists_by_key(self, data_list,to_remove, key ):
-        """
-        Remove items from a list of dictionaries where the specified key matches the given value.
-        """
-        result = []
-        for item in data_list:
-            if item[key] not in to_remove:
-                result.append(item)
-        return result
