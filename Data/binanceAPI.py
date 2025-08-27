@@ -10,6 +10,7 @@ class BinanceAPI:
         load_dotenv()
         api_key = os.getenv("BINANCE_API_KEY")
         api_secret = os.getenv("BINANCE_SECRET_KEY")
+        self.data_root = os.getenv("DATA_PATH")
         self.client = Client(api_key, api_secret)
 
     def get_ohlcv(self, symbol='BTCUSDT', interval='1h', lookback='3 years'):
@@ -76,7 +77,7 @@ class BinanceAPI:
         if df is None:
             print("Failed to fetch data.")
             return None
-        file_path = f"{symbol}_{interval}_{lookback}.csv"
+        file_path = f"{self.data_root}/{symbol}_{interval}_{lookback}.csv"
         df.to_csv(file_path)
         print(f"Data stored to {file_path}")
         return file_path

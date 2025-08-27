@@ -17,7 +17,7 @@ from tqdm import tqdm
 import os
 
 class BackTestHandler:
-    def __init__(self,time_frames = ['1h','4h','1D'],lookback = '3 years'):
+    def __init__(self,time_frames = ['1h','4h','1D'],lookback = '1 years'):
         load_dotenv()
         self.api = BinanceAPI()
         self.ohclv_paths=[]
