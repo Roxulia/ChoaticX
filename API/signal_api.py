@@ -15,8 +15,12 @@ class SignalAPI:
         zones = self.service.get_untouched_zones()
         if zones is None:
             return jsonify({"error": "No zones found"}), 500
-        return jsonify(zones),200
+        return jsonify({"data":zones}),200
 
     def get_signals(self):
-        signals = self.service.get_current_signals()
-        return jsonify(signals),200
+        try:
+            signals = self.service.get_current_signals()
+            return jsonify({"data" :signals}),200
+        except:
+            return jsonify({"error": "Unknown Error Occur"},500)
+        

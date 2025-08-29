@@ -8,7 +8,7 @@ class SignalGenerator:
         self.filter = Filter()
         self.signal_storage = os.getenv(key='SIGNAL_STORAGE')
         if not os.path.exists(self.signal_storage):
-            os.makedirs(self.signal_storage)
+            open(self.signal_storage,'w')
 
     def generate(self,zones:pd.DataFrame):
         signal = None
@@ -40,7 +40,7 @@ class SignalGenerator:
                     row.to_csv(self.signal_storage, mode='w', header=True, index=False)
                 else:
                     row.to_csv(self.signal_storage, mode='a', header=False, index=False)
-                return f'Signal : {signal},Entry price : {entry},TP : {tp},SL : {sl}'
+                return {"side":signal,"entry_price" : entry,"tp" : tp,"sl":sl,"meta":row }
             else:
                 return 'None'
         else:

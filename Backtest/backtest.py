@@ -11,6 +11,7 @@ from ML.dataCleaning import DataCleaner
 from ML.datasetGeneration import DatasetGenerator
 from Data.binanceAPI import BinanceAPI
 from Utility.UtilityClass import UtilityFunctions
+from Portfolio import Portfolio,Trade
 import pandas as pd
 import json
 from dotenv import load_dotenv
@@ -33,6 +34,7 @@ class BackTestHandler:
         self.storage_path = os.getenv(key='ZONE_STORAGE')
         self.model_handler = ModelHandler(model_path=self.model_path, model_type='xgb')
         self.signal_gen = SignalGenerator(self.model_handler.get_model())
+        self.portfolio = Portfolio()
 
     def run_backtest(self,zone_update_interval = 5):
         dfs = self.load_OHLCV_for_backtest()
@@ -40,10 +42,13 @@ class BackTestHandler:
         for i,candle in tqdm(enumerate(based_candles),desc = "Running Backtest"):
             if(i%5 == 0):
                 self.update_zones(dfs)
+            candles = based_candles.iloc[:i]
             touch_type,zone_timestamp = self.reaction.get_last_candle_reaction(self.warmup_zones,candle)
             if touch_type is not None:
                 nearbyzone = NearbyZones()
                 datagen = DatasetGenerator()
+                athHandler = ATHHandler(candles)
+                ATH = athHandler.getATHFromCandles()
                 use_zones = []
                 for i,zone in tqdm(enumerate(self.warmup_zones),desc = 'Getting Touched Zone Data'):
                     curr_timestamp = pd.to_datetime(zone['timestamp'])
@@ -56,7 +61,7 @@ class BackTestHandler:
                         zone['candle_rsi'] = candle['rsi']
                         zone['candle_atr'] = candle['atr']
                         zone['touch_type'] = touch_type
-                        dist_above,above_zone,dist_below,below_zone = nearbyzone.getAboveBelowZones(zone,zones,ATH)
+                        dist_above,above_zone,dist_below,below_zone = nearbyzone.getAboveBelowZones(zone,self.warmup_zones,ATH)
                         zone['distance_to_nearest_zone_above'] = dist_above
                         zone['nearest_zone_above'] = above_zone
                         zone['distance_to_nearest_zone_below'] = dist_below
@@ -66,7 +71,24 @@ class BackTestHandler:
                 datacleaner = DataCleaner(self.output_path,train_path=self.train_path,test_path=self.test_path)
                 use_zones = datacleaner.preprocess_input(use_zones)
                 signal = self.signal_gen.generate(use_zones)
+                self.EnterTrade(signal)
+            else:
+                continue
     
+
+    def EnterTrade(self,signal):
+        if(self.portfolio.can_open()):
+            trade = Trade()
+            trade.entry_price = signal['entry_price']
+            trade.sl = signal['sl']
+            trade.tp = signal['tp']
+            trade.side = signal['side']
+            trade.meta = signal['meta']
+            trade.qty = self.portfolio.risk_position_size(trade.entry_price,trade.sl)
+            self.portfolio.open_trade(trade)
+        else:
+            print("Position limit reached")
+
     def load_OHLCV_for_backtest(self,warmup_month =3,candle_interval = '1D'):
         temp_dfs = []
         days,hours,minutes,seconds = self.utility.getDHMS(candle_interval)
