@@ -11,6 +11,7 @@ from ML.dataCleaning import DataCleaner
 from ML.datasetGeneration import DatasetGenerator
 from Data.binanceAPI import BinanceAPI
 from Utility.UtilityClass import UtilityFunctions
+from Utility.MemoryUsage import MemoryUsage as mu
 import pandas as pd
 import json
 from dotenv import load_dotenv
@@ -38,6 +39,7 @@ class SignalService:
         zones = detector.get_zones()
         return zones
 
+    @mu.log_memory
     def get_latest_zones(self,lookback='1 years'):
         
         zone_1h = self.get_zones('1h',lookback)
@@ -58,7 +60,7 @@ class SignalService:
         nearByZones = NearbyZones(zones,df)
         zones = nearByZones.getNearbyZone()
         reactor = ZoneReactor()
-        zones = reactor.get_zones_reaction(zones,df)
+        zones = list(reactor.get_zones_reaction(zones,df))
         zones = reactor.getTargetFromTwoZones(zones,df)
         return zones
 
@@ -71,6 +73,7 @@ class SignalService:
                 zones.append(data)
         return zones
 
+    @mu.log_memory
     def get_current_signals(self):
         candle = self.api.get_latest_candle()
         zones = self.get_untouched_zones()

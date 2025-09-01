@@ -1,7 +1,9 @@
 import time
 import pandas as pd
 from Services.signalService import SignalService
+from Utility.MemoryUsage import MemoryUsage as mu
 
+@mu.log_memory
 def initialState():
     total = test.data_extraction()
     if total is None:

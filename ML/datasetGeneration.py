@@ -5,6 +5,7 @@ from tqdm import tqdm
 import json
 import datetime
 import decimal
+from Utility.MemoryUsage import MemoryUsage as mu
 
 class DatasetGenerator:
     def __init__(self,  zones_with_targets = []):
@@ -367,6 +368,7 @@ class DatasetGenerator:
                         print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
                 raise e
 
+    @mu.log_memory
     def get_dataset_list(self,dataset_path,storage_file):
         features = self.extract_features_and_labels()
         confluents = self.extract_confluent_tf(features)

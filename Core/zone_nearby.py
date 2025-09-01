@@ -1,12 +1,14 @@
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
+from Utility.MemoryUsage import MemoryUsage as mu
 class NearbyZones():
     def __init__(self,based_zones=[],candles=[],threshold = 0.002):
         self.based_zones = based_zones
         self.threshold = threshold
         self.candles = candles
     
+    @mu.log_memory
     def getNearbyZone(self):
         results = []
 

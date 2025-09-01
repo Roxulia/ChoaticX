@@ -1,5 +1,6 @@
 from tqdm import tqdm
 import pandas as pd
+from Utility.MemoryUsage import  MemoryUsage as mu
 class ZoneReactor:
     def __init__(self):
         pass
@@ -44,10 +45,9 @@ class ZoneReactor:
         zone_copy['touch_candle'] = touch_candle
         return zone_copy
     
+    @mu.log_memory
     def get_zones_reaction(self, zones, candles_data):
-        results = []
-        candles = candles_data.copy()
-        candles['timestamp'] = pd.to_datetime(candles['timestamp'])
+        candles_data['timestamp'] = pd.to_datetime(candles_data['timestamp'])
 
         for zone in tqdm(zones, desc="Getting Zone Reactions"):
             zone_high = zone['zone_high']
@@ -77,22 +77,22 @@ class ZoneReactor:
                     zone_copy = zone.copy()
                     zone_copy['touch_type'] = touch_type
                     zone_copy['touch_candle'] = touch_candle
-                    results.append(zone_copy)
+                    yield zone_copy
                     continue
                 else:
                     zone_copy = zone.copy()
                     zone_copy['touch_type'] = None
                     zone_copy['touch_candle'] = None
-                    results.append(zone_copy)
+                    yield zone_copy
                     continue
             else:
                 touch_type = None
                 touch_candle = None
 
                 # Skip zones that go beyond candles
-                future_candles = candles.loc[candles['timestamp'] > end_timestamp]
+                future_candles = candles_data.loc[candles_data['timestamp'] > end_timestamp]
                 if future_candles.empty:
-                    results.append(zone)
+                    yield zone_copy
                     continue
 
                 for i, row in future_candles.iterrows():
@@ -116,9 +116,8 @@ class ZoneReactor:
                 zone_copy = zone.copy()
                 zone_copy['touch_type'] = touch_type
                 zone_copy['touch_candle'] = touch_candle
-                results.append(zone_copy)
+                yield zone_copy
 
-        return results
 
 
     def get_next_target_zone(self, zones,candles_data):
@@ -162,6 +161,7 @@ class ZoneReactor:
 
         return zone_targets
 
+    @mu.log_memory
     def getTargetFromTwoZones(self, zones, candles_data):
         zone_targets = []
         candles = candles_data.copy()

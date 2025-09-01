@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from Data.timeFrames import timeFrame
 from Data.indexCalculate import IndexCalculator
+from Utility.MemoryUsage import MemoryUsage as mu
 from tqdm import tqdm
 class ConfluentsFinder():
     def __init__(self,zones):
@@ -72,6 +73,7 @@ class ConfluentsFinder():
             zone['available_liquidity'] = self.get_available_liq(zone)
             zone['available_core'] = self.get_available_cores(zone)
     
+    @mu.log_memory
     def getConfluents(self):
         self.zones = self.indexCalculate.calculate()
         self.seperate()

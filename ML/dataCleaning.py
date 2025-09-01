@@ -4,6 +4,7 @@ import numpy as np
 import json
 from tqdm import tqdm
 from .dataSplitting import DataSplit
+from Utility.MemoryUsage import MemoryUsage as mu
 class DataCleaner:
     def __init__(self,columns,data_path,train_path,test_path,total_line=1000,batch_size=1000):
         
@@ -94,6 +95,7 @@ class DataCleaner:
                 data = json.loads(line)
                 yield data
 
+    @mu.log_memory
     def perform_clean(self):
         
         header = True

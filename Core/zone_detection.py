@@ -1,5 +1,6 @@
 import numpy as np
 from tqdm import tqdm
+from Utility.MemoryUsage import MemoryUsage as mu
 class ZoneDetector:
     def __init__(self, df, timeframe="1h"):
         self.df = df
@@ -433,6 +434,7 @@ class ZoneDetector:
 
         return results
     
+    @mu.log_memory
     def get_zones(self):
         fvg = self.detect_fvg()
         ob = self.detect_order_blocks()
