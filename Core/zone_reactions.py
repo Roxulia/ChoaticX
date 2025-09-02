@@ -1,9 +1,11 @@
 from tqdm import tqdm
 import pandas as pd
 from Utility.MemoryUsage import  MemoryUsage as mu
+import os
+from dotenv import load_dotenv
 class ZoneReactor:
     def __init__(self):
-        pass
+        self.reaction_storage = os.getenv(key='REACTION_STORAGE')
 
     def get_zone_reaction(self,zone,candles_data):
         candles = candles_data.copy()
@@ -74,50 +76,44 @@ class ZoneReactor:
                     else:
                         touch_type = 'wick_touch'
 
-                    zone_copy = zone.copy()
-                    zone_copy['touch_type'] = touch_type
-                    zone_copy['touch_candle'] = touch_candle
-                    yield zone_copy
+                    
+                    zone['touch_type'] = touch_type
+                    zone['touch_candle'] = touch_candle
+                    yield zone
                     continue
                 else:
-                    zone_copy = zone.copy()
-                    zone_copy['touch_type'] = None
-                    zone_copy['touch_candle'] = None
-                    yield zone_copy
+                    
+                    zone['touch_type'] = None
+                    zone['touch_candle'] = None
+                    yield zone
                     continue
             else:
                 touch_type = None
                 touch_candle = None
 
-                # Skip zones that go beyond candles
-                future_candles = candles_data.loc[candles_data['timestamp'] > end_timestamp]
-                if future_candles.empty:
-                    yield zone_copy
+                touch_time = zone.get('touch_time',None)
+                if touch_time is None:
+                    yield zone
                     continue
+                else:
+                    touch_time = pd.to_datetime(touch_time)
+                    touch_candle = candles_data.loc[candles_data['timestamp'] == touch_time]
+                    open_, close, high, low = touch_candle['open'], touch_candle['close'], touch_candle['high'], touch_candle['low']
+                    
+                    if zone_low <= close <= zone_high:
+                        touch_type = 'body_close_inside'
+                    elif (open_ > zone_high and close < zone_low) or (open_ < zone_low and close > zone_high):
+                        touch_type = 'engulf'
+                    elif close > zone_high and open_ > zone_high:
+                        touch_type = 'body_close_above'
+                    elif close < zone_low and open_ < zone_low:
+                        touch_type = 'body_close_below'
+                    else:
+                        touch_type = 'wick_touch'
 
-                for i, row in future_candles.iterrows():
-                    open_, close, high, low = row['open'], row['close'], row['high'], row['low']
-                    if (open_ > zone_high and low < zone_high) or (open_ < zone_low and high > zone_low):
-                        touch_type = None
-                        touch_candle = row
-
-                        if zone_low <= close <= zone_high:
-                            touch_type = 'body_close_inside'
-                        elif (open_ > zone_high and close < zone_low) or (open_ < zone_low and close > zone_high):
-                            touch_type = 'engulf'
-                        elif close > zone_high and open_ > zone_high:
-                            touch_type = 'body_close_above'
-                        elif close < zone_low and open_ < zone_low:
-                            touch_type = 'body_close_below'
-                        else:
-                            touch_type = 'wick_touch'
-                        break
-
-                zone_copy = zone.copy()
-                zone_copy['touch_type'] = touch_type
-                zone_copy['touch_candle'] = touch_candle
-                yield zone_copy
-
+                zone['touch_type'] = touch_type
+                zone['touch_candle'] = touch_candle
+                yield zone
 
 
     def get_next_target_zone(self, zones,candles_data):
@@ -163,9 +159,8 @@ class ZoneReactor:
 
     @mu.log_memory
     def getTargetFromTwoZones(self, zones, candles_data):
-        zone_targets = []
-        candles = candles_data.copy()
-        candles['timestamp'] = pd.to_datetime(candles['timestamp'])
+        
+        candles_data['timestamp'] = pd.to_datetime(candles_data['timestamp'])
 
         for zone in tqdm(zones, desc='Adding Target zones'):
             touch_candle = zone.get('touch_candle',None)
@@ -173,12 +168,12 @@ class ZoneReactor:
             below_zone = zone.get('nearest_zone_below', None)
 
             if above_zone is None or below_zone is None:
-                zone_targets.append({**zone, 'target': None})
+                yield ({**zone, 'target': None})
                 continue
 
             if touch_candle is not None:
                 touch_time = pd.to_datetime(touch_candle['timestamp'])
-                future_candles = candles.loc[candles['timestamp'] > touch_time ]
+                future_candles = candles_data.loc[candles_data['timestamp'] > touch_time ]
 
                 # Above zone conditions
                 next_high1 = above_zone['zone_high']
@@ -210,9 +205,8 @@ class ZoneReactor:
                 else:
                     target_zone = None  # No target
 
-                zone_targets.append({**zone, 'target': target_zone})
+                yield({**zone, 'target': target_zone})
 
-        return zone_targets
 
     
     def get_last_candle_reaction(self,zones,candle):
@@ -233,3 +227,8 @@ class ZoneReactor:
                 else:
                     return 'wick_touch',zone_timestamp
         return 'None','None'
+
+    @mu.log_memory
+    def perform_reaction_check(self,zones,candles_data):
+        data = list(self.get_zones_reaction(zones,candles_data))
+        return list(self.getTargetFromTwoZones(data,candles_data))

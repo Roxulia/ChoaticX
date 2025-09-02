@@ -60,7 +60,7 @@ class SignalService:
         nearByZones = NearbyZones(zones,df)
         zones = nearByZones.getNearbyZone()
         reactor = ZoneReactor()
-        zones = list(reactor.get_zones_reaction(zones,df))
+        zones = reactor.perform_reaction_check(zones,df)
         zones = reactor.getTargetFromTwoZones(zones,df)
         return zones
 
