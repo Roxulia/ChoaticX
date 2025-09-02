@@ -60,37 +60,45 @@ class DatasetGenerator:
     def extract_built_by_zones(self,index):
         return self.zones[index]['built_by']
     
+    def preform_zone_confluent_extraction(self,confluents,prefix=''):
+        types = []
+        timeframes = []
+        for c in confluents:
+            c_type = c.get('type',None)
+            if c_type is not None:
+                types.append(c_type)
+            c_tf = c.get('timeframe',None)
+            if c_tf is not None:
+                timeframes.append(c_tf)
+        type_counts,tf_counts,buyzones,sellzones = self.perform_counts(types,timeframes)
+        data = {}
+        data[f'{prefix}conf_is_buy_zone'] =   1 if buyzones > sellzones else 0
+        data[f'{prefix}conf_count_BuOB']   = type_counts['Bullish OB']
+        data[f'{prefix}conf_count_BrOB']   = type_counts['Bearish OB']
+        data[f'{prefix}conf_count_BuFVG']   = type_counts['Bullish FVG']
+        data[f'{prefix}conf_count_BrFVG']   = type_counts['Bearish FVG']
+        data[f'{prefix}conf_count_BuLiq']   = type_counts['Buy-Side Liq']
+        data[f'{prefix}conf_count_BrLiq']   = type_counts['Sell-Side Liq']
+        data[f'{prefix}conf_1min_count'] = tf_counts["1min"]
+        data[f'{prefix}conf_3min_count'] = tf_counts["3min"]
+        data[f'{prefix}conf_5min_count'] = tf_counts["5min"]
+        data[f'{prefix}conf_15min_count'] = tf_counts["15min"]
+        data[f'{prefix}conf_1h_count'] = tf_counts["1h"]
+        data[f'{prefix}conf_4h_count'] = tf_counts["4h"]
+        data[f'{prefix}conf_1D_count'] = tf_counts["1D"]
+        return data
+
     def extract_confluent_tf(self,features):
         
         for zone in features:
             confluents = zone.get('liquidity_confluence',[]) + zone.get('core_confluence',[])
-            data = {k: v for k, v in zone.items() if k not in ['liquidity_confluence','core_confluence']}
-            types = []
-            timeframes = []
-            for c in confluents:
-                c_type = c.get('type',None)
-                if c_type is not None:
-                    types.append(c_type)
-                c_tf = c.get('timeframe',None)
-                if c_tf is not None:
-                    timeframes.append(c_tf)
-            type_counts,tf_counts,buyzones,sellzones = self.perform_counts(types,timeframes)
-            
-            data['conf_is_buy_zone'] =   1 if buyzones > sellzones else 0
-            data['conf_count_BuOB']   = type_counts['Bullish OB']
-            data['conf_count_BrOB']   = type_counts['Bearish OB']
-            data['conf_count_BuFVG']   = type_counts['Bullish FVG']
-            data['conf_count_BrFVG']   = type_counts['Bearish FVG']
-            data['conf_count_BuLiq']   = type_counts['Buy-Side Liq']
-            data['conf_count_BrLiq']   = type_counts['Sell-Side Liq']
-            data['conf_1min_count'] = tf_counts["1min"]
-            data['conf_3min_count'] = tf_counts["3min"]
-            data['conf_5min_count'] = tf_counts["5min"]
-            data['conf_15min_count'] = tf_counts["15min"]
-            data['conf_1h_count'] = tf_counts["1h"]
-            data['conf_4h_count'] = tf_counts["4h"]
-            data['conf_1D_count'] = tf_counts["1D"]
-            yield {**data}
+            above_confluents = zone.get('above_liquidity_confluence',[]) + zone.get('above_core_confluence',[])
+            below_confluents = zone.get('below_liquidity_confluence',[]) + zone.get('below_core_confluence',[])
+            data = {k: v for k, v in zone.items() if k not in ['liquidity_confluence','core_confluence','above_liquidity_confluence','above_core_confluence','below_liquidity_confluence','below_core_confluence']}
+            extracted = self.preform_zone_confluent_extraction(confluents)
+            above_extracted = self.preform_zone_confluent_extraction(above_confluents,prefix='above_')
+            below_extracted = self.preform_zone_confluent_extraction(below_confluents,prefix='below_')
+            yield {**data,**extracted,**above_extracted,**below_extracted}
         
     def extract_confluent_tf_per_zone(self,zone):
         confluents = zone.get('liquidity_confluence',[]) + zone.get('core_confluence',[])
@@ -254,7 +262,6 @@ class DatasetGenerator:
         dataset = []
         for zone in self.zones:
             touch_candle = zone.get('touch_candle')
-            available_zones = zone.get('available_core',[])+zone.get('available_liquidity',[])
             features= {k: v for k, v in zone.items() if k not in ['touch_candle','available_core','available_liquidity']}
             if touch_candle is None:
                 features['candle_volume'] = None
@@ -267,7 +274,7 @@ class DatasetGenerator:
                 features['candle_timestamp'] = None
             else:
                 features = {**features,**{f'candle_{k}': v for k,v in touch_candle.items()}}
-            features['available_zones'] = available_zones
+            
             self.total_line += 1
             dataset.append(features)
             #print(features.keys())
@@ -339,8 +346,7 @@ class DatasetGenerator:
     
     def store_untouch_zones(self,storage_file,start = True):
         features = self.extract_features_and_labels()
-        confluents = self.extract_confluent_tf(features)
-        data = self.extract_nearby_zone_data(confluents)
+        data = self.extract_confluent_tf(features)
         
         for i,row in enumerate(tqdm(data,desc="Writing to untouch zone storage file")):
             try:
@@ -371,16 +377,15 @@ class DatasetGenerator:
     @mu.log_memory
     def get_dataset_list(self,dataset_path,storage_file):
         features = self.extract_features_and_labels()
-        confluents = self.extract_confluent_tf(features)
-        data = self.extract_nearby_zone_data(confluents)
-        #data = self.clearNoneTarget(data)
+        data = self.extract_confluent_tf(features)
         columns = set()
         dataset_start = True
         storage_start = True
         
         for i, row in enumerate(tqdm(data, desc="Writing to JSONL",total=self.total_line, dynamic_ncols=True)):
+            touch_type = row.get('touch_type',None)
             try:
-                if row['touch_type'] is not None :
+                if touch_type is not None :
                     if dataset_start:
                         with open(dataset_path, "w") as f:
                             f.write(json.dumps(row , default=self.default_json_serializer) + "\n")

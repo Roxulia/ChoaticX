@@ -59,6 +59,7 @@ class DataCleaner:
                                   'candle_timestamp','touch_time','swept_time',
                                   'az_touch_time','above_zone_touch_time','below_zone_touch_time',
                                   'az_swept_time','above_zone_swept_time','below_zone_swept_time',
+                                  'above_touch_time','below_touch_time','above_swept_time','below_swept_time','above_timestamp','below_timestamp',
                                   ]
 
     
@@ -124,14 +125,14 @@ class DataCleaner:
             df['az_type'] = df['az_type'].apply(lambda x : self.zone_types.index(x)+1 if x  in self.zone_types else 0)
         if 'az_time_frame' in columns : 
             df['az_time_frame'] = df['az_time_frame'].apply(lambda x : self.timeframes.index(x)+1 if x in self.timeframes else 0)
-        if 'above_zone_type' in columns : 
-            df['above_zone_type'] = df['above_zone_type'].apply(lambda x : self.zone_types.index(x)+1 if x  in self.zone_types else 0)
-        if 'above_zone_time_frame' in columns : 
-            df['above_zone_time_frame'] = df['above_zone_time_frame'].apply(lambda x : self.timeframes.index(x)+1 if x in self.timeframes else 0)
-        if 'below_zone_type' in columns : 
-            df['below_zone_type'] = df['below_zone_type'].apply(lambda x : self.zone_types.index(x)+1 if x  in self.zone_types else 0)
-        if 'below_zone_time_frame' in columns : 
-            df['below_zone_time_frame'] = df['below_zone_time_frame'].apply(lambda x : self.timeframes.index(x)+1 if x in self.timeframes else 0)
+        if 'above_type' in columns : 
+            df['above_type'] = df['above_type'].apply(lambda x : self.zone_types.index(x)+1 if x  in self.zone_types else 0)
+        if 'above_time_frame' in columns : 
+            df['above_time_frame'] = df['above_time_frame'].apply(lambda x : self.timeframes.index(x)+1 if x in self.timeframes else 0)
+        if 'below_type' in columns : 
+            df['below_type'] = df['below_type'].apply(lambda x : self.zone_types.index(x)+1 if x  in self.zone_types else 0)
+        if 'below_time_frame' in columns : 
+            df['below_time_frame'] = df['below_time_frame'].apply(lambda x : self.timeframes.index(x)+1 if x in self.timeframes else 0)
         return df
 
     def fillNaN(self,df):

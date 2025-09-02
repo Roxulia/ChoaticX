@@ -16,6 +16,7 @@ class NearbyZones():
             this_high = zone.get('zone_high')
             this_low = zone.get('zone_low')
             valid_zones = zone.get('available_core',[])+zone.get('available_liquidity',[])
+            base_data = {k:v for k,v in zone.items() if k not in ['available_core','available_liquidity']}
             zone_id = zone.get('index')
             def compute_nearest(valid_zones):
                 
@@ -42,25 +43,24 @@ class NearbyZones():
 
                 return min_dist_above, nearest_above_zone, min_dist_below, nearest_below_zone
             if valid_zones == []:
-                updated = zone.copy()
-                updated['distance_to_nearest_zone_above'] = None
-                updated['nearest_zone_above'] = None
-                updated['distance_to_nearest_zone_below'] = None
-                updated['nearest_zone_below'] = None
+                
+                base_data['distance_to_nearest_zone_above'] = None
+                base_data['distance_to_nearest_zone_below'] = None
 
-                results.append(updated)
+                results.append(base_data)
             else:
 
                 # Handle liquidity zones with multiple touches
                 min_above, above_zone, min_below, below_zone = compute_nearest(valid_zones)
+                temp_above,temp_below = {},{}
+                base_data['distance_to_nearest_zone_above'] = min_above
+                if above_zone is not None:
+                    temp_above = {f'above_{k}':v for k,v in above_zone.items() if k not in ['available_core','available_liquidity']}
+                base_data['distance_to_nearest_zone_below'] = min_below
+                if below_zone is not None:
+                    temp_below = {f'below_{k}':v for k,v in below_zone.items() if k not in ['available_core','available_liquidity']}
 
-                updated = zone.copy()
-                updated['distance_to_nearest_zone_above'] = min_above
-                updated['nearest_zone_above'] = above_zone
-                updated['distance_to_nearest_zone_below'] = min_below
-                updated['nearest_zone_below'] = below_zone
-
-                results.append(updated)
+                results.append({**base_data,**temp_above,**temp_below})
 
         return results
     

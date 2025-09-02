@@ -15,6 +15,7 @@ class ConfluentsFinder():
         self.core_zones = [z for z in self.zones if z['type'] not in ['Buy-Side Liq','Sell-Side Liq']]
         self.based_zones = self.timeframes.getBasedZone(self.zones)
 
+
     def get_available_cores(self,zone):
         touch_time = zone.get('touch_time',None)
         swept_time = zone.get('swept_time',None)
@@ -28,6 +29,7 @@ class ConfluentsFinder():
             elif touch_time < z_touch_time:
                 available_core.append(z)
         return available_core
+
 
     def get_available_liq(self,zone):
         available_liq = []
@@ -43,6 +45,7 @@ class ConfluentsFinder():
                 available_liq.append(z)
         return available_liq
 
+    @mu.log_memory
     def add_core_confluence(self):
         for m in tqdm(self.based_zones,desc='Adding Core Confluents'):
             confluents = []
@@ -55,7 +58,7 @@ class ConfluentsFinder():
                     })
             m['core_confluence'] = confluents
             
-
+    @mu.log_memory
     def add_liq_confluence(self):
         for m in tqdm(self.based_zones,desc = 'Adding Liq Confluents'):
             confluents = []
@@ -68,6 +71,7 @@ class ConfluentsFinder():
                     })
             m['liquidity_confluence'] = confluents
 
+    @mu.log_memory
     def add_available_zones(self):
         for zone in tqdm(self.based_zones,desc='Adding Available Zones'):
             zone['available_liquidity'] = self.get_available_liq(zone)

@@ -47,7 +47,6 @@ class ZoneReactor:
         zone_copy['touch_candle'] = touch_candle
         return zone_copy
     
-    @mu.log_memory
     def get_zones_reaction(self, zones, candles_data):
         candles_data['timestamp'] = pd.to_datetime(candles_data['timestamp'])
 
@@ -62,8 +61,14 @@ class ZoneReactor:
                 if touch_time is not None:
                     touch_time = pd.to_datetime(touch_time)
                     touch_candle = candles_data.loc[candles_data['timestamp'] == touch_time]
-                    open_ = touch_candle['open']
-                    close = touch_candle['close']
+                    if touch_candle.empty:
+                        zone['touch_type'] = None
+                        zone['touch_candle'] = None
+                        yield zone
+                        continue
+
+                    open_ = float(touch_candle['open'].iloc[0])
+                    close = float(touch_candle['close'].iloc[0])
                     
                     if zone_low <= close <= zone_high:
                         touch_type = 'body_close_inside'
@@ -78,7 +83,7 @@ class ZoneReactor:
 
                     
                     zone['touch_type'] = touch_type
-                    zone['touch_candle'] = touch_candle
+                    zone['touch_candle'] = touch_candle.iloc[0]
                     yield zone
                     continue
                 else:
@@ -98,7 +103,14 @@ class ZoneReactor:
                 else:
                     touch_time = pd.to_datetime(touch_time)
                     touch_candle = candles_data.loc[candles_data['timestamp'] == touch_time]
-                    open_, close, high, low = touch_candle['open'], touch_candle['close'], touch_candle['high'], touch_candle['low']
+                    if touch_candle.empty:
+                        zone['touch_type'] = None
+                        zone['touch_candle'] = None
+                        yield zone
+                        continue
+
+                    open_ = float(touch_candle['open'].iloc[0])
+                    close = float(touch_candle['close'].iloc[0])
                     
                     if zone_low <= close <= zone_high:
                         touch_type = 'body_close_inside'
@@ -112,7 +124,7 @@ class ZoneReactor:
                         touch_type = 'wick_touch'
 
                 zone['touch_type'] = touch_type
-                zone['touch_candle'] = touch_candle
+                zone['touch_candle'] = touch_candle.iloc[0]
                 yield zone
 
 
@@ -157,15 +169,15 @@ class ZoneReactor:
 
         return zone_targets
 
-    @mu.log_memory
+    
     def getTargetFromTwoZones(self, zones, candles_data):
         
         candles_data['timestamp'] = pd.to_datetime(candles_data['timestamp'])
 
         for zone in tqdm(zones, desc='Adding Target zones'):
             touch_candle = zone.get('touch_candle',None)
-            above_zone = zone.get('nearest_zone_above', None)
-            below_zone = zone.get('nearest_zone_below', None)
+            above_zone = zone.get('above_timestamp', None)
+            below_zone = zone.get('below_timestamp', None)
 
             if above_zone is None or below_zone is None:
                 yield ({**zone, 'target': None})
@@ -176,8 +188,8 @@ class ZoneReactor:
                 future_candles = candles_data.loc[candles_data['timestamp'] > touch_time ]
 
                 # Above zone conditions
-                next_high1 = above_zone['zone_high']
-                next_low1 = above_zone['zone_low']
+                next_high1 = zone.get('above_zone_high',None)
+                next_low1 = zone.get('above_zone_low',None)
                 cond1 = (
                     ((future_candles['open'] > next_high1) & (future_candles['close'] < next_high1)) |
                     ((future_candles['open'] < next_low1) & (future_candles['close'] > next_low1)) |
@@ -185,8 +197,8 @@ class ZoneReactor:
                 )
 
                 # Below zone conditions
-                next_high2 = below_zone['zone_high']
-                next_low2 = below_zone['zone_low']
+                next_high2 = zone.get('below_zone_high',None)
+                next_low2 = zone.get('below_zone_low',None)
                 cond2 = (
                     ((future_candles['open'] > next_high2) & (future_candles['close'] < next_high2)) |
                     ((future_candles['open'] < next_low2) & (future_candles['close'] > next_low2)) |

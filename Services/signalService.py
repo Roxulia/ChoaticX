@@ -55,13 +55,14 @@ class SignalService:
         zones = confluentfinder.getConfluents()
         
         df = self.api.get_ohlcv(interval='1h',lookback=lookback)
+        if df is None:
+            return None
         athHandler = ATHHandler(df)
         athHandler.updateATH()
         nearByZones = NearbyZones(zones,df)
         zones = nearByZones.getNearbyZone()
         reactor = ZoneReactor()
         zones = reactor.perform_reaction_check(zones,df)
-        zones = reactor.getTargetFromTwoZones(zones,df)
         return zones
 
     def get_untouched_zones(self):

@@ -7,6 +7,7 @@ class ZoneDetector:
         self.timeframe = timeframe
         self.detect_swings()
 
+    @mu.log_memory
     def detect_fvg(self,threshold = 300):
         """
         Detect Fair Value Gaps (FVGs)
@@ -109,6 +110,7 @@ class ZoneDetector:
 
         return fvg_indices
     
+    @mu.log_memory
     def detect_order_blocks(self, min_body_ratio=0.3):
         """
         Optimized detection of bullish and bearish Order Blocks (OB).
@@ -226,6 +228,7 @@ class ZoneDetector:
 
         return ob_list
     
+    @mu.log_memory
     def detect_swings(self, window=20):
         self.swings = []
 
@@ -296,6 +299,7 @@ class ZoneDetector:
             })
         self.swings = labeled_swings
 
+    @mu.log_memory
     def detect_liquidity_zones(self, range_pct=0.01):
         """
         Detect buy-side and sell-side liquidity zones based on repeated highs/lows.
