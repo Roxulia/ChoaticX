@@ -4,10 +4,11 @@ from dotenv import load_dotenv
 import datetime
 import decimal
 import numpy as np
+from Data.Paths import Paths
 class ATHHandler():
     def __init__(self,candles=[]):
-        self.storage = os.getenv(key='ATH_DATA')
         self.candles = candles
+        self.Paths = Paths()
 
     def default_json_serializer(self,obj):
         if isinstance(obj, (datetime.datetime, datetime.date)):
@@ -61,10 +62,10 @@ class ATHHandler():
         return ath
     
     def getATHFromStorage(self):
-        if not os.path.exists(self.storage):
+        if not os.path.exists(self.Paths.ath_data):
             return None
 
-        with open(self.storage, "r") as f:
+        with open(self.Paths.ath_data, "r") as f:
             try:
                 return json.load(f)
             except json.JSONDecodeError:
@@ -89,7 +90,7 @@ class ATHHandler():
 
     def store(self,data):
         try:
-            with open(self.storage, 'w') as f:
+            with open(self.Paths.ath_data, 'w') as f:
                 json.dump(data, f, indent=4,default=self.default_json_serializer)
             return True
         except:

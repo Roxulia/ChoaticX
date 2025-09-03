@@ -40,3 +40,27 @@ class UtilityFunctions():
                     break
         
         return result['D'], result['h'], result['m'], result['s']
+
+    def filter_features(importance_dict: dict, threshold: float, normalize: bool = False):
+        """
+        Remove features with importance lower than threshold.
+
+        Args:
+            importance_dict (dict): Feature importance dictionary {feature: importance_value}.
+            threshold (float): Minimum importance value (or percentage if normalize=True).
+            normalize (bool): If True, threshold is treated as a fraction of total (0–1).
+
+        Returns:
+            dict: Filtered feature importances.
+        """
+        if normalize:
+            total = sum(importance_dict.values())
+            return {
+                f: v for f, v in importance_dict.items()
+                if (v / total) >= threshold
+            }
+        else:
+            return {
+                f: v for f, v in importance_dict.items()
+                if v >= threshold
+            }

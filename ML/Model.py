@@ -4,16 +4,20 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import SGDClassifier
 from xgboost import XGBClassifier
+import xgboost as xgb
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 from tqdm import tqdm
+from dotenv import load_dotenv
+import os
+from Data.Paths import Paths
 
 class ModelHandler:
-    def __init__(self,total_line=1000,chunk = 1000,model_type='rf', model_path='model.pkl', n_estimators_step=10):
+    def __init__(self,total_line=1000,chunk = 1000,model_type='rf', n_estimators_step=10):
         """
         model_type: 'rf' (RandomForest), 'sgd' (SGDClassifier), or 'xgb' (XGBoost)
         """
         self.model_type = model_type
-        self.model_path = model_path
+        self.Paths = Paths()
         self.target_col = 'target'
         self.chunk = chunk
         self.n_estimators_step = n_estimators_step
@@ -30,6 +34,27 @@ class ModelHandler:
             return XGBClassifier( eval_metric='logloss', n_estimators=self.n_estimators_step)
         else:
             raise ValueError(f"Unsupported model type: {self.model_type}")
+        
+    def getFeatureImportance(self,feature_names = None):
+        if self.model_type == 'rf':
+            importances = self.model.feature_importances_
+            if feature_names is None:
+                feature_names = [f"f{i}" for i in range(len(importances))]
+            return dict(zip(feature_names, importances.tolist()))
+        elif self.model_type == 'sgd':
+            importances = abs(self.model.coef_[0])  
+            if feature_names is None:
+                feature_names = [f"f{i}" for i in range(len(importances))]
+            return dict(zip(feature_names, importances.tolist()))
+        elif self.model_type == 'xgb':
+            booster: xgb.Booster = self.model.get_booster()
+            importance_dict = booster.get_score(importance_type='gain')  # options: weight, gain, cover
+            if feature_names is not None:
+                # remap feature indices (e.g., f0, f1, ...) to your feature names
+                importance_dict = {feature_names[int(k[1:])]: v for k, v in importance_dict.items()}
+            return importance_dict
+        else:
+            raise ValueError(f"Unsupported model type : {self.model_type}")
 
     def partial_train(self, X_batch, y_batch, iteration=0):
         if self.model_type == 'sgd':
@@ -56,7 +81,7 @@ class ModelHandler:
                 self.model.set_params(n_estimators=new_estimators)
                 self.model.fit(X_batch, y_batch, xgb_model=prev_booster)
 
-    def data_generator(self,path):
+    def data_generator(self):
         """
         Generator that yields X, y batches from a CSV file.
 
@@ -70,25 +95,28 @@ class ModelHandler:
             X (ndarray): Features batch.
             y (ndarray): Target batch.
         """
-        for chunk in pd.read_csv(path, chunksize=self.chunk):
+        for chunk in pd.read_csv(self.Paths.train_data, chunksize=self.chunk):
             X = chunk.drop(columns = [self.target_col]).values
             y = chunk[self.target_col].values
             yield X, y
 
-    def train(self,path):
-        for i, (X_batch, y_batch) in tqdm(enumerate(self.data_generator(path)),desc="Model Training",total=self.total_line,dynamic_ncols=True):
+    def train(self):
+        for i, (X_batch, y_batch) in tqdm(enumerate(self.data_generator()),desc="Model Training",total=self.total_line,dynamic_ncols=True):
             self.partial_train(X_batch, y_batch, iteration=i)
-        joblib.dump(self.model, self.model_path)
+        joblib.dump(self.model, self.Paths.model_path)
 
-    def test_result(self,path):
-        test = pd.read_csv(path)
+    def test_result(self):
+        test = pd.read_csv(self.Paths.test_data)
         X = test.drop(columns=[self.target_col])
         y = test[self.target_col]
         y_pred = self.predict(X)
         print(classification_report(y, y_pred))
         
-    def load(self):
-        self.model = joblib.load(self.model_path)
+    def load(self,path = None):
+        if path is not None:
+            self.model = joblib.load(path)
+        else:
+            self.model = joblib.load(self.Paths.model_path)
 
     def predict(self, X):
         return self.model.predict(X)

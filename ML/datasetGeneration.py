@@ -6,10 +6,11 @@ import json
 import datetime
 import decimal
 from Utility.MemoryUsage import MemoryUsage as mu
+from Data.Paths import Paths
 
 class DatasetGenerator:
     def __init__(self,  zones_with_targets = []):
-        
+        self.Paths = Paths()
         self.zones = zones_with_targets
         self.dataset = []
         self.total_line = 0
@@ -344,18 +345,18 @@ class DatasetGenerator:
             if row.get('target') is not None:
                 yield row
     
-    def store_untouch_zones(self,storage_file,start = True):
+    def store_untouch_zones(self,start = True):
         features = self.extract_features_and_labels()
         data = self.extract_confluent_tf(features)
         
         for i,row in enumerate(tqdm(data,desc="Writing to untouch zone storage file")):
             try:
                 if start:
-                        with open(storage_file, "w") as f:
+                        with open(self.Paths.zone_storage, "w") as f:
                             f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
                         start = False
                 else:
-                    with open(storage_file, "a") as f:
+                    with open(self.Paths.zone_storage, "a") as f:
                         f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
             except TypeError as e:
                 print(f"\n🚨 JSON serialization error at row {i}")
@@ -375,7 +376,7 @@ class DatasetGenerator:
                 raise e
 
     @mu.log_memory
-    def get_dataset_list(self,dataset_path,storage_file):
+    def get_dataset_list(self):
         features = self.extract_features_and_labels()
         data = self.extract_confluent_tf(features)
         columns = set()
@@ -387,25 +388,25 @@ class DatasetGenerator:
             try:
                 if touch_type is not None :
                     if dataset_start:
-                        with open(dataset_path, "w") as f:
+                        with open(self.Paths.raw_data, "w") as f:
                             f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
                             for k,v in row.items():
                                 columns.add(k)
                         dataset_start = False
                     else:
-                        with open(dataset_path, "a") as f:
+                        with open(self.Paths.raw_data, "a") as f:
                             f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
                             for k,v in row.items():
                                 columns.add(k)
                 else:
                     if storage_start:
-                        with open(storage_file, "w") as f:
+                        with open(self.Paths.zone_storage, "w") as f:
                             f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
                             for k,v in row.items():
                                 columns.add(k)
                         storage_start = False
                     else:
-                        with open(storage_file, "a") as f:
+                        with open(self.Paths.zone_storage, "a") as f:
                             f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
                             for k,v in row.items():
                                 columns.add(k)

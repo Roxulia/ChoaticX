@@ -5,13 +5,11 @@ import json
 from tqdm import tqdm
 from .dataSplitting import DataSplit
 from Utility.MemoryUsage import MemoryUsage as mu
+from Data.Paths import Paths
 class DataCleaner:
-    def __init__(self,columns,data_path,train_path,test_path,total_line=1000,batch_size=1000):
-        
-        self.data_path = data_path
+    def __init__(self,columns,total_line=1000,batch_size=1000):
+        self.Paths = Paths()
         self.total_line = np.ceil(total_line / batch_size)
-        self.train_path = train_path
-        self.test_path = test_path 
         self.datasplit =  DataSplit(random_state=42)
         self.batch_size = batch_size
         self.below_above_col = ['distance_to_above','distance_to_below',
@@ -50,12 +48,12 @@ class DataCleaner:
         self.columns_to_remove = ['swept_index','end_index','duration_between_first_last_touch',
                                   'touch_index','level','az_touch_index','az_touch_type','az_swept_index',
                                   'az_end_index','az_level','az_duration_between_first_last_touch',
-                                  'above_zone_touch_type','above_zone_touch_index','above_zone_level',
-                                  'above_zone_swept_index','above_zone_end_index','above_zone_duration_between_first_last_touch',
-                                  'below_zone_touch_type','below_zone_touch_index','below_zone_level',
-                                  'below_zone_swept_index','below_zone_end_index','below_zone_duration_between_first_last_touch',
-                                  'index','az_index','above_zone_index','below_zone_index',
-                                  'timestamp','az_timestamp','above_zone_timestamp','below_zone_timestamp',
+                                  'above_touch_type','above_touch_index','above_level',
+                                  'above_swept_index','above_end_index','above_duration_between_first_last_touch',
+                                  'below_touch_type','below_touch_index','below_level',
+                                  'below_swept_index','below_end_index','below_duration_between_first_last_touch',
+                                  'index','az_index','above_index','below_index',
+                                  'timestamp','az_timestamp',
                                   'candle_timestamp','touch_time','swept_time',
                                   'az_touch_time','above_zone_touch_time','below_zone_touch_time',
                                   'az_swept_time','above_zone_swept_time','below_zone_swept_time',
@@ -91,7 +89,7 @@ class DataCleaner:
             yield df
     
     def get_data_from_file(self):
-        with open(self.data_path,'r') as f:
+        with open(self.Paths.raw_data,'r') as f:
             for line in f:
                 data = json.loads(line)
                 yield data
@@ -103,12 +101,12 @@ class DataCleaner:
         for i,df in tqdm(enumerate(self.to_dataframe()),desc='Performing Data Cleaning',total=self.total_line,dynamic_ncols=True):
             train,test = self.datasplit.split(df)
             if header:
-                train.to_csv(self.train_path, mode='w', header=True, index=False)
-                test.to_csv(self.test_path,mode='w', header=True, index=False)
+                train.to_csv(self.Paths.train_data, mode='w', header=True, index=False)
+                test.to_csv(self.Paths.test_data,mode='w', header=True, index=False)
                 header = False
             else:
-                train.to_csv(self.train_path, mode='a', header=False, index=False)
-                test.to_csv(self.test_path,mode='a', header=False, index=False)
+                train.to_csv(self.Paths.train_data, mode='a', header=False, index=False)
+                test.to_csv(self.Paths.test_data,mode='a', header=False, index=False)
 
         return int(np.ceil(self.total_line*0.7))
             
@@ -144,7 +142,8 @@ class DataCleaner:
         return df
     
     def remove_columns(self,df):
-        df_new = df.drop(columns=[col for col in self.columns_to_remove if col in df.columns])
+        columns = list(df.columns)
+        df_new = df.drop(columns=[col for col in self.columns_to_remove if col in columns])
         return df_new
 
     def preprocess_input(self,input):

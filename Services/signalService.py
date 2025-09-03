@@ -16,6 +16,7 @@ import pandas as pd
 import json
 from dotenv import load_dotenv
 from tqdm import tqdm
+from Data.Paths import Paths
 
 import os
 class SignalService:
@@ -23,12 +24,8 @@ class SignalService:
         load_dotenv()
         self.utility = UtilityFunctions()
         self.api = BinanceAPI()
-        self.output_path = os.getenv(key='RAW_DATA')
-        self.train_path = os.getenv(key='TRAIN_DATA')
-        self.test_path = os.getenv(key='TEST_DATA')
-        self.model_path = os.getenv(key='MODEL_PATH')
-        self.storage_path = os.getenv(key='ZONE_STORAGE')
-        self.model = ModelHandler(model_path=self.model_path,model_type='xgb').get_model()
+        self.Paths = Paths()
+        self.model = ModelHandler(model_type='xgb').get_model()
         self.signal_gen = SignalGenerator(self.model)
 
     def get_zones(self,interval,lookback):
@@ -63,12 +60,13 @@ class SignalService:
         zones = nearByZones.getNearbyZone()
         reactor = ZoneReactor()
         zones = reactor.perform_reaction_check(zones,df)
+        zones = sorted(zones,key=lambda x : x.get("timestamp",None))
         return zones
 
     def get_untouched_zones(self):
         
         zones = []
-        with open(self.storage_path,'r') as f:
+        with open(self.Paths.zone_storage,'r') as f:
             for line in f:
                 data = json.loads(line)
                 zones.append(data)
@@ -106,7 +104,7 @@ class SignalService:
                     zone['nearest_zone_below'] = below_zone
                     temp_zone = datagen.extract_nearby_zone_data_per_zone(zone)
                     use_zones.append(temp_zone)
-            datacleaner = DataCleaner(self.output_path,train_path=self.train_path,test_path=self.test_path)
+            datacleaner = DataCleaner()
             use_zones = datacleaner.preprocess_input(use_zones)
             signal = self.signal_gen.generate(use_zones)
         else:
@@ -114,7 +112,7 @@ class SignalService:
             signal = 'None'
         dataToStore = self.utility.remove_data_from_lists_by_key(zones,zone_to_remove,key='timestamp')
         try:
-            with open(self.storage_path, "w") as f:
+            with open(self.Paths.zone_storage, "w") as f:
                 for i, row in enumerate(tqdm(dataToStore, desc="Writing to untouch zone storage file")):
                     f.write(json.dumps(row) + "\n")
         except Exception as e:
@@ -134,35 +132,35 @@ class SignalService:
             df_from_storage = self.get_untouched_zones()
             if df_from_storage is None:
                 datagen = DatasetGenerator(temp_df)
-                datagen.store_untouch_zones(self.storage_path)
+                datagen.store_untouch_zones()
             else:
                 df_final = self.utility.merge_lists_by_key(df_from_storage,temp_df,key="timestamp")
                 datagen = DatasetGenerator(df_final)
-                datagen.store_untouch_zones(self.storage_path)
+                datagen.store_untouch_zones()
 
     def get_dataset(self):
         df = self.get_latest_zones('3 years')
         if df is None:
             return None,None
         datagen = DatasetGenerator(df)
-        cols = datagen.get_dataset_list(self.output_path,self.storage_path)
+        cols = datagen.get_dataset_list()
         return datagen.total_line,cols
     
     def clean_dataset(self,total,cols):
-        datacleaner = DataCleaner(cols,self.output_path,batch_size=1000,total_line=total,train_path=self.train_path,test_path=self.test_path)
+        datacleaner = DataCleaner(cols,batch_size=1000,total_line=total)
         return datacleaner.perform_clean()
         
     def train_model(self,total):
-        model_trainer = ModelHandler(model_path=self.model_path,model_type='xgb',total_line=total)
-        model_trainer.train(self.train_path)
+        model_trainer = ModelHandler(model_type='xgb',total_line=total)
+        model_trainer.train()
 
     def test_model(self):
-        model_trainer = ModelHandler(model_path=self.model_path,model_type='xgb')
+        model_trainer = ModelHandler(model_type='xgb')
         model_trainer.load()
-        model_trainer.test_result(self.test_path)
+        model_trainer.test_result()
 
     def test_dataset(self):
-        with open(self.output_path) as f:
+        with open(self.Paths.raw_data) as f:
             keys = set()
             for i, line in enumerate(f):
                 obj = json.loads(line)
