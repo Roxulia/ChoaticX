@@ -15,6 +15,13 @@ class ConfluentsFinder():
         self.core_zones = [z for z in self.zones if z['type'] not in ['Buy-Side Liq','Sell-Side Liq']]
         self.based_zones = self.timeframes.getBasedZone(self.zones)
 
+    def getTimeFrameList(self):
+        tfs = set()
+        for zone in self.zones:
+            timeframe = zone.get('timeframe',None)
+            if timeframe is not None:
+                tfs.add(timeframe)
+        return list(tfs)
 
     def get_available_cores(self,zone):
         touch_time = zone.get('touch_time',None)

@@ -352,11 +352,8 @@ class ZoneDetector:
                 avg_level = sum(prices) / len(prices)
                 zone_high = avg_level + pip_range
                 zone_low = avg_level - pip_range
-                liquidity_height = zone_high - zone_low
                 equal_level_deviation = np.std(prices)
                 duration = end_idx - group[0]['index']
-                swing_strengths = [g['swing_strength'] for g in group if 'swing_strength' in g]
-                avg_swing_strength = np.mean(swing_strengths) if swing_strengths else None
 
                 # Average volume around touches
                 volumes = [self.df.iloc[g['index']]['volume'] for g in group if g['index'] < len(self.df)]
@@ -390,16 +387,14 @@ class ZoneDetector:
                     'end_index': end_idx,
                     'swept_index': swept_index,
                     'swept_time': timestamps[swept_index] if swept_index is not None and swept_index < len(timestamps) else None,
-                    'liquidity_height': liquidity_height,
                     'equal_level_deviation': equal_level_deviation,
                     'avg_volume_around_zone': avg_volume,
                     'duration_between_first_last_touch': duration,
-                    'avg_swing_strength': avg_swing_strength,
-                    'avg_ema_20' : np.mean(ema20s),
-                    'avg_ema_50' : np.mean(ema50s),
-                    'avg_rsi' : np.mean(rsis),
-                    'avg_atr' : np.mean(atrs),
-                    'avg_atr_mean' : np.mean(atr_means),
+                    'ema_20' : np.mean(ema20s),
+                    'ema_50' : np.mean(ema50s),
+                    'rsi' : np.mean(rsis),
+                    'atr' : np.mean(atrs),
+                    'atr_mean' : np.mean(atr_means),
                     'time_frame' : self.timeframe,
                     'timestamp' : timestamps[0]
                 })

@@ -45,19 +45,20 @@ class DataCleaner:
             '1D'
         ]
         self.columns = columns
-        self.columns_to_remove = ['swept_index','end_index','duration_between_first_last_touch',
+        self.columns_to_remove = ['swept_index','end_index',
                                   'touch_index','level','az_touch_index','az_touch_type','az_swept_index',
                                   'az_end_index','az_level','az_duration_between_first_last_touch',
                                   'above_touch_type','above_touch_index','above_level',
-                                  'above_swept_index','above_end_index','above_duration_between_first_last_touch',
+                                  'above_swept_index','above_end_index',
                                   'below_touch_type','below_touch_index','below_level',
-                                  'below_swept_index','below_end_index','below_duration_between_first_last_touch',
+                                  'below_swept_index','below_end_index',
                                   'index','az_index','above_index','below_index',
                                   'timestamp','az_timestamp',
                                   'candle_timestamp','touch_time','swept_time',
                                   'az_touch_time','above_zone_touch_time','below_zone_touch_time',
                                   'az_swept_time','above_zone_swept_time','below_zone_swept_time',
                                   'above_touch_time','below_touch_time','above_swept_time','below_swept_time','above_timestamp','below_timestamp',
+                                  'time_frame','az_time_frame','above_time_frame','below_time_frame',
                                   ]
 
     

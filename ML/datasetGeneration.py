@@ -9,11 +9,12 @@ from Utility.MemoryUsage import MemoryUsage as mu
 from Data.Paths import Paths
 
 class DatasetGenerator:
-    def __init__(self,  zones_with_targets = []):
+    def __init__(self,  zones_with_targets = [],timeframes = []):
         self.Paths = Paths()
         self.zones = zones_with_targets
         self.dataset = []
         self.total_line = 0
+        self.timeframes = timeframes
 
     def default_json_serializer(self,obj):
         if isinstance(obj, (datetime.datetime, datetime.date)):
@@ -40,7 +41,7 @@ class DatasetGenerator:
                 "Sell-Side Liq" : 0
             }
         tf_counts = {
-            "1min": 0, "3min": 0, "5min": 0, "15min": 0, "1h": 0, "4h": 0, "1D": 0
+            key : 0 for key in self.timeframes
         }
 
         # Count types
@@ -80,14 +81,8 @@ class DatasetGenerator:
         data[f'{prefix}conf_count_BrFVG']   = type_counts['Bearish FVG']
         data[f'{prefix}conf_count_BuLiq']   = type_counts['Buy-Side Liq']
         data[f'{prefix}conf_count_BrLiq']   = type_counts['Sell-Side Liq']
-        data[f'{prefix}conf_1min_count'] = tf_counts["1min"]
-        data[f'{prefix}conf_3min_count'] = tf_counts["3min"]
-        data[f'{prefix}conf_5min_count'] = tf_counts["5min"]
-        data[f'{prefix}conf_15min_count'] = tf_counts["15min"]
-        data[f'{prefix}conf_1h_count'] = tf_counts["1h"]
-        data[f'{prefix}conf_4h_count'] = tf_counts["4h"]
-        data[f'{prefix}conf_1D_count'] = tf_counts["1D"]
-        return data
+        tfs = { f'{prefix}conf_{key}_count' : value for key,value in tf_counts.items()}
+        return {**data,**tfs}
 
     def extract_confluent_tf(self,features):
         

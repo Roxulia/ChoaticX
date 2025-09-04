@@ -12,12 +12,14 @@ import os
 from Data.Paths import Paths
 
 class ModelHandler:
-    def __init__(self,total_line=1000,chunk = 1000,model_type='rf', n_estimators_step=10):
+    def __init__(self,timeframes = ['1h','4h','1D'],total_line=1000,chunk = 1000,model_type='rf', n_estimators_step=10):
         """
         model_type: 'rf' (RandomForest), 'sgd' (SGDClassifier), or 'xgb' (XGBoost)
         """
         self.model_type = model_type
         self.Paths = Paths()
+        filename = "_".join(timeframes)
+        self.model_path = f'{self.Paths.model_root}/Model_{filename}_.pkl'
         self.target_col = 'target'
         self.chunk = chunk
         self.n_estimators_step = n_estimators_step
@@ -103,7 +105,7 @@ class ModelHandler:
     def train(self):
         for i, (X_batch, y_batch) in tqdm(enumerate(self.data_generator()),desc="Model Training",total=self.total_line,dynamic_ncols=True):
             self.partial_train(X_batch, y_batch, iteration=i)
-        joblib.dump(self.model, self.Paths.model_path)
+        joblib.dump(self.model, self.model_path)
 
     def test_result(self):
         test = pd.read_csv(self.Paths.test_data)
@@ -116,7 +118,7 @@ class ModelHandler:
         if path is not None:
             self.model = joblib.load(path)
         else:
-            self.model = joblib.load(self.Paths.model_path)
+            self.model = joblib.load(self.model_path)
 
     def predict(self, X):
         return self.model.predict(X)
@@ -125,5 +127,4 @@ class ModelHandler:
         return self.model.predict_proba(X)
     
     def get_model(self):
-        self.load()
         return self.model
