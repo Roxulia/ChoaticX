@@ -8,7 +8,7 @@ class ZoneDetector:
         self.detect_swings()
 
     @mu.log_memory
-    def detect_fvg(self,threshold = 300):
+    def detect_fvg(self,threshold = 300,inner_func = False):
         """
         Detect Fair Value Gaps (FVGs)
         """
@@ -36,7 +36,7 @@ class ZoneDetector:
         prev_volatility_5 = close_rolling.std().values
         momentum_5 = closes - np.roll(closes, 5)
 
-        for i in tqdm(range(5, length - 1),desc='Extracting FVG'):
+        for i in tqdm(range(5, length - 1),desc='Extracting FVG',disable=inner_func):
             prev_high = highs[i - 1]
             prev_low = lows[i - 1]
             next_high = highs[i + 1]
@@ -111,7 +111,7 @@ class ZoneDetector:
         return fvg_indices
     
     @mu.log_memory
-    def detect_order_blocks(self, min_body_ratio=0.3):
+    def detect_order_blocks(self, min_body_ratio=0.3,inner_func = False):
         """
         Optimized detection of bullish and bearish Order Blocks (OB).
         """
@@ -129,7 +129,7 @@ class ZoneDetector:
         atr_mean = self.df['atr_mean'].values
         timestamps = self.df['timestamp'].values
 
-        for i in tqdm(range(5, len(self.df) - 2),desc='Extracting OBs'):
+        for i in tqdm(range(5, len(self.df) - 2),desc='Extracting OBs',disable=inner_func):
             open_, close_ = opens[i], closes[i]
             high_, low_ = highs[i], lows[i]
             prev_close = closes[i - 1]
@@ -300,7 +300,7 @@ class ZoneDetector:
         self.swings = labeled_swings
 
     @mu.log_memory
-    def detect_liquidity_zones(self, range_pct=0.01):
+    def detect_liquidity_zones(self, range_pct=0.01,inner_func = False):
         """
         Detect buy-side and sell-side liquidity zones based on repeated highs/lows.
 
@@ -325,7 +325,7 @@ class ZoneDetector:
         def process_zone(candidates, direction):
             result = []
             used = set()
-            for i, base in tqdm(enumerate(candidates),desc = 'extracting Liquidity Zones'):
+            for i, base in tqdm(enumerate(candidates),desc = 'extracting Liquidity Zones',disable=inner_func):
                 if base['index'] in used:
                     continue
 
@@ -434,8 +434,8 @@ class ZoneDetector:
         return results
     
     @mu.log_memory
-    def get_zones(self):
-        fvg = self.detect_fvg()
-        ob = self.detect_order_blocks()
-        liq = self.detect_liquidity_zones()
+    def get_zones(self,inner_func = False):
+        fvg = self.detect_fvg(inner_func=inner_func)
+        ob = self.detect_order_blocks(inner_func=inner_func)
+        liq = self.detect_liquidity_zones(inner_func=inner_func)
         return fvg+ob+liq

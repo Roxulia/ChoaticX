@@ -9,10 +9,10 @@ class NearbyZones():
         self.candles = candles
     
     @mu.log_memory
-    def getNearbyZone(self):
+    def getNearbyZone(self,inner_func = False):
         results = []
 
-        for i, zone in tqdm(enumerate(self.based_zones),desc="Adding Nearby Zones",dynamic_ncols=True):
+        for i, zone in tqdm(enumerate(self.based_zones),desc="Adding Nearby Zones",dynamic_ncols=True,disable=inner_func):
             this_high = zone.get('zone_high')
             this_low = zone.get('zone_low')
             valid_zones = zone.get('available_core',[])+zone.get('available_liquidity',[])
@@ -123,8 +123,16 @@ class NearbyZones():
                 if dist < min_dist_below and dist>=price_diff:
                     min_dist_below = dist
                     nearest_below_zone = other.copy()
+        temp_above,temp_below = {},{}
+        base_data = zone.copy()
+        base_data['distance_to_nearest_zone_above'] = min_dist_above
+        if nearest_above_zone is not None:
+            temp_above = {f'above_{k}':v for k,v in nearest_above_zone.items() if k not in ['available_core','available_liquidity']}
+        base_data['distance_to_nearest_zone_below'] = min_dist_below
+        if nearest_below_zone is not None:
+            temp_below = {f'below_{k}':v for k,v in nearest_below_zone.items() if k not in ['available_core','available_liquidity']}
 
-        return min_dist_above, nearest_above_zone, min_dist_below, nearest_below_zone
+        return {**base_data,**temp_above,**temp_below}
 
 
 

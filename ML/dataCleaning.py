@@ -7,7 +7,7 @@ from .dataSplitting import DataSplit
 from Utility.MemoryUsage import MemoryUsage as mu
 from Data.Paths import Paths
 class DataCleaner:
-    def __init__(self,columns,total_line=1000,batch_size=1000):
+    def __init__(self,timeframes = ['1h','4h','1D'],total_line=1000,batch_size=1000):
         self.Paths = Paths()
         self.total_line = np.ceil(total_line / batch_size)
         self.datasplit =  DataSplit(random_state=42)
@@ -44,7 +44,7 @@ class DataCleaner:
             '4h',
             '1D'
         ]
-        self.columns = columns
+        self.columns = self.load_columns(timeframes)
         self.columns_to_remove = ['swept_index','end_index',
                                   'touch_index','level','az_touch_index','az_touch_type','az_swept_index',
                                   'az_end_index','az_level','az_duration_between_first_last_touch',
@@ -156,3 +156,10 @@ class DataCleaner:
         df = df.astype('float32')
         columns = ['is_target','target']
         return df.drop(columns=[col for col in columns if col in df.columns])
+
+    def load_columns(self,timeframes):
+        filename = "_".join(timeframes)
+        path = f"{self.Paths.columns_list}/{filename}.json"
+        with open(path, "r") as f:
+            columns = json.load(f)
+        return columns

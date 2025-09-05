@@ -28,6 +28,7 @@ class ATHHandler():
     def getATHFromCandles(self):
         data = self.candles
         if data is None or data.empty:
+            print("candle is None")
             return None
         # Find ATH index (timestamp) and integer position
         ath_idx = data['high'].idxmax()

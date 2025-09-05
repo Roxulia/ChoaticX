@@ -89,14 +89,11 @@ class SignalService:
                     zone['candle_rsi'] = candle['rsi']
                     zone['candle_atr'] = candle['atr']
                     zone['touch_type'] = reaction
-                    dist_above,above_zone,dist_below,below_zone = nearbyzone.getAboveBelowZones(zone,zones,ATH)
-                    zone['distance_to_nearest_zone_above'] = dist_above
-                    zone['nearest_zone_above'] = above_zone
-                    zone['distance_to_nearest_zone_below'] = dist_below
-                    zone['nearest_zone_below'] = below_zone
-                    temp_zone = datagen.extract_nearby_zone_data_per_zone(zone)
-                    use_zones.append(temp_zone)
-            datacleaner = DataCleaner()
+                    zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)
+                    
+                    use_zones.append(zone)
+            use_zones = datagen.extract_confluent_tf(use_zones)
+            datacleaner = DataCleaner(self.timeframes)
             use_zones = datacleaner.preprocess_input(use_zones)
             model_handler = ModelHandler(model_type='xgb')
             model_handler.load()
@@ -227,7 +224,7 @@ class SignalService:
             'candle_atr_mean' : data.get('candle_atr_mean', None),
         }
         use_zones.append(zone)
-        datacleaner = DataCleaner()
+        datacleaner = DataCleaner(self.timeframes)
         use_zones = datacleaner.preprocess_input(use_zones)
         model_handler = ModelHandler(model_type='xgb')
         model_handler.load()
@@ -259,11 +256,11 @@ class SignalService:
         if df is None:
             return None,None
         datagen = DatasetGenerator(df,self.timeframes)
-        cols = datagen.get_dataset_list()
-        return datagen.total_line,cols
+        datagen.get_dataset_list()
+        return datagen.total_line
     
-    def clean_dataset(self,total,cols):
-        datacleaner = DataCleaner(cols,batch_size=1000,total_line=total)
+    def clean_dataset(self,total):
+        datacleaner = DataCleaner(timeframes=self.timeframes,batch_size=1000,total_line=total)
         return datacleaner.perform_clean()
         
     def train_model(self,total):
@@ -285,10 +282,10 @@ class SignalService:
             print(keys)
 
     def data_extraction(self):
-        total,cols = self.get_dataset()
+        total = self.get_dataset()
         if total is None:
             return None
-        total = self.clean_dataset(total,cols)
+        total = self.clean_dataset(total)
         return total
 
     def training_process(self,total):

@@ -9,7 +9,7 @@ from Utility.MemoryUsage import MemoryUsage as mu
 from Data.Paths import Paths
 
 class DatasetGenerator:
-    def __init__(self,  zones_with_targets = [],timeframes = []):
+    def __init__(self,  zones_with_targets = [],timeframes = ['1h','4h','1D']):
         self.Paths = Paths()
         self.zones = zones_with_targets
         self.dataset = []
@@ -421,4 +421,10 @@ class DatasetGenerator:
                     except ValueError:
                         print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
                 raise e
-        return list(columns)
+        self.store_column_list(list(columns))
+
+    def store_column_list(self,columns : list):
+        filename = "_".join(self.timeframes)
+        path = f'{self.Paths.columns_list}/{filename}.json'
+        with open(path,'w') as f :
+            json.dump(columns,f)

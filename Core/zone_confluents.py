@@ -53,8 +53,8 @@ class ConfluentsFinder():
         return available_liq
 
     @mu.log_memory
-    def add_core_confluence(self):
-        for m in tqdm(self.based_zones,desc='Adding Core Confluents'):
+    def add_core_confluence(self,inner_func = False):
+        for m in tqdm(self.based_zones,desc='Adding Core Confluents',disable=inner_func):
             confluents = []
             available_zones = [z for z in self.core_zones if ( (z['touch_time'] is not None and z['touch_time'] > m['timestamp'] ) or (z['touch_time'] is None )) ]
             for lz in available_zones:
@@ -66,8 +66,8 @@ class ConfluentsFinder():
             m['core_confluence'] = confluents
             
     @mu.log_memory
-    def add_liq_confluence(self):
-        for m in tqdm(self.based_zones,desc = 'Adding Liq Confluents'):
+    def add_liq_confluence(self,inner_func = False):
+        for m in tqdm(self.based_zones,desc = 'Adding Liq Confluents',disable=inner_func):
             confluents = []
             available_zones = [z for z in self.liq_zones if ( (z['swept_time'] is not None and z['swept_time'] > m['timestamp'] ) or (z['swept_time'] is None )) ]
             for lz in available_zones:
@@ -79,17 +79,17 @@ class ConfluentsFinder():
             m['liquidity_confluence'] = confluents
 
     @mu.log_memory
-    def add_available_zones(self):
-        for zone in tqdm(self.based_zones,desc='Adding Available Zones'):
+    def add_available_zones(self,inner_func = False):
+        for zone in tqdm(self.based_zones,desc='Adding Available Zones',disable= inner_func):
             zone['available_liquidity'] = self.get_available_liq(zone)
             zone['available_core'] = self.get_available_cores(zone)
     
     @mu.log_memory
-    def getConfluents(self):
+    def getConfluents(self,inner_func = False):
         self.zones = self.indexCalculate.calculate()
         self.seperate()
-        self.add_core_confluence()
-        self.add_liq_confluence()
-        self.add_available_zones()
+        self.add_core_confluence(inner_func=inner_func)
+        self.add_liq_confluence(inner_func=inner_func)
+        self.add_available_zones(inner_func=inner_func)
         return self.zones
 
