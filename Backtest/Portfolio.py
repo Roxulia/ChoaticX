@@ -103,12 +103,15 @@ class Portfolio:
             dd = (eq['equity'] - eq['cummax'])
             max_dd = dd.min()
 
-        return {
-            "closed_trades": len(self.closed_trades),
-            "open_trades": len(self.open_trades),
-            "total_pnl": total_pnl,
-            "winrate": winrate,
-            "max_drawdown": float(max_dd),
-            "ending_balance": self.balance,
-            "ending_equity": self.equity,
-        }
+        print(f"closed_trades : {int(len(self.closed_trades))},")
+        print(f"open_trades: {int(len(self.open_trades))},")
+        print(f"total_pnl: {float(total_pnl)},")
+        print(f"winrate: {float(winrate * 100)}%,")
+        print(f"max_drawdown: {float(max_dd)},")
+        print(f"ending_balance: {float(self.balance)},")
+        print(f"ending_equity: {float(self.equity)},")
+            
+            
+            
+            
+        

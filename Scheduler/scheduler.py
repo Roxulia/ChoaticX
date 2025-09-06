@@ -2,9 +2,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from Services.signalService import SignalService
 
 class SchedulerManager:
-    def __init__(self):
+    def __init__(self,service : SignalService):
         self.scheduler = BackgroundScheduler()
-        self.service = SignalService()
+        self.service = service
 
     def start(self):
         # Plan B example:

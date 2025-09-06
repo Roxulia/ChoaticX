@@ -3,9 +3,9 @@ from Services.signalService import SignalService
 
 
 class SignalAPI:
-    def __init__(self):
+    def __init__(self,service : SignalService):
         self.blueprint = Blueprint('signal_api', __name__)
-        self.service = SignalService()
+        self.service = service
         self._register_routes()
 
     def _register_routes(self):

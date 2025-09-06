@@ -33,87 +33,94 @@ class BackTestHandler:
         self.portfolio = Portfolio()
 
     @mu.log_memory
-    def run_backtest(self, zone_update_interval=5):
+    def run_backtest(self, zone_update_interval=24):
         dfs = self.load_OHLCV_for_backtest(inner_func=True)
-        based_candles = dfs[0]  # pandas DataFrame: must have columns like timestamp, open, high, low, close, volume, ema20, ema50, rsi, atr
+        based_candles = dfs[0]
+
+        # Pre-init heavy objects
+        nearbyzone = NearbyZones()
+        datagen = DatasetGenerator(timeframes=self.time_frames)
+        datacleaner = DataCleaner(timeframes=self.time_frames)
+        modelHandler = ModelHandler()
+        modelHandler.load()
+        model = modelHandler.get_model()
+        signalGen = SignalGenerator(model)
+
+        # Pre-convert zone timestamps
+        for z in self.warmup_zones:
+            z["timestamp"] = pd.to_datetime(z["timestamp"])
+
         with mu.disable_memory_logging():
             with tqdm(total=len(based_candles), desc="Running Backtest") as pbar:
-                signal = None  # make scope explicit
-                
+                signal = None
+                history = []  # rolling list instead of slicing
+
                 for pos, (_, candle) in enumerate(based_candles.iterrows()):
-                    prev_signal = signal
-                    
-                    # Enter on pullback into entry range after a signal exists
-                    if prev_signal is not None:
-                        side = prev_signal['side']
-                        if side == 'Long' and (prev_signal['sl'] < candle['close'] <= prev_signal['entry_price']):
-                            self.EnterTrade(prev_signal,candle['timestamp'])
-                        elif side == 'Short' and (prev_signal['sl'] > candle['close'] >= prev_signal['entry_price']):
-                            self.EnterTrade(prev_signal,candle['timestamp'])
+                    history.append(candle)
 
-                    # Update zones on schedule
+                    # Entry handling
+                    if signal is not None:
+                        side = signal["side"]
+                        if side == "Long" and (signal["sl"] < candle["close"] <= signal["entry_price"]):
+                            signal['entry_price'] = candle['close']
+                            self.EnterTrade(signal, candle["timestamp"])
+                        elif side == "Short" and (signal["sl"] > candle["close"] >= signal["entry_price"]):
+                            signal["entry_price"] = candle['close']
+                            self.EnterTrade(signal, candle["timestamp"])
+
+                    # Update zones periodically
                     if pos % zone_update_interval == 0:
-                        timestamp = based_candles.iloc[pos]['timestamp']
-                        self.update_zones(dfs, timestamp)
+                        self.update_zones(dfs, candle["timestamp"])
 
-                    # History up to (but not including) current candle
-                    candles = based_candles.iloc[:pos]
-                    if candles.shape[0] > 0:
-                        # Generate signal if current candle touched a zone
+                    # Generate signal only if touch
+                    if len(history) > 1:
                         touch_type, zone_timestamp = self.reaction.get_last_candle_reaction(self.warmup_zones, candle)
                         if touch_type is not None:
-                            nearbyzone = NearbyZones()
-                            datagen = DatasetGenerator(timeframes=self.time_frames)
-                            athHandler = ATHHandler(candles)
-                            ATH = athHandler.getATHFromCandles()
-                            
+                            ATH = ATHHandler(pd.DataFrame(history)).getATHFromCandles()
                             use_zones = []
-                            for z_idx, zone in enumerate(self.warmup_zones):
-                                curr_timestamp = pd.to_datetime(zone['timestamp'])
-                                if curr_timestamp == zone_timestamp:
-                                    zone['candle_volume'] = candle['volume']
-                                    zone['candle_open'] = candle['open']
-                                    zone['candle_close'] = candle['close']
-                                    zone['candle_ema20'] = candle['ema20']
-                                    zone['candle_ema50'] = candle['ema50']
-                                    zone['candle_rsi'] = candle['rsi']
-                                    zone['candle_atr'] = candle['atr']
-                                    zone['touch_type'] = touch_type
+                            for zone in self.warmup_zones:
+                                if zone["timestamp"] == zone_timestamp:
+                                    zone.update({
+                                        "candle_volume": candle["volume"],
+                                        "candle_open": candle["open"],
+                                        "candle_close": candle["close"],
+                                        "candle_ema20": candle["ema20"],
+                                        "candle_ema50": candle["ema50"],
+                                        "candle_rsi": candle["rsi"],
+                                        "candle_atr": candle["atr"],
+                                        "touch_type": touch_type,
+                                    })
+                                    use_zones.append(nearbyzone.getAboveBelowZones(zone, self.warmup_zones, ATH))
 
-                                    zone = nearbyzone.getAboveBelowZones(zone, self.warmup_zones, ATH)
-                                    use_zones.append(zone)
-                            use_zones = datagen.extract_confluent_tf(use_zones)
-                            datacleaner = DataCleaner(timeframes=self.time_frames)
-                            use_zones = datacleaner.preprocess_input(use_zones)
-                            modelHandler = ModelHandler()
-                            modelHandler.load()
-                            model = modelHandler.get_model()
-                            signalGen = SignalGenerator(model)
-                            signal = signalGen.generate(use_zones,backtest=True)
+                            if use_zones:
+                                use_zones = datagen.extract_confluent_tf(use_zones)
+                                use_zones = datacleaner.preprocess_input(use_zones)
+                                signal = signalGen.generate(use_zones, backtest=True)
 
-                    # Manage open trades with current candle
-                    for trade in list(self.portfolio.open_trades):
+                    # Manage trades
+                    for trade in self.portfolio.open_trades:  # no list() copy
                         deadline = trade.entry_time + pd.DateOffset(days=7)
-                        if trade.status == "OPEN" and deadline > candle['timestamp'] >= trade.entry_time:
+                        if trade.status == "OPEN" and deadline > candle["timestamp"] >= trade.entry_time:
                             if trade.side == "Long":
-                                if candle['low'] <= trade.sl:
-                                    exit_price = self.portfolio._apply_slippage_price(trade.sl, trade.side, is_entry=False)
-                                    self.portfolio.close_trade(trade, candle['timestamp'], exit_price)
-                                elif trade.tp is not None and candle['high'] >= trade.tp:
-                                    exit_price = self.portfolio._apply_slippage_price(trade.tp, trade.side, is_entry=False)
-                                    self.portfolio.close_trade(trade, candle['timestamp'], exit_price)
+                                if candle["low"] <= trade.sl:
+                                    self.portfolio.close_trade(trade, candle["timestamp"],
+                                        self.portfolio._apply_slippage_price(trade.sl, trade.side, is_entry=False))
+                                elif trade.tp and candle["high"] >= trade.tp:
+                                    self.portfolio.close_trade(trade, candle["timestamp"],
+                                        self.portfolio._apply_slippage_price(trade.tp, trade.side, is_entry=False))
                             elif trade.side == "Short":
-                                if candle['high'] >= trade.sl:
-                                    exit_price = self.portfolio._apply_slippage_price(trade.sl, trade.side, is_entry=False)
-                                    self.portfolio.close_trade(trade, candle['timestamp'], exit_price)
-                                elif trade.tp is not None and candle['low'] <= trade.tp:
-                                    exit_price = self.portfolio._apply_slippage_price(trade.tp, trade.side, is_entry=False)
-                                    self.portfolio.close_trade(trade, candle['timestamp'], exit_price)
-                    pbar.update(1)
-        print("Backtest completed.")
-        print(self.portfolio.stats())
+                                if candle["high"] >= trade.sl:
+                                    self.portfolio.close_trade(trade, candle["timestamp"],
+                                        self.portfolio._apply_slippage_price(trade.sl, trade.side, is_entry=False))
+                                elif trade.tp and candle["low"] <= trade.tp:
+                                    self.portfolio.close_trade(trade, candle["timestamp"],
+                                        self.portfolio._apply_slippage_price(trade.tp, trade.side, is_entry=False))
 
-    
+                    self.portfolio.mark_to_market(candle["timestamp"], candle["close"])
+                    pbar.update(1)
+
+        print("Backtest completed.")
+        self.portfolio.stats()
 
     def EnterTrade(self,signal,timestamp):
         if(self.portfolio.can_open()):

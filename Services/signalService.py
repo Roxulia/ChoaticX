@@ -17,14 +17,15 @@ import json
 from dotenv import load_dotenv
 from tqdm import tqdm
 from Data.Paths import Paths
-
+from flask_socketio import SocketIO
 import os
 class SignalService:
-    def __init__(self,timeframes = ['1h','4h','1D']):
+    def __init__(self,socketio : SocketIO,timeframes = ['1h','4h','1D']):
         self.utility = UtilityFunctions()
         self.api = BinanceAPI()
         self.Paths = Paths()
         self.timeframes = timeframes
+        self.socketio = socketio
 
     def get_zones(self,interval,lookback):
         df = self.api.get_ohlcv(interval=interval,lookback=lookback)
@@ -109,6 +110,7 @@ class SignalService:
                     f.write(json.dumps(row) + "\n")
         except Exception as e:
             print(f"Error writing to file: {e}")
+        self.socketio.emit("new_signal",signal,broadcast = True)
         return signal
     
     def get_signals_with_input(self,data):

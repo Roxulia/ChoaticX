@@ -17,7 +17,7 @@ def initialState():
 def backtest():
     backtest = BackTestHandler(time_frames = ['1h','4h','1D'],lookback = '1 years')
     if backtest.warm_up():
-        backtest.run_backtest(zone_update_interval = 5)
+        backtest.run_backtest()
     else:
         print("Warm-up failed. Exiting.")
 
@@ -25,7 +25,7 @@ if __name__ == "__main__" :
     pd.set_option('future.no_silent_downcasting', True)
     
     start = time.perf_counter()
-    #initialState()
+    initialState()
     backtest()
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")
