@@ -20,12 +20,13 @@ from Data.Paths import Paths
 from flask_socketio import SocketIO
 import os
 class SignalService:
-    def __init__(self,socketio : SocketIO,timeframes = ['1h','4h','1D']):
+    def __init__(self,socketio : SocketIO = None,timeframes = ['1h','4h','1D'],ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high']):
         self.utility = UtilityFunctions()
         self.api = BinanceAPI()
         self.Paths = Paths()
         self.timeframes = timeframes
         self.socketio = socketio
+        self.ignore_cols = ignore_cols
 
     def get_zones(self,interval,lookback):
         df = self.api.get_ohlcv(interval=interval,lookback=lookback)
@@ -78,6 +79,10 @@ class SignalService:
         if not reaction == 'None':
             nearbyzone = NearbyZones()
             use_zones = []
+            datacleaner = DataCleaner(self.timeframes)
+            model_handler = ModelHandler(model_type='xgb')
+            model_handler.load()
+            signal_gen = SignalGenerator(model_handler,datacleaner,self.ignore_cols)
             for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
                 curr_timestamp = pd.to_datetime(zone['timestamp'])
                 if curr_timestamp == zone_timestamp:
@@ -94,11 +99,7 @@ class SignalService:
                     
                     use_zones.append(zone)
             use_zones = datagen.extract_confluent_tf(use_zones)
-            datacleaner = DataCleaner(self.timeframes)
-            use_zones = datacleaner.preprocess_input(use_zones)
-            model_handler = ModelHandler(model_type='xgb')
-            model_handler.load()
-            signal_gen = SignalGenerator(model_handler.get_model())
+            
             signal = signal_gen.generate(use_zones)
         else:
             print('Zones are not touched yet')
@@ -227,10 +228,9 @@ class SignalService:
         }
         use_zones.append(zone)
         datacleaner = DataCleaner(self.timeframes)
-        use_zones = datacleaner.preprocess_input(use_zones)
         model_handler = ModelHandler(model_type='xgb')
         model_handler.load()
-        signal_gen = SignalGenerator(model_handler.get_model())
+        signal_gen = SignalGenerator(model_handler,datacleaner,self.ignore_cols)
         signal = signal_gen.generate(use_zones)
         return signal, 200
     
@@ -263,7 +263,7 @@ class SignalService:
     
     def clean_dataset(self,total):
         datacleaner = DataCleaner(timeframes=self.timeframes,batch_size=1000,total_line=total)
-        return datacleaner.perform_clean()
+        return datacleaner.perform_clean(self.ignore_cols)
         
     def train_model(self,total):
         model_trainer = ModelHandler(timeframes=self.timeframes,model_type='xgb',total_line=total)

@@ -1,24 +1,27 @@
 import pandas as pd
 from .Filter import Filter
 from dotenv import load_dotenv
+from ML.dataCleaning import DataCleaner
+from ML.Model import ModelHandler
 import os
 class SignalGenerator:
-    def __init__(self, models):
-        self.models = models
+    def __init__(self, modelHandler : ModelHandler,datacleaner : DataCleaner,ignore_cols = []):
+        self.modelhandler = modelHandler
+        self.datacleaner = datacleaner
+        self.ignore_cols = ignore_cols
         self.filter = Filter()
         self.signal_storage = os.getenv(key='SIGNAL_STORAGE')
         if not os.path.exists(self.signal_storage):
             open(self.signal_storage,'w')
 
-    def generate(self, zones: pd.DataFrame,backtest = False):
-        if zones.shape[0] == 0:
+    def generate(self, zones: list,backtest = False):
+        if len(zones) == 0:
             return None
-
-        # Defragment before adding column
-        zones = zones.copy()
-
+        temp_zones = zones
+        temp_zones = self.datacleaner.preprocess_input(temp_zones,ignore_cols=self.ignore_cols)
+        zones = pd.DataFrame(zones)
         # Predict
-        predicted_result = self.models.predict(zones)
+        predicted_result = self.modelhandler.predict(temp_zones)
         zones["target"] = predicted_result
 
         # Take the first row only

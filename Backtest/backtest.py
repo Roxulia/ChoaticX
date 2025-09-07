@@ -21,19 +21,21 @@ import os
 from Utility.MemoryUsage import MemoryUsage as mu
 
 class BackTestHandler:
-    def __init__(self,time_frames = ['1h','4h','1D'],lookback = '1 years'):
+    def __init__(self,time_frames = ['1h','4h','1D'],lookback = '1 years',ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high']):
         load_dotenv()
         self.api = BinanceAPI()
         self.utility = UtilityFunctions()
         self.reaction = ZoneReactor()
         self.ohclv_paths=[]
         self.time_frames = time_frames
+        self.ignore_cols = ignore_cols
         self.lookback = lookback
         self.Paths = Paths()
         self.portfolio = Portfolio()
 
     @mu.log_memory
     def run_backtest(self, zone_update_interval=24):
+        print(f'{self.warmup_zones[0]['timestamp']}-{(self.warmup_zones[-1]['timestamp'])}')
         dfs = self.load_OHLCV_for_backtest(inner_func=True)
         based_candles = dfs[0]
 
@@ -43,8 +45,7 @@ class BackTestHandler:
         datacleaner = DataCleaner(timeframes=self.time_frames)
         modelHandler = ModelHandler()
         modelHandler.load()
-        model = modelHandler.get_model()
-        signalGen = SignalGenerator(model)
+        signalGen = SignalGenerator(modelHandler,datacleaner,self.ignore_cols)
 
         # Pre-convert zone timestamps
         for z in self.warmup_zones:
@@ -93,8 +94,7 @@ class BackTestHandler:
                                     use_zones.append(nearbyzone.getAboveBelowZones(zone, self.warmup_zones, ATH))
 
                             if use_zones:
-                                use_zones = datagen.extract_confluent_tf(use_zones)
-                                use_zones = datacleaner.preprocess_input(use_zones)
+                                use_zones = list(datagen.extract_confluent_tf(use_zones))
                                 signal = signalGen.generate(use_zones, backtest=True)
 
                     # Manage trades
@@ -180,11 +180,14 @@ class BackTestHandler:
             zones = []
             for df in tqdm(warm_up_dfs, desc="Warming up with OHLCV data"):
                 detector = ZoneDetector(df)
-                zones = zones + detector.get_zones()
+                with mu.disable_memory_logging():
+                    zones = zones + detector.get_zones(inner_func=True)
             confluentfinder = ConfluentsFinder(zones)
             confluent_zones = confluentfinder.getConfluents()
             datagen = DatasetGenerator(confluent_zones)
-            self.warmup_zones = datagen.extract_confluent_tf(confluent_zones)
+            zones = list(datagen.extract_confluent_tf(confluent_zones))
+            zones = sorted(zones,key=lambda x : x.get("timestamp",None))
+            self.warmup_zones = zones
         except Exception as e:
             print(f"Error during warm-up: {e}")
             return False

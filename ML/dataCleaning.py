@@ -62,7 +62,7 @@ class DataCleaner:
                                   ]
 
     
-    def to_dataframe(self):
+    def to_dataframe(self,ignore_cols=[]):
         batch = []
         for i,record in enumerate(self.get_data_from_file()):
             batch.append(record)
@@ -70,6 +70,7 @@ class DataCleaner:
                 df =  pd.DataFrame(batch)
                 df = df.reindex(columns=self.columns, fill_value=pd.NA)
                 df = self.remove_columns(df)
+                df = df.drop(columns=[col for col in ignore_cols if col in df.columns])
                 df = df.dropna(subset=['target'])
                 df = self.transformCategoryTypes(df)
                 df = self.fillNaN(df)
@@ -82,6 +83,7 @@ class DataCleaner:
             df =  pd.DataFrame(batch)
             df = df.reindex(columns=self.columns, fill_value=pd.NA)
             df = self.remove_columns(df)
+            df = df.drop(columns=[col for col in ignore_cols if col in df.columns])
             df = df.dropna(subset=['target'])
             df = self.transformCategoryTypes(df)
             df = self.fillNaN(df)
@@ -96,10 +98,10 @@ class DataCleaner:
                 yield data
 
     @mu.log_memory
-    def perform_clean(self):
+    def perform_clean(self,ignore_cols = []):
         
         header = True
-        for i,df in tqdm(enumerate(self.to_dataframe()),desc='Performing Data Cleaning',total=self.total_line,dynamic_ncols=True):
+        for i,df in tqdm(enumerate(self.to_dataframe(ignore_cols)),desc='Performing Data Cleaning',total=self.total_line,dynamic_ncols=True):
             train,test = self.datasplit.split(df)
             if header:
                 train.to_csv(self.Paths.train_data, mode='w', header=True, index=False)
@@ -138,10 +140,11 @@ class DataCleaner:
         df_new = df.drop(columns=[col for col in self.columns_to_remove if col in columns])
         return df_new
 
-    def preprocess_input(self,input):
+    def preprocess_input(self,input,ignore_cols=[]):
         df =  pd.DataFrame(input)
         df = df.reindex(columns=self.columns, fill_value=pd.NA)
         df = self.remove_columns(df)
+        df = df.drop(columns=[col for col in ignore_cols if col in df.columns])
         df = self.transformCategoryTypes(df)
         df = self.fillNaN(df)
         df = df.astype('float32')
