@@ -59,6 +59,7 @@ class DataCleaner:
                                   'az_swept_time','above_zone_swept_time','below_zone_swept_time',
                                   'above_touch_time','below_touch_time','above_swept_time','below_swept_time','above_timestamp','below_timestamp',
                                   'time_frame','az_time_frame','above_time_frame','below_time_frame',
+                                  
                                   ]
 
     
@@ -73,6 +74,7 @@ class DataCleaner:
                 df = df.dropna(subset=['target'])
                 df = self.transformCategoryTypes(df)
                 df = self.fillNaN(df)
+                df = self.makeValuesRatioByZonePrice(df)
                 df = df.drop(columns=[col for col in ignore_cols if col in df.columns])
                 df = df.astype('float32')
                 batch = []
@@ -87,6 +89,7 @@ class DataCleaner:
             df = df.dropna(subset=['target'])
             df = self.transformCategoryTypes(df)
             df = self.fillNaN(df)
+            df = self.makeValuesRatioByZonePrice(df)
             df = df.drop(columns=[col for col in ignore_cols if col in df.columns])
             df = df.astype('float32')
 
@@ -138,6 +141,7 @@ class DataCleaner:
     
     def makeValuesRatioByZonePrice(self,df):
         columns = list(df.columns)
+        candle_avg_price = (df['candle_open'] + df['candle_close']) / 2
         avg_price = (df['zone_low'] + df['zone_high'])/2
         above_avg_price = (df['above_zone_low'] + df['above_zone_high'])/2
         below_avg_price = (df['below_zone_low'] + df['below_zone_high'])/2
@@ -147,7 +151,10 @@ class DataCleaner:
         df['above_ema_50_by_price'] = df['above_ema 50'] / above_avg_price
         df['below_ema_20_by_price'] = df['below_ema 20'] / below_avg_price
         df['below_ema_50_by_price'] = df['below_ema 50'] / below_avg_price
+        df['candle_ema_20_by_price'] = df['candle_ema20'] / candle_avg_price
+        df['candle_ema_50_by_price'] = df['candle_ema50'] / candle_avg_price
 
+        df = df.drop(columns = ['ema 20','ema 50','above_ema 20','above_ema 50','below_ema 20','below_ema 50','candle_ema20','candle_ema50'])
         return df
 
     
@@ -162,6 +169,7 @@ class DataCleaner:
         df = self.remove_columns(df)
         df = self.transformCategoryTypes(df)
         df = self.fillNaN(df)
+        df = self.makeValuesRatioByZonePrice(df)
         df = df.drop(columns=[col for col in ignore_cols if col in df.columns])
         df = df.astype('float32')
         columns = ['is_target','target']

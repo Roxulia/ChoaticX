@@ -21,7 +21,7 @@ import os
 from Utility.MemoryUsage import MemoryUsage as mu
 
 class BackTestHandler:
-    def __init__(self,time_frames = ['1h','4h','1D'],lookback = '1 years',ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high']):
+    def __init__(self,time_frames = ['1h','4h','1D'],lookback = '1 years',ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high','candle_low','candle_open','candle_high','candle_close']):
         load_dotenv()
         self.api = BinanceAPI()
         self.utility = UtilityFunctions()
@@ -152,8 +152,9 @@ class BackTestHandler:
         temp_zones = []
         try:
             zones = []
+            min_date = timestamp - pd.DateOffset(days = 7)
             for df in tqdm(dfs, desc="Warming up with OHLCV data",disable= True):
-                data = df.loc[df['timestamp'] <= timestamp]
+                data = df.loc[(df['timestamp'] <= timestamp) & (df['timestamp'] >= min_date)]
                 detector = ZoneDetector(data)
                 zones = zones + detector.get_zones(inner_func=True)
             confluentfinder = ConfluentsFinder(zones)

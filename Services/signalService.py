@@ -20,7 +20,7 @@ from Data.Paths import Paths
 from flask_socketio import SocketIO
 import os
 class SignalService:
-    def __init__(self,socketio : SocketIO = None,timeframes = ['1h','4h','1D'],ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high']):
+    def __init__(self,socketio : SocketIO = None,timeframes = ['1h','4h','1D'],ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high','candle_open','candle_close','candle_high','candle_low']):
         self.utility = UtilityFunctions()
         self.api = BinanceAPI()
         self.Paths = Paths()
@@ -256,7 +256,7 @@ class SignalService:
     def get_dataset(self):
         df = self.get_latest_zones('3 years')
         if df is None:
-            return None,None
+            return None
         datagen = DatasetGenerator(df,self.timeframes)
         datagen.get_dataset_list()
         return datagen.total_line
