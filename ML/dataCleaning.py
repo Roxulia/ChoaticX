@@ -70,10 +70,10 @@ class DataCleaner:
                 df =  pd.DataFrame(batch)
                 df = df.reindex(columns=self.columns, fill_value=pd.NA)
                 df = self.remove_columns(df)
-                df = df.drop(columns=[col for col in ignore_cols if col in df.columns])
                 df = df.dropna(subset=['target'])
                 df = self.transformCategoryTypes(df)
                 df = self.fillNaN(df)
+                df = df.drop(columns=[col for col in ignore_cols if col in df.columns])
                 df = df.astype('float32')
                 batch = []
                 yield df
@@ -83,10 +83,11 @@ class DataCleaner:
             df =  pd.DataFrame(batch)
             df = df.reindex(columns=self.columns, fill_value=pd.NA)
             df = self.remove_columns(df)
-            df = df.drop(columns=[col for col in ignore_cols if col in df.columns])
+            
             df = df.dropna(subset=['target'])
             df = self.transformCategoryTypes(df)
             df = self.fillNaN(df)
+            df = df.drop(columns=[col for col in ignore_cols if col in df.columns])
             df = df.astype('float32')
 
             yield df
@@ -135,6 +136,21 @@ class DataCleaner:
         df.replace([float('inf'), float('-inf')], 0, inplace=True)
         return df
     
+    def makeValuesRatioByZonePrice(self,df):
+        columns = list(df.columns)
+        avg_price = (df['zone_low'] + df['zone_high'])/2
+        above_avg_price = (df['above_zone_low'] + df['above_zone_high'])/2
+        below_avg_price = (df['below_zone_low'] + df['below_zone_high'])/2
+        df['ema_20_by_price'] = df['ema 20'] / avg_price
+        df['ema_50_by_price'] = df['ema 50'] / avg_price
+        df['above_ema_20_by_price'] = df['above_ema 20'] / above_avg_price
+        df['above_ema_50_by_price'] = df['above_ema 50'] / above_avg_price
+        df['below_ema_20_by_price'] = df['below_ema 20'] / below_avg_price
+        df['below_ema_50_by_price'] = df['below_ema 50'] / below_avg_price
+
+        return df
+
+    
     def remove_columns(self,df):
         columns = list(df.columns)
         df_new = df.drop(columns=[col for col in self.columns_to_remove if col in columns])
@@ -144,9 +160,9 @@ class DataCleaner:
         df =  pd.DataFrame(input)
         df = df.reindex(columns=self.columns, fill_value=pd.NA)
         df = self.remove_columns(df)
-        df = df.drop(columns=[col for col in ignore_cols if col in df.columns])
         df = self.transformCategoryTypes(df)
         df = self.fillNaN(df)
+        df = df.drop(columns=[col for col in ignore_cols if col in df.columns])
         df = df.astype('float32')
         columns = ['is_target','target']
         return df.drop(columns=[col for col in columns if col in df.columns])

@@ -22,6 +22,7 @@ class Portfolio:
     def __init__(self, starting_balance: float = 10000.0, fee_bps: float = 5.0, slippage_bps: float = 1.0, max_concurrent: int = 10):
         self.balance = starting_balance
         self.equity = starting_balance
+        self.starting = starting_balance
         self.fee_bps = fee_bps
         self.slippage_bps = slippage_bps
         self.max_concurrent = max_concurrent
@@ -45,11 +46,11 @@ class Portfolio:
         # Risk fixed % of balance per trade
         if sl is None or sl == entry:
             # fallback: 1% notional if SL is missing
-            return (self.balance * risk_pct) / entry
-        risk_amt = self.balance * risk_pct
+            return (self.starting * risk_pct) / entry
+        risk_amt = self.starting * risk_pct
         per_unit_risk = abs(entry - sl)
         if per_unit_risk <= 0:
-            return (self.balance * risk_pct) / entry
+            return (self.starting * risk_pct) / entry
         qty = risk_amt / per_unit_risk
         return max(qty, 0.0)
 
