@@ -100,7 +100,7 @@ class BackTestHandler:
                     # Manage trades
                     for trade in self.portfolio.open_trades:  # no list() copy
                         deadline = trade.entry_time + pd.DateOffset(days=7)
-                        if trade.status == "OPEN" and deadline > candle["timestamp"] >= trade.entry_time:
+                        if trade.status == "OPEN" and deadline > candle["timestamp"] > trade.entry_time:
                             if trade.side == "Long":
                                 if candle["low"] <= trade.sl:
                                     self.portfolio.close_trade(trade, candle["timestamp"],

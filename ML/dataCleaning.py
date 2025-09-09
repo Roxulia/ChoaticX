@@ -139,22 +139,26 @@ class DataCleaner:
         df.replace([float('inf'), float('-inf')], 0, inplace=True)
         return df
     
+    def checkColandCalculate(self,column_names,df):
+        columns = list(df.columns)
+        if column_names in columns:
+            avg =  (df[column_names[0]] + df[column_names[1]])/2
+            return df[column_names[2]] / avg
+        return None
+
     def makeValuesRatioByZonePrice(self,df):
         columns = list(df.columns)
-        candle_avg_price = (df['candle_open'] + df['candle_close']) / 2
-        avg_price = (df['zone_low'] + df['zone_high'])/2
-        above_avg_price = (df['above_zone_low'] + df['above_zone_high'])/2
-        below_avg_price = (df['below_zone_low'] + df['below_zone_high'])/2
-        df['ema_20_by_price'] = df['ema 20'] / avg_price
-        df['ema_50_by_price'] = df['ema 50'] / avg_price
-        df['above_ema_20_by_price'] = df['above_ema 20'] / above_avg_price
-        df['above_ema_50_by_price'] = df['above_ema 50'] / above_avg_price
-        df['below_ema_20_by_price'] = df['below_ema 20'] / below_avg_price
-        df['below_ema_50_by_price'] = df['below_ema 50'] / below_avg_price
-        df['candle_ema_20_by_price'] = df['candle_ema20'] / candle_avg_price
-        df['candle_ema_50_by_price'] = df['candle_ema50'] / candle_avg_price
-
-        df = df.drop(columns = ['ema 20','ema 50','above_ema 20','above_ema 50','below_ema 20','below_ema 50','candle_ema20','candle_ema50'])
+        df['ema_20_by_price'] = self.checkColandCalculate(['zone_high','zone_low','ema 20'],df)
+        df['ema_50_by_price'] = self.checkColandCalculate(['zone_high','zone_low','ema 50'],df)
+        df['above_ema_20_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_ema 20'],df)
+        df['above_ema_50_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_ema 50'],df)
+        df['below_ema_20_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_ema 20'],df)
+        df['below_ema_50_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_ema 50'],df)
+        df['candle_ema_20_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_ema20'],df)
+        df['candle_ema_50_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_ema50'],df)
+        calculated_cols = ['ema 20','ema 50','above_ema 20','above_ema 50','below_ema 20','below_ema 50','candle_ema20','candle_ema50']
+        
+        df = df.drop(columns =[col for col in calculated_cols if col in columns])
         return df
 
     

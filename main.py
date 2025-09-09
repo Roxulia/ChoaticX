@@ -25,7 +25,7 @@ if __name__ == "__main__" :
     pd.set_option('future.no_silent_downcasting', True)
     
     start = time.perf_counter()
-    #initialState()
+    initialState()
     backtest()
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")

@@ -3,7 +3,7 @@ import numpy as np
 from tqdm import tqdm
 from Utility.MemoryUsage import MemoryUsage as mu
 class NearbyZones():
-    def __init__(self,based_zones=[],candles=[],threshold = 0.002):
+    def __init__(self,based_zones=[],candles=[],threshold = 300):
         self.based_zones = based_zones
         self.threshold = threshold
         self.candles = candles
@@ -17,27 +17,26 @@ class NearbyZones():
             this_low = zone.get('zone_low')
             valid_zones = zone.get('available_core',[])+zone.get('available_liquidity',[])
             base_data = {k:v for k,v in zone.items() if k not in ['available_core','available_liquidity']}
-            zone_id = zone.get('index')
+            zone_id = zone.get('timestamp')
             def compute_nearest(valid_zones):
                 
                 min_dist_below = float('inf')
                 nearest_above_zone = self.getATHzone(zone_id)
-                min_dist_above = this_high - nearest_above_zone['zone_low']
+                min_dist_above = nearest_above_zone['zone_low'] - this_high
                 nearest_below_zone = None
 
                 for other in valid_zones:
                     
                     other_high = other.get('zone_high')
                     other_low = other.get('zone_low')
-                    price_diff = other_high * self.threshold
                     if other_low > this_high:
                         dist = other_low - this_high
-                        if dist < min_dist_above and dist >= price_diff:
+                        if dist < min_dist_above and dist >= self.threshold:
                             min_dist_above = dist
                             nearest_above_zone = other.copy()
                     elif other_high < this_low:
                         dist = this_low - other_high
-                        if dist < min_dist_below and dist>=price_diff:
+                        if dist < min_dist_below and dist>=self.threshold:
                             min_dist_below = dist
                             nearest_below_zone = other.copy()
 
@@ -65,7 +64,7 @@ class NearbyZones():
         return results
     
     def getATHzone(self,zone_id):
-        data = self.candles.iloc[:zone_id]
+        data = self.candles.loc[self.candles['timestamp'] <= zone_id]
         # Find ATH index (timestamp) and integer position
         ath_idx = data['high'].idxmax()
         index = data.index.get_loc(ath_idx)  # integer position
@@ -103,24 +102,23 @@ class NearbyZones():
         this_low = zone.get('zone_low',None)
         min_dist_below = float('inf')
         nearest_above_zone = ATH
-        min_dist_above =  this_high- nearest_above_zone['zone_low']
+        min_dist_above =  nearest_above_zone['zone_low'] - this_high
         nearest_below_zone = None
 
         for other in zones:
-            if other['index'] == zone['index']:
+            if other['timestamp'] == zone['timestamp']:
                 continue
             
             other_high = other.get('zone_high')
             other_low = other.get('zone_low')
-            price_diff = other_high * self.threshold
             if other_low > this_high:
                 dist = other_low - this_high
-                if dist < min_dist_above and dist >= price_diff:
+                if dist < min_dist_above and dist >= self.threshold:
                     min_dist_above = dist
                     nearest_above_zone = other.copy()
             elif other_high < this_low:
                 dist = this_low - other_high
-                if dist < min_dist_below and dist>=price_diff:
+                if dist < min_dist_below and dist>=self.threshold:
                     min_dist_below = dist
                     nearest_below_zone = other.copy()
         temp_above,temp_below = {},{}

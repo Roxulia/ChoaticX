@@ -1,8 +1,12 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field ,asdict
 from typing import Optional, List, Dict
 import math
 import numpy as np
 import pandas as pd
+from Data.Paths import Paths
+from tqdm import tqdm
+import os
+import json
 
 @dataclass
 class Trade:
@@ -30,6 +34,9 @@ class Portfolio:
         self.closed_trades: List[Trade] = []
         self.equity_curve: List[Dict] = []   # [{'time': ts, 'equity': val}]
         self._last_time: Optional[pd.Timestamp] = None
+        self.paths = Paths()
+        if not os.path.exists(self.paths.backtest_history):
+            open(self.paths.backtest_history,'w')
 
     def _apply_fees(self, notional: float) -> float:
         return notional * (self.fee_bps / 10000.0)
@@ -80,6 +87,21 @@ class Portfolio:
         self.closed_trades.append(trade)
         self.open_trades.remove(trade)
         self.balance += pnl
+        self.write_history(trade)
+
+    def write_history(self,trade:Trade):
+        record = {
+            'entry time' : str(trade.entry_time),
+            'side' : trade.side,
+            'entry price' : float(trade.entry_price),
+            'tp' : float(trade.tp),
+            'sl' : float(trade.sl),
+            'end time' : str(trade.exit_time),
+            'exit price' : float(trade.exit_price),
+            'result' : float(trade.pnl)
+        }
+        with open(self.paths.backtest_history,'a') as f:
+            f.write(json.dumps(record) + "\n")
 
     def mark_to_market(self, time: pd.Timestamp, price: float):
         # Unrealized PnL to compute equity curve (simple marking on close)
