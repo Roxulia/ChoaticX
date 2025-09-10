@@ -11,7 +11,7 @@ from ML.dataCleaning import DataCleaner
 from ML.datasetGeneration import DatasetGenerator
 from Data.binanceAPI import BinanceAPI
 from Data.Paths import Paths
-from Utility.UtilityClass import UtilityFunctions
+from Utility.UtilityClass import UtilityFunctions as utility
 from .Portfolio import Portfolio,Trade
 import pandas as pd
 import json
@@ -24,7 +24,6 @@ class BackTestHandler:
     def __init__(self,time_frames = ['1h','4h','1D'],lookback = '1 years',ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high','candle_low','candle_open','candle_high','candle_close']):
         load_dotenv()
         self.api = BinanceAPI()
-        self.utility = UtilityFunctions()
         self.reaction = ZoneReactor()
         self.ohclv_paths=[]
         self.time_frames = time_frames
@@ -94,13 +93,16 @@ class BackTestHandler:
                                     use_zones.append(nearbyzone.getAboveBelowZones(zone, self.warmup_zones, ATH))
 
                             if use_zones:
+                                self.warmup_zones = utility.remove_data_from_lists_by_key(self.warmup_zones,use_zones,key='timestamp')
                                 use_zones = list(datagen.extract_confluent_tf(use_zones))
                                 signal = signalGen.generate(use_zones, backtest=True)
+                                
 
                     # Manage trades
                     for trade in self.portfolio.open_trades:  # no list() copy
                         deadline = trade.entry_time + pd.DateOffset(days=7)
-                        if trade.status == "OPEN" and deadline > candle["timestamp"] > trade.entry_time:
+                        starttime = trade.entry_time + pd.DateOffset(hours=1)
+                        if trade.status == "OPEN" and deadline > candle["timestamp"] >= starttime:
                             if trade.side == "Long":
                                 if candle["low"] <= trade.sl:
                                     self.portfolio.close_trade(trade, candle["timestamp"],
@@ -124,19 +126,18 @@ class BackTestHandler:
 
     def EnterTrade(self,signal,timestamp):
         if(self.portfolio.can_open()):
-            
-            entry_price = signal['entry_price']
             sl = signal['sl']
             tp = signal['tp']
             side = signal['side']
             meta = signal['meta']
+            entry_price = self.portfolio._apply_slippage_price(signal['entry_price'],side)
             qty = self.portfolio.risk_position_size(entry_price,sl)
             trade = Trade(side=side,entry_time=timestamp,entry_price=entry_price,qty=qty,sl=sl,tp=tp,meta=meta)
             self.portfolio.open_trade(trade)
 
     def load_OHLCV_for_backtest(self,warmup_month =3,candle_interval = '1D',inner_func = False):
         temp_dfs = []
-        days,hours,minutes,seconds = self.utility.getDHMS(candle_interval)
+        days,hours,minutes,seconds = utility.getDHMS(candle_interval)
         for path in tqdm(self.ohclv_paths, desc="Warming up with OHLCV data",disable=inner_func):
             df = pd.read_csv(path)
             df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -161,7 +162,7 @@ class BackTestHandler:
             confluent_zones = confluentfinder.getConfluents(inner_func=True)
             datagen = DatasetGenerator(confluent_zones)
             temp_zones = datagen.extract_confluent_tf(confluent_zones)
-            self.warmup_zones =  self.utility.merge_lists_by_key(self.warmup_zones,temp_zones,"timestamp")
+            self.warmup_zones =  utility.merge_lists_by_key(self.warmup_zones,temp_zones,"timestamp")
         except Exception as e:
             print(f"error updating zones : {e}")
             return False

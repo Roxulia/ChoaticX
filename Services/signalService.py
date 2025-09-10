@@ -10,8 +10,9 @@ from ML.Model import ModelHandler
 from ML.dataCleaning import DataCleaner
 from ML.datasetGeneration import DatasetGenerator
 from Data.binanceAPI import BinanceAPI
-from Utility.UtilityClass import UtilityFunctions
+from Utility.UtilityClass import UtilityFunctions as utility
 from Utility.MemoryUsage import MemoryUsage as mu
+from Exceptions.ServiceExceptions import *
 import pandas as pd
 import json
 from dotenv import load_dotenv
@@ -21,7 +22,7 @@ from flask_socketio import SocketIO
 import os
 class SignalService:
     def __init__(self,socketio : SocketIO = None,timeframes = ['1h','4h','1D'],ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high','candle_open','candle_close','candle_high','candle_low']):
-        self.utility = UtilityFunctions()
+        
         self.api = BinanceAPI()
         self.Paths = Paths()
         self.timeframes = timeframes
@@ -58,13 +59,15 @@ class SignalService:
         return zones
 
     def get_untouched_zones(self):
-        
         zones = []
         with open(self.Paths.zone_storage,'r') as f:
             for line in f:
                 data = json.loads(line)
                 zones.append(data)
-        return zones
+        if zones:
+            return zones
+        else:
+            raise NoUntouchedZone
 
     @mu.log_memory
     def get_current_signals(self):
@@ -98,13 +101,14 @@ class SignalService:
                     zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)
                     
                     use_zones.append(zone)
+            zone_to_remove = use_zones
             use_zones = datagen.extract_confluent_tf(use_zones)
             
             signal = signal_gen.generate(use_zones)
         else:
             print('Zones are not touched yet')
             signal = 'None'
-        dataToStore = self.utility.remove_data_from_lists_by_key(zones,zone_to_remove,key='timestamp')
+        dataToStore = utility.remove_data_from_lists_by_key(zones,zone_to_remove,key='timestamp')
         try:
             with open(self.Paths.zone_storage, "w") as f:
                 for i, row in enumerate(tqdm(dataToStore, desc="Writing to untouch zone storage file")):
@@ -232,8 +236,15 @@ class SignalService:
         model_handler.load()
         signal_gen = SignalGenerator(model_handler,datacleaner,self.ignore_cols)
         signal = signal_gen.generate(use_zones)
-        return signal, 200
+        return signal
     
+    def get_running_signals(self):
+        signal_gen = SignalGenerator()
+        signals = signal_gen.get_running_signals()
+        if signals is None:
+            raise EmptySignalException
+        return signals
+
     def update_untouched_zones(self):
         
         df_from_candle = self.get_latest_zones('6 months')
@@ -249,7 +260,7 @@ class SignalService:
                 datagen = DatasetGenerator(temp_df)
                 datagen.store_untouch_zones()
             else:
-                df_final = self.utility.merge_lists_by_key(df_from_storage,temp_df,key="timestamp")
+                df_final = utility.merge_lists_by_key(df_from_storage,temp_df,key="timestamp")
                 datagen = DatasetGenerator(df_final)
                 datagen.store_untouch_zones()
 

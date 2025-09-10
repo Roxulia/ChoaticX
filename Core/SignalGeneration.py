@@ -4,8 +4,9 @@ from dotenv import load_dotenv
 from ML.dataCleaning import DataCleaner
 from ML.Model import ModelHandler
 import os
+from datetime import datetime,timezone
 class SignalGenerator:
-    def __init__(self, modelHandler : ModelHandler,datacleaner : DataCleaner,ignore_cols = []):
+    def __init__(self, modelHandler : ModelHandler = None,datacleaner : DataCleaner = None,ignore_cols = []):
         self.modelhandler = modelHandler
         self.datacleaner = datacleaner
         self.ignore_cols = ignore_cols
@@ -48,7 +49,7 @@ class SignalGenerator:
         row["tp"] = tp
         row["sl"] = sl
         row["result"] = "Pending"
-
+        row["signal_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         # Save to CSV
         if not backtest:
             header = self.get_signals_count() == 0
@@ -75,3 +76,23 @@ class SignalGenerator:
                     data = pd.read_csv(line)
                     signals.append(data)
         return len(signals)
+    
+    def get_running_signals(self):
+        signals = []
+        if os.path.exists(self.signal_storage):
+            with open(self.signal_storage,'r') as f:
+                for line in f:
+                    data = pd.read_csv(line)
+                    if data['result'] == 'pending':
+                        signal = {
+                            "timestamp" : data["signal_timestamp"],
+                            "side" : data['side'],
+                            "entry_price" : data['entry_price'],
+                            "tp" : data['tp'],
+                            "sl" : data['sl']
+                        }
+                        signals.append(signal)
+        if signals:
+            return signals
+        else:
+            return None
