@@ -111,7 +111,7 @@ class ZoneDetector:
         return fvg_indices
     
     @mu.log_memory
-    def detect_order_blocks(self, min_body_ratio=0.3,inner_func = False):
+    def detect_order_blocks(self, threshold = 300,inner_func = False):
         """
         Optimized detection of bullish and bearish Order Blocks (OB).
         """
@@ -142,7 +142,7 @@ class ZoneDetector:
                 continue
 
             body_ratio = body / candle_range
-            if body_ratio < min_body_ratio:
+            if candle_range < threshold:
                 continue
 
             wick_ratio = 1 - body_ratio
@@ -434,8 +434,8 @@ class ZoneDetector:
         return results
     
     @mu.log_memory
-    def get_zones(self,inner_func = False):
-        fvg = self.detect_fvg(inner_func=inner_func)
-        ob = self.detect_order_blocks(inner_func=inner_func)
+    def get_zones(self,threshold = 300,inner_func = False):
+        fvg = self.detect_fvg(threshold=threshold,inner_func=inner_func)
+        ob = self.detect_order_blocks(threshold=threshold,inner_func=inner_func)
         liq = self.detect_liquidity_zones(inner_func=inner_func)
         return fvg+ob+liq

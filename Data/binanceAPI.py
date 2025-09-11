@@ -4,6 +4,7 @@ from binance.client import Client
 from dotenv import load_dotenv
 import ta
 from .timeFrames import timeFrame
+from Exceptions.ServiceExceptions import *
 
 class BinanceAPI:
     def __init__(self):
@@ -37,8 +38,7 @@ class BinanceAPI:
             df['timestamp'] = df.index
             return df
         except:
-            print("Unexcepted Error Occur")
-            return None
+            raise CantFetchCandleData
         
     
     def add_TA(self,df):
@@ -52,35 +52,45 @@ class BinanceAPI:
     
     def get_latest_candle(self,symbol='BTCUSDT',interval = '1h'):
         tf = timeFrame()
-        klines = self.client.get_historical_klines(symbol,tf.getTimeFrame(interval) , limit = 100)
+        try:
+            klines = self.client.get_historical_klines(symbol,tf.getTimeFrame(interval) , limit = 100)
 
-        df = pd.DataFrame(klines, columns=[
-            'timestamp', 'open', 'high', 'low', 'close', 'volume',
-            'close_time', 'quote_asset_volume', 'number_of_trades',
-            'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
-        ])
+            df = pd.DataFrame(klines, columns=[
+                'timestamp', 'open', 'high', 'low', 'close', 'volume',
+                'close_time', 'quote_asset_volume', 'number_of_trades',
+                'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
+            ])
 
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-        df.set_index('timestamp', inplace=True)
+            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+            df.set_index('timestamp', inplace=True)
 
-        df = df[['open', 'high', 'low', 'close', 'volume']]
-        df = df.apply(pd.to_numeric).astype('float32')
-        df = self.add_TA(df)
-        df['timestamp'] = df.index
-        return df.iloc[-1]
+            df = df[['open', 'high', 'low', 'close', 'volume']]
+            df = df.apply(pd.to_numeric).astype('float32')
+            df = self.add_TA(df)
+            df['timestamp'] = df.index
+            return df.iloc[-1]
+        except:
+            raise CantFetchCandleData
     
     def store_OHLCV(self, symbol='BTCUSDT', interval='1h',lookback='3 years'):
         """
         Store OHLCV data to a CSV file
         """
-        df = self.get_ohlcv(symbol, interval, lookback)
-        if df is None:
-            print("Failed to fetch data.")
-            return None
-        file_path = f"{self.data_root}/OHLCV/{symbol}_{interval}_{lookback}.csv"
-        df.to_csv(file_path)
-        print(f"Data stored to {file_path}")
-        return file_path
+        try:
+            try:
+                df = self.get_ohlcv(symbol, interval, lookback)
+            except CantFetchCandleData as e:
+                raise CantFetchCandleData
+            file_path = f"{self.data_root}/OHLCV/{symbol}_{interval}_{lookback}.csv"
+            df.to_csv(file_path)
+            print(f"Data stored to {file_path}")
+            return file_path
+        except:
+            raise CantSaveToCSV
+            
+                
+            
+
     
 
 

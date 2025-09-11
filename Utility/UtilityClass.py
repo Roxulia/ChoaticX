@@ -17,7 +17,7 @@ class UtilityFunctions():
         return list(merged.values())
     
     @staticmethod
-    def remove_data_from_lists_by_key( data_list,to_remove, key ):
+    def removeDataFromListByKeyValueList( data_list,to_remove, key ):
         """
         Remove items from a list of dictionaries where the specified key matches the given value.
         """
@@ -27,6 +27,14 @@ class UtilityFunctions():
                 result.append(item)
         return result
     
+    @staticmethod
+    def removeDataFromListByKeyValue(data,key,value):
+        result = []
+        for item in data:
+            if item[key] != value:
+                result.append(item)
+        return result
+
     @staticmethod
     def getDHMS(timestring:str = '1D-1h-1m-1s'):
         #get day,hour,minutes,seconds from string

@@ -30,9 +30,10 @@ class SignalService:
         self.ignore_cols = ignore_cols
 
     def get_zones(self,interval,lookback):
-        df = self.api.get_ohlcv(interval=interval,lookback=lookback)
-        if df is None:
-            return None
+        try:
+            df = self.api.get_ohlcv(interval=interval,lookback=lookback)
+        except CantFetchCandleData as e:
+            raise CantFetchCandleData
         if interval ==  self.timeframes[0]:
             self.based_candles = df
         detector = ZoneDetector(df)
@@ -43,10 +44,12 @@ class SignalService:
     def get_latest_zones(self,lookback='1 years'):
         t_zones = []
         for tf in self.timeframes:
-            zone = self.get_zones(tf,lookback)
-            if zone is None:
-                return None
-            t_zones = t_zones + zone
+            try:
+                zone = self.get_zones(tf,lookback)
+                
+                t_zones = t_zones + zone
+            except CantFetchCandleData:
+                raise CantFetchCandleData
         confluentfinder = ConfluentsFinder(t_zones)
         zones = confluentfinder.getConfluents()
         athHandler = ATHHandler(self.based_candles)
@@ -101,14 +104,13 @@ class SignalService:
                     zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)
                     
                     use_zones.append(zone)
-            zone_to_remove = use_zones
             use_zones = datagen.extract_confluent_tf(use_zones)
             
             signal = signal_gen.generate(use_zones)
         else:
             print('Zones are not touched yet')
             signal = 'None'
-        dataToStore = utility.remove_data_from_lists_by_key(zones,zone_to_remove,key='timestamp')
+        dataToStore = utility.removeDataFromListByKeyValueList(zones,zone_to_remove,key='timestamp')
         try:
             with open(self.Paths.zone_storage, "w") as f:
                 for i, row in enumerate(tqdm(dataToStore, desc="Writing to untouch zone storage file")):
@@ -246,28 +248,30 @@ class SignalService:
         return signals
 
     def update_untouched_zones(self):
-        
-        df_from_candle = self.get_latest_zones('6 months')
-        if df_from_candle is not None:
-            temp_df = []
-            for i,row in enumerate(df_from_candle):
-                if row['touch_type'] is not None:
-                    continue
-                else:
-                    temp_df.append(row)
-            df_from_storage = self.get_untouched_zones()
-            if df_from_storage is None:
-                datagen = DatasetGenerator(temp_df)
-                datagen.store_untouch_zones()
+        try:
+            df_from_candle = self.get_latest_zones('6 months')
+        except CantFetchCandleData:
+            raise CantFetchCandleData
+        temp_df = []
+        for i,row in enumerate(df_from_candle):
+            if row['touch_type'] is not None:
+                continue
             else:
-                df_final = utility.merge_lists_by_key(df_from_storage,temp_df,key="timestamp")
-                datagen = DatasetGenerator(df_final)
-                datagen.store_untouch_zones()
+                temp_df.append(row)
+        df_from_storage = self.get_untouched_zones()
+        if df_from_storage is None:
+            datagen = DatasetGenerator(temp_df)
+            datagen.store_untouch_zones()
+        else:
+            df_final = utility.merge_lists_by_key(df_from_storage,temp_df,key="timestamp")
+            datagen = DatasetGenerator(df_final)
+            datagen.store_untouch_zones()
 
     def get_dataset(self):
-        df = self.get_latest_zones('3 years')
-        if df is None:
-            return None
+        try:
+            df = self.get_latest_zones('3 years')
+        except CantFetchCandleData:
+            raise CantFetchCandleData
         datagen = DatasetGenerator(df,self.timeframes)
         datagen.get_dataset_list()
         return datagen.total_line
@@ -295,9 +299,10 @@ class SignalService:
             print(keys)
 
     def data_extraction(self):
-        total = self.get_dataset()
-        if total is None:
-            return None
+        try:
+            total = self.get_dataset()
+        except CantFetchCandleData:
+            raise CantFetchCandleData
         total = self.clean_dataset(total)
         return total
 
@@ -306,8 +311,10 @@ class SignalService:
         self.test_model()
 
     def test_process(self):
-        df = self.get_latest_zones()
-        
+        try:
+            df = self.get_latest_zones()
+        except CantFetchCandleData:
+            raise CantFetchCandleData
         datagen = DatasetGenerator(df)
         data = datagen.extract_features_and_labels()
         data = datagen.extract_confluent_tf(data)

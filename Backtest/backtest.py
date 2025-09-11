@@ -33,7 +33,7 @@ class BackTestHandler:
         self.portfolio = Portfolio()
 
     @mu.log_memory
-    def run_backtest(self, zone_update_interval=24):
+    def run_backtest(self,sl_threshold = 300 ,zone_update_interval=24):
         print(f'{self.warmup_zones[0]['timestamp']}-{(self.warmup_zones[-1]['timestamp'])}')
         dfs = self.load_OHLCV_for_backtest(inner_func=True)
         based_candles = dfs[0]
@@ -61,12 +61,14 @@ class BackTestHandler:
                     # Entry handling
                     if signal is not None:
                         side = signal["side"]
-                        if side == "Long" and (signal["sl"] < candle["close"] <= signal["entry_price"]):
-                            signal['entry_price'] = candle['close']
-                            self.EnterTrade(signal, candle["timestamp"])
-                        elif side == "Short" and (signal["sl"] > candle["close"] >= signal["entry_price"]):
-                            signal["entry_price"] = candle['close']
-                            self.EnterTrade(signal, candle["timestamp"])
+                        diff = abs(signal['sl'] - candle['close'])
+                        if diff > sl_threshold:
+                            if side == "Long" and (signal["sl"] < candle["close"] <= signal["entry_price"]):
+                                signal['entry_price'] = candle['close']
+                                self.EnterTrade(signal, candle["timestamp"])
+                            elif side == "Short" and (signal["sl"] > candle["close"] >= signal["entry_price"]):
+                                signal["entry_price"] = candle['close']
+                                self.EnterTrade(signal, candle["timestamp"])
 
                     # Update zones periodically
                     if pos % zone_update_interval == 0:
@@ -93,7 +95,7 @@ class BackTestHandler:
                                     use_zones.append(nearbyzone.getAboveBelowZones(zone, self.warmup_zones, ATH))
 
                             if use_zones:
-                                self.warmup_zones = utility.remove_data_from_lists_by_key(self.warmup_zones,use_zones,key='timestamp')
+                                self.warmup_zones = utility.removeDataFromListByKeyValue(self.warmup_zones,key='timestamp',value = zone_timestamp)
                                 use_zones = list(datagen.extract_confluent_tf(use_zones))
                                 signal = signalGen.generate(use_zones, backtest=True)
                                 
