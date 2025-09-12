@@ -31,6 +31,7 @@ class BackTestHandler:
         self.lookback = lookback
         self.Paths = Paths()
         self.portfolio = Portfolio()
+        self.used_zones = []
 
     @mu.log_memory
     def run_backtest(self,sl_threshold = 300 ,zone_update_interval=24):
@@ -96,6 +97,7 @@ class BackTestHandler:
 
                             if use_zones:
                                 self.warmup_zones = utility.removeDataFromListByKeyValue(self.warmup_zones,key='timestamp',value = zone_timestamp)
+                                self.used_zones =  self.used_zones + [item['timestamp'] for item in use_zones]
                                 use_zones = list(datagen.extract_confluent_tf(use_zones))
                                 signal = signalGen.generate(use_zones, backtest=True)
                                 
@@ -107,18 +109,14 @@ class BackTestHandler:
                         if trade.status == "OPEN" and deadline > candle["timestamp"] >= starttime:
                             if trade.side == "Long":
                                 if candle["low"] <= trade.sl:
-                                    self.portfolio.close_trade(trade, candle["timestamp"],
-                                        self.portfolio._apply_slippage_price(trade.sl, trade.side, is_entry=False))
+                                    self.portfolio.close_trade(trade, candle["timestamp"],trade.sl)
                                 elif trade.tp and candle["high"] >= trade.tp:
-                                    self.portfolio.close_trade(trade, candle["timestamp"],
-                                        self.portfolio._apply_slippage_price(trade.tp, trade.side, is_entry=False))
+                                    self.portfolio.close_trade(trade, candle["timestamp"],trade.tp)
                             elif trade.side == "Short":
                                 if candle["high"] >= trade.sl:
-                                    self.portfolio.close_trade(trade, candle["timestamp"],
-                                        self.portfolio._apply_slippage_price(trade.sl, trade.side, is_entry=False))
+                                    self.portfolio.close_trade(trade, candle["timestamp"],trade.sl)
                                 elif trade.tp and candle["low"] <= trade.tp:
-                                    self.portfolio.close_trade(trade, candle["timestamp"],
-                                        self.portfolio._apply_slippage_price(trade.tp, trade.side, is_entry=False))
+                                    self.portfolio.close_trade(trade, candle["timestamp"],trade.tp)
 
                     self.portfolio.mark_to_market(candle["timestamp"], candle["close"])
                     pbar.update(1)
@@ -165,6 +163,7 @@ class BackTestHandler:
             datagen = DatasetGenerator(confluent_zones)
             temp_zones = datagen.extract_confluent_tf(confluent_zones)
             self.warmup_zones =  utility.merge_lists_by_key(self.warmup_zones,temp_zones,"timestamp")
+            self.warmup_zones = utility.removeDataFromListByKeyValueList(self.warmup_zones,self.used_zones,'timestamp')
         except Exception as e:
             print(f"error updating zones : {e}")
             return False

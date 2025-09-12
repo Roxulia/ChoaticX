@@ -21,3 +21,11 @@ class TrainingFail(Exception):
 class FailInitialState(Exception):
     def __init__(self):
         super().__init__("Failed to initiate program")
+
+class WarmUpFail(Exception):
+    def __init__(self):
+        super().__init__("Failed To load Warmup Data")
+
+class BackTestFail(Exception):
+    def __init__(self):
+        super().__init__("Error Occur in Backtest Process")

@@ -307,8 +307,11 @@ class SignalService:
         return total
 
     def training_process(self,total):
-        self.train_model(total)
-        self.test_model()
+        try:
+            self.train_model(total)
+            self.test_model()
+        except:
+            raise TrainingFail
 
     def test_process(self):
         try:
