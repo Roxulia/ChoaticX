@@ -82,7 +82,7 @@ class Portfolio:
         trade.status = "CLOSED"
         trade.exit_time = exit_time
         trade.exit_price = exit_price
-        trade.pnl = pnl
+        trade.pnl = gross
 
         self.closed_trades.append(trade)
         self.open_trades.remove(trade)
@@ -90,6 +90,24 @@ class Portfolio:
         self.write_history(trade)
 
     def write_history(self,trade:Trade):
+        based_zone = {
+            'timestamp' : str(trade.meta['timestamp']),
+            'zone_high' : float(trade.meta['zone_high']),
+            'zone_low' : float(trade.meta['zone_low']),
+            'type' : str(trade.meta['type'])
+        }
+        above_zone = {
+            'timestamp' : str(trade.meta['above_timestamp']),
+            'zone_high' : float(trade.meta['above_zone_high']),
+            'zone_low' : float(trade.meta['above_zone_low']),
+            'type' : str(trade.meta['above_type'])
+        }
+        below_zone = {
+            'timestamp' : str(trade.meta['below_timestamp']),
+            'zone_high' : float(trade.meta['below_zone_high']),
+            'zone_low' : float(trade.meta['below_zone_low']),
+            'type' : str(trade.meta['below_type'])
+        }
         record = {
             'entry time' : str(trade.entry_time),
             'side' : trade.side,
@@ -98,6 +116,9 @@ class Portfolio:
             'sl' : float(trade.sl),
             'end time' : str(trade.exit_time),
             'exit price' : float(trade.exit_price),
+            'based_zone' : based_zone,
+            'above_zone' : above_zone,
+            'below_zone' : below_zone,
             'result' : float(trade.pnl)
         }
         with open(self.paths.backtest_history,'a') as f:
@@ -129,6 +150,8 @@ class Portfolio:
         print(f"closed_trades : {int(len(self.closed_trades))},")
         print(f"open_trades: {int(len(self.open_trades))},")
         print(f"total_pnl: {float(total_pnl)},")
+        print(f'wins : {int(wins)}')
+        print(f'losses : {int(losses)}')
         print(f"winrate: {float(winrate * 100)}%,")
         print(f"max_drawdown: {float(max_dd)},")
         print(f"ending_balance: {float(self.balance)},")

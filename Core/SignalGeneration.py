@@ -29,12 +29,12 @@ class SignalGenerator:
         row = zones.iloc[0].copy()
 
         if row["target"] == 0:  # Short
-            tp = row["below_zone_high"]
+            tp = row["below_zone_low"]
             sl = row["zone_high"]
             entry = row["zone_low"]
             signal = "Short"
         else:  # Long
-            tp = row["above_zone_low"]
+            tp = row["above_zone_high"]
             sl = row["zone_low"]
             entry = row["zone_high"]
             signal = "Long"

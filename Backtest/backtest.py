@@ -79,7 +79,9 @@ class BackTestHandler:
                     if len(history) > 1:
                         touch_type, zone_timestamp = self.reaction.get_last_candle_reaction(self.warmup_zones, candle)
                         if touch_type is not None:
-                            ATH = ATHHandler(pd.DataFrame(history)).getATHFromCandles()
+                            tempATH = ATHHandler(pd.DataFrame(history)).getATHFromCandles()
+                            if self.ATH['zone_high'] < tempATH['zone_high']:
+                                self.ATH = tempATH
                             use_zones = []
                             for zone in self.warmup_zones:
                                 if zone["timestamp"] == zone_timestamp:
@@ -93,7 +95,7 @@ class BackTestHandler:
                                         "candle_atr": candle["atr"],
                                         "touch_type": touch_type,
                                     })
-                                    use_zones.append(nearbyzone.getAboveBelowZones(zone, self.warmup_zones, ATH))
+                                    use_zones.append(nearbyzone.getAboveBelowZones(zone, self.warmup_zones, self.ATH))
 
                             if use_zones:
                                 self.warmup_zones = utility.removeDataFromListByKeyValue(self.warmup_zones,key='timestamp',value = zone_timestamp)
@@ -185,6 +187,7 @@ class BackTestHandler:
                 detector = ZoneDetector(df)
                 with mu.disable_memory_logging():
                     zones = zones + detector.get_zones(inner_func=True)
+            self.ATH = ATHHandler(warm_up_dfs[0]).getATHFromCandles()
             confluentfinder = ConfluentsFinder(zones)
             confluent_zones = confluentfinder.getConfluents()
             datagen = DatasetGenerator(confluent_zones)
