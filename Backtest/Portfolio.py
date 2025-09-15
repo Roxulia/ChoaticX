@@ -7,6 +7,7 @@ from Data.Paths import Paths
 from tqdm import tqdm
 import os
 import json
+from Exceptions.ServiceExceptions import *
 
 @dataclass
 class Trade:
@@ -66,6 +67,8 @@ class Portfolio:
 
     def open_trade(self, trade: Trade):
         # Pay entry fee on notional
+        if self.balance < 100:
+            raise BalanceZero()
         notional = trade.entry_price * trade.qty
         fee = self._apply_fees(notional)
         self.balance -= fee
@@ -76,7 +79,7 @@ class Portfolio:
         fee = self._apply_fees(notional)
 
         # PnL for long = (exit-entry)*qty; for short = (entry-exit)*qty
-        gross = (exit_price - trade.entry_price) * trade.qty if trade.side == "long" else (trade.entry_price - exit_price) * trade.qty
+        gross = (exit_price - trade.entry_price) * trade.qty if trade.side == "Long" else (trade.entry_price - exit_price) * trade.qty
         pnl = gross - fee
 
         trade.status = "CLOSED"
@@ -114,6 +117,7 @@ class Portfolio:
             'entry price' : float(trade.entry_price),
             'tp' : float(trade.tp),
             'sl' : float(trade.sl),
+            'lot size' : float(trade.qty),
             'end time' : str(trade.exit_time),
             'exit price' : float(trade.exit_price),
             'based_zone' : based_zone,

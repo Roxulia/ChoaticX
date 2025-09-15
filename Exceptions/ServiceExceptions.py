@@ -29,3 +29,7 @@ class WarmUpFail(Exception):
 class BackTestFail(Exception):
     def __init__(self):
         super().__init__("Error Occur in Backtest Process")
+
+class BalanceZero(Exception):
+    def __init__(self):
+        super().__init__("No Balance Left")
