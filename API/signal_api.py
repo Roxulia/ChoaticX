@@ -20,18 +20,18 @@ class SignalAPI:
             zones = self.service.get_untouched_zones()
             return jsonify({"data":zones}),200
         except NoUntouchedZone as e:
-            return jsonify({"error" : f'{e}'},404)
+            return jsonify({"error" : f'{e}'}),404
         except Exception as e:
-            return jsonify({"error" : "Something went wrong"},500)
+            return jsonify({"error" : "Something went wrong"}),500
 
     def get_running_signals(self):
         try:
             signals = self.service.get_running_signals()
             return jsonify({"data" :signals}),200
         except EmptySignalException as e:
-            return jsonify({"error" : f'{e}'},404)
+            return jsonify({"error" : f'{e}'}),404
         except:
-            return jsonify({"error": "Unknown Error Occur"},500)
+            return jsonify({"error": "Unknown Error Occur"}),500
         
     def get_signals_with_input(self):
         try:
