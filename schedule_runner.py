@@ -5,7 +5,6 @@ if __name__ == "__main__":
     
     scheduler_manager = SchedulerManager(SignalService())
     scheduler_manager.start()
-    # Keep the process alive
     try:
         while True:
             time.sleep(3600)
