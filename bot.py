@@ -92,5 +92,9 @@ class TelegramBot:
 if __name__ == "__main__":
     service = SignalService()
     bot = TelegramBot(service)
-    bot.run()
+    t = threading.Thread(target=bot.run, daemon=True)
+    t.start()
+    while True:
+        time.sleep(3600)
+    
     
