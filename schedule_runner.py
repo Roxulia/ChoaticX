@@ -4,12 +4,11 @@ import time
 if __name__ == "__main__":
     
     scheduler_manager = SchedulerManager(SignalService())
-    scheduler_manager.start()
-
+    t = threading.Thread(target=scheduler_manager.start, daemon=True)
+    t.start()
     # Keep the process alive
-    
     try:
         while True:
-            time.sleep(1)
+            time.sleep(3600)
     except (KeyboardInterrupt, SystemExit):
         print("Scheduler stopped.")
