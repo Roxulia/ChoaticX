@@ -32,7 +32,7 @@ class SignalService:
         self.timeframes = timeframes
         self.ignore_cols = ignore_cols
         self.subscribers = []
-        self.redis = redis.Redis(host="localhost",port = 6379,db = 0)
+        self.redis = redis.Redis(host="127.0.0.1",port = 6379,db = 0)
 
     def initiate_logging(self):
         # Create logs directory if it doesn't exist
