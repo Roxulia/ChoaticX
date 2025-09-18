@@ -20,14 +20,50 @@ from tqdm import tqdm
 from Data.Paths import Paths
 from flask_socketio import SocketIO
 import os
+import redis
+import logging
+
+
 class SignalService:
-    def __init__(self,socketio : SocketIO = None,timeframes = ['1h','4h','1D'],ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high','candle_open','candle_close','candle_high','candle_low']):
+    def __init__(self,timeframes = ['1h','4h','1D'],ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high','candle_open','candle_close','candle_high','candle_low']):
         
         self.api = BinanceAPI()
         self.Paths = Paths()
         self.timeframes = timeframes
-        self.socketio = socketio
         self.ignore_cols = ignore_cols
+        self.subscribers = []
+        self.redis = redis.Redis(host="localhost",port = 6379,db = 0)
+
+    def initiate_logging(self):
+        # Create logs directory if it doesn't exist
+        LOG_DIR = "logs"
+        os.makedirs(LOG_DIR, exist_ok=True)
+
+        # Configure logger
+        self.logger = logging.getLogger("SignalService")
+        self.logger.setLevel(logging.DEBUG)  # Use INFO or WARNING in production
+
+        # File handler
+        file_handler = logging.FileHandler(os.path.join(LOG_DIR, "signal_service.log"))
+        file_handler.setLevel(logging.DEBUG)
+
+        # Console handler (optional)
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+
+        # Formatter
+        formatter = logging.Formatter(
+            "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+        )
+        file_handler.setFormatter(formatter)
+        console_handler.setFormatter(formatter)
+
+        # Add handlers to logger
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
+
+    def register_subscribers(self,callback):
+        self.subscribers.append(callback)
 
     def get_zones(self,interval,lookback):
         try:
@@ -74,51 +110,57 @@ class SignalService:
 
     @mu.log_memory
     def get_current_signals(self):
-        candle = self.api.get_latest_candle()
-        zones = self.get_untouched_zones()
-        athHandler = ATHHandler()
-        ATH = athHandler.getATHFromStorage()
-        reactor = ZoneReactor()
-        datagen = DatasetGenerator()
-        reaction,zone_timestamp = reactor.get_last_candle_reaction(zones,candle)
-        zone_to_remove = []
-        if not reaction == 'None':
-            nearbyzone = NearbyZones()
-            use_zones = []
-            datacleaner = DataCleaner(self.timeframes)
-            model_handler = ModelHandler(model_type='xgb')
-            model_handler.load()
-            signal_gen = SignalGenerator(model_handler,datacleaner,self.ignore_cols)
-            for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
-                curr_timestamp = pd.to_datetime(zone['timestamp'])
-                if curr_timestamp == zone_timestamp:
-                    zone_to_remove.append(zone_timestamp)
-                    zone['candle_volume'] = candle['volume']
-                    zone['candle_open'] = candle['open']
-                    zone['candle_close'] = candle['close']
-                    zone['candle_ema20'] = candle['ema20']
-                    zone['candle_ema50'] = candle['ema50']
-                    zone['candle_rsi'] = candle['rsi']
-                    zone['candle_atr'] = candle['atr']
-                    zone['touch_type'] = reaction
-                    zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)
-                    
-                    use_zones.append(zone)
-            use_zones = datagen.extract_confluent_tf(use_zones)
-            
-            signal = signal_gen.generate(use_zones)
-        else:
-            print('Zones are not touched yet')
-            signal = 'None'
-        dataToStore = utility.removeDataFromListByKeyValueList(zones,zone_to_remove,key='timestamp')
         try:
-            with open(self.Paths.zone_storage, "w") as f:
-                for i, row in enumerate(tqdm(dataToStore, desc="Writing to untouch zone storage file")):
-                    f.write(json.dumps(row) + "\n")
+            candle = self.api.get_latest_candle()
+            zones = self.get_untouched_zones()
+            athHandler = ATHHandler()
+            ATH = athHandler.getATHFromStorage()
+            reactor = ZoneReactor()
+            datagen = DatasetGenerator()
+            reaction,zone_timestamp = reactor.get_last_candle_reaction(zones,candle)
+            zone_to_remove = []
+            if not reaction == 'None':
+                nearbyzone = NearbyZones()
+                use_zones = []
+                datacleaner = DataCleaner(self.timeframes)
+                model_handler = ModelHandler(model_type='xgb')
+                model_handler.load()
+                signal_gen = SignalGenerator(model_handler,datacleaner,self.ignore_cols)
+                for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
+                    curr_timestamp = pd.to_datetime(zone['timestamp'])
+                    if curr_timestamp == zone_timestamp:
+                        zone_to_remove.append(zone_timestamp)
+                        zone['candle_volume'] = candle['volume']
+                        zone['candle_open'] = candle['open']
+                        zone['candle_close'] = candle['close']
+                        zone['candle_ema20'] = candle['ema20']
+                        zone['candle_ema50'] = candle['ema50']
+                        zone['candle_rsi'] = candle['rsi']
+                        zone['candle_atr'] = candle['atr']
+                        zone['touch_type'] = reaction
+                        zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)
+                        
+                        use_zones.append(zone)
+                use_zones = datagen.extract_confluent_tf(use_zones)
+                
+                signal = signal_gen.generate(use_zones)
+            else:
+                self.logger.info('Zones are not touched yet')
+                signal = 'None'
+            dataToStore = utility.removeDataFromListByKeyValueList(zones,zone_to_remove,key='timestamp')
+            try:
+                with open(self.Paths.zone_storage, "w") as f:
+                    for i, row in enumerate(tqdm(dataToStore, desc="Writing to untouch zone storage file")):
+                        f.write(json.dumps(row) + "\n")
+            except Exception as e:
+                self.logger.error(f"Error writing to file: {e}")
+            for callback in self.subscribers:
+                callback(signal)
+            self.redis.publish("signals_channel", json.dumps(signal))
+            self.logger.info("new signal generated")
+            return signal
         except Exception as e:
-            print(f"Error writing to file: {e}")
-        self.socketio.emit("new_signal",signal,broadcast = True)
-        return signal
+            self.logger.error(f'{str(e)}')
     
     def get_signals_with_input(self,data):
         if not data:
@@ -250,22 +292,25 @@ class SignalService:
     def update_untouched_zones(self):
         try:
             df_from_candle = self.get_latest_zones('6 months')
-        except CantFetchCandleData:
-            raise CantFetchCandleData
-        temp_df = []
-        for i,row in enumerate(df_from_candle):
-            if row['touch_type'] is not None:
-                continue
+            temp_df = []
+            for i,row in enumerate(df_from_candle):
+                if row['touch_type'] is not None:
+                    continue
+                else:
+                    temp_df.append(row)
+            df_from_storage = self.get_untouched_zones()
+            if df_from_storage is None:
+                datagen = DatasetGenerator(temp_df)
+                datagen.store_untouch_zones()
             else:
-                temp_df.append(row)
-        df_from_storage = self.get_untouched_zones()
-        if df_from_storage is None:
-            datagen = DatasetGenerator(temp_df)
-            datagen.store_untouch_zones()
-        else:
-            df_final = utility.merge_lists_by_key(df_from_storage,temp_df,key="timestamp")
-            datagen = DatasetGenerator(df_final)
-            datagen.store_untouch_zones()
+                df_final = utility.merge_lists_by_key(df_from_storage,temp_df,key="timestamp")
+                datagen = DatasetGenerator(df_final)
+                datagen.store_untouch_zones()
+        except CantFetchCandleData as e:
+            self.logger.error(f'{str(e)}')
+        except Exception as e:
+            self.logger.error(f'{str(e)}')
+        
 
     def get_dataset(self):
         try:

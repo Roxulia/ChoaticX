@@ -65,6 +65,7 @@ class SignalGenerator:
             "entry_price": entry,
             "tp": tp,
             "sl": sl,
+            "timestamp" : row['signal_timestamp'],
             "meta": row.to_dict(),  # safer for later use
         }
 
