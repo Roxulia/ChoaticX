@@ -4,8 +4,7 @@ import time
 if __name__ == "__main__":
     
     scheduler_manager = SchedulerManager(SignalService())
-    t = threading.Thread(target=scheduler_manager.start, daemon=True)
-    t.start()
+    scheduler_manager.start()
     # Keep the process alive
     try:
         while True:
