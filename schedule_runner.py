@@ -2,14 +2,11 @@ from Scheduler.scheduler import SchedulerManager
 from Services.signalService import SignalService
 import time
 if __name__ == "__main__":
-    
-    scheduler_manager = SchedulerManager(SignalService())
+    service = SignalService()
+    scheduler_manager = SchedulerManager(service)
     scheduler_manager.start()
-
-    # Keep the process alive
-    
     try:
         while True:
-            time.sleep(1)
+            time.sleep(3600)
     except (KeyboardInterrupt, SystemExit):
         print("Scheduler stopped.")

@@ -16,7 +16,7 @@ class TelegramBot:
         self.subscribers = set()
         self.service = service
         self.app = Application.builder().token(self.TELEGRAM_TOKEN).build()
-        self.redis = redis.Redis(host = 'localhost',port = 6379,db=0)
+        self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
         self.pubsub = self.redis.pubsub()
         self.pubsub.subscribe("signals_channel")
 
@@ -93,4 +93,5 @@ if __name__ == "__main__":
     service = SignalService()
     bot = TelegramBot(service)
     bot.run()
+    
     
