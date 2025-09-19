@@ -22,7 +22,8 @@ from flask_socketio import SocketIO
 import os
 import redis
 import logging
-
+import numpy as np
+import datetime,decimal
 
 class SignalService:
     def __init__(self,timeframes = ['1h','4h','1D'],ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high','candle_open','candle_close','candle_high','candle_low']):
@@ -33,6 +34,8 @@ class SignalService:
         self.ignore_cols = ignore_cols
         self.subscribers = []
         self.redis = redis.Redis(host="127.0.0.1",port = 6379,db = 0)
+        self.logger = logging.getLogger("SignalService")
+        self.logger.setLevel(logging.DEBUG)
         self.initiate_logging()
 
     def initiate_logging(self):
@@ -41,8 +44,7 @@ class SignalService:
         os.makedirs(LOG_DIR, exist_ok=True)
 
         # Configure logger
-        self.logger = logging.getLogger("SignalService")
-        self.logger.setLevel(logging.DEBUG)  # Use INFO or WARNING in production
+          # Use INFO or WARNING in production
 
         # File handler
         file_handler = logging.FileHandler(os.path.join(LOG_DIR, "signal_service.log"))
@@ -142,7 +144,7 @@ class SignalService:
                         zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)
                         
                         use_zones.append(zone)
-                use_zones = datagen.extract_confluent_tf(use_zones)
+                use_zones = list(datagen.extract_confluent_tf(use_zones))
                 
                 signal = signal_gen.generate(use_zones)
             else:
@@ -152,7 +154,7 @@ class SignalService:
             try:
                 with open(self.Paths.zone_storage, "w") as f:
                     for i, row in enumerate(tqdm(dataToStore, desc="Writing to untouch zone storage file")):
-                        f.write(json.dumps(row) + "\n")
+                        f.write(json.dumps(row,default = self.default_json_serializer) + "\n")
             except Exception as e:
                 self.logger.error(f"Error writing to file: {e}")
             for callback in self.subscribers:
@@ -295,7 +297,9 @@ class SignalService:
             df_from_candle = self.get_latest_zones('6 months')
             temp_df = []
             for i,row in enumerate(df_from_candle):
-                if row['touch_type'] is not None:
+                #print(row['touch_type'])
+                touch_type = row.get('touch_type',None)
+                if touch_type is not None:
                     continue
                 else:
                     temp_df.append(row)
@@ -308,9 +312,9 @@ class SignalService:
                 datagen = DatasetGenerator(df_final)
                 datagen.store_untouch_zones()
         except CantFetchCandleData as e:
-            self.logger.error(f'{str(e)}')
+            self.logger.exception(f'{(e)}')
         except Exception as e:
-            self.logger.error(f'{str(e)}')
+            self.logger.exception(f'{(e)}')
         
 
     def get_dataset(self):
@@ -375,5 +379,20 @@ class SignalService:
             for k,v in d.items():
                 print(k)
             count+=1
+
+    def default_json_serializer(self,obj):
+        if isinstance(obj, (datetime.datetime, datetime.date)):
+            return obj.isoformat()
+        elif isinstance(obj, decimal.Decimal):
+            return float(obj)
+        elif isinstance(obj, (np.integer, np.int64, np.int32)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float64, np.float32)):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif hasattr(obj, '__str__'):
+            return str(obj)
+        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
     
