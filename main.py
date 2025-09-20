@@ -5,12 +5,24 @@ from Services.signalService import SignalService
 from Utility.MemoryUsage import MemoryUsage as mu
 from Backtest.backtest import BackTestHandler
 from Exceptions.ServiceExceptions import *
+from Database.DB import MySQLDB as DB
+from Database.DataModels.FVG import FVG
+from Database.DataModels.OB import OB
+from Database.DataModels.Liq import LIQ
+from Database.DataModels.Signals import Signals
+from Database.DataModels.Subscribers import Subscribers
 
 @mu.log_memory
 def initialState():
     print('Running Model Training')
-    test = SignalService(timeframes=['1h','4h','1D'])
+    DB.init_logger("initialdb.log")
     try:
+        FVG.initiate()
+        OB.initiate()
+        LIQ.initiate()
+        Signals.initiate()
+        Subscribers.initiate()
+        test = SignalService(timeframes=['1h','4h','1D'])
         total = test.data_extraction()
         test.training_process(total)
     except CantFetchCandleData as e:
@@ -19,6 +31,9 @@ def initialState():
     except TrainingFail as e:
         print(f'{e}')
         raise FailInitialState
+    except Exception as e:
+        print(f'{e}')
+        raise e
         
 
 @mu.log_memory
