@@ -150,7 +150,7 @@ class SignalService:
             else:
                 self.logger.info('Zones are not touched yet')
                 signal = 'None'
-            if signal != 'None' or signal is not None:
+            if signal != 'None' and signal is not None:
                 dataToStore = utility.removeDataFromListByKeyValueList(zones,zone_to_remove,key='timestamp')
                 try:
                     with open(self.Paths.zone_storage, "w") as f:
