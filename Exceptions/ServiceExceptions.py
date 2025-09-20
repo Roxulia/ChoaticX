@@ -33,3 +33,11 @@ class BackTestFail(Exception):
 class BalanceZero(Exception):
     def __init__(self):
         super().__init__("No Balance Left")
+
+class EmptyDataInput(Exception):
+    def __init__(self):
+        super().__init__("Data Input Can't Be Empty")
+
+class NotEnoughRR(Exception):
+    def __init__(self):
+        super().__init__("RR Ratio Too Low")

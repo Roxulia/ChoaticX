@@ -5,6 +5,8 @@ from ML.dataCleaning import DataCleaner
 from ML.Model import ModelHandler
 import os
 from datetime import datetime,timezone
+from Database.DataModels.Signals import Signals
+from Exceptions.ServiceExceptions import *
 class SignalGenerator:
     def __init__(self, modelHandler : ModelHandler = None,datacleaner : DataCleaner = None,ignore_cols = []):
         self.modelhandler = modelHandler
@@ -17,57 +19,56 @@ class SignalGenerator:
 
     def generate(self, zones: list,backtest = False):
         if len(zones) == 0:
-            return None
-        temp_zones = zones
-        temp_zones = self.datacleaner.preprocess_input(temp_zones,ignore_cols=self.ignore_cols)
-        zones = pd.DataFrame(zones)
-        # Predict
-        predicted_result = self.modelhandler.predict(temp_zones)
-        zones["target"] = predicted_result
+            raise EmptyDataInput
+        try:
+            temp_zones = zones
+            temp_zones = self.datacleaner.preprocess_input(temp_zones,ignore_cols=self.ignore_cols)
+            zones = pd.DataFrame(zones)
+            # Predict
+            predicted_result = self.modelhandler.predict(temp_zones)
+            zones["target"] = predicted_result
 
-        # Take the first row only
-        row = zones.iloc[0].copy()
+            # Take the first row only
+            row = zones.iloc[0].copy()
 
-        if row["target"] == 0:  # Short
-            tp = row["below_zone_low"]
-            sl = row["zone_high"]
-            entry = row["zone_low"]
-            signal = "Short"
-        else:  # Long
-            tp = row["above_zone_high"]
-            sl = row["zone_low"]
-            entry = row["zone_high"]
-            signal = "Long"
+            if row["target"] == 0:  # Short
+                tp = row["below_zone_low"]
+                sl = row["zone_high"]
+                entry = row["zone_low"]
+                position = "Short"
+            else:  # Long
+                tp = row["above_zone_high"]
+                sl = row["zone_low"]
+                entry = row["zone_high"]
+                position = "Long"
+        except Exception as e:
+            raise e
 
         # Validate with filter
         if not self.filter.is_valid(entry, sl, tp):
-            return None
+            raise NotEnoughRR
 
-        # Prepare row
-        row["signal"] = signal
-        row["entry"] = entry
-        row["tp"] = tp
-        row["sl"] = sl
-        row["result"] = "Pending"
-        row["signal_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        # Save to CSV
-        if not backtest:
-            header = self.get_signals_count() == 0
-            row.to_frame().T.to_csv(
-                self.signal_storage, 
-                mode="w" if header else "a", 
-                header=header, 
-                index=False
-            )
-
-        return {
-            "side": signal,
-            "entry_price": entry,
-            "tp": tp,
-            "sl": sl,
-            "timestamp" : row['signal_timestamp'],
-            "meta": row.to_dict(),  # safer for later use
+        signal = {
+            'position' : position,
+            'entry_price' : entry,
+            'tp' : tp,
+            'sl' : sl,
+            'result' : "Pending",
         }
+
+        try:
+            Signals.create(signal)
+        except Exception as e:
+            raise e
+        finally:
+            return {
+                "side": position,
+                "entry_price": entry,
+                "tp": tp,
+                "sl": sl,
+                "timestamp" : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "meta": row.to_dict(),  # safer for later use
+            }
 
     def get_signals_count(self):
         signals = []
