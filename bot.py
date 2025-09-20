@@ -64,6 +64,9 @@ class TelegramBot:
     # ---------------- Broadcast ----------------
     def broadcast_signals(self, signal):
         """This is called by the service when a new signal is generated."""
+        if not isinstance(signal, dict):
+            print("Invalid signal format:", signal)
+            return
         text = f"📢 New Signal! Side: {signal['side']} | Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
         loop = asyncio.get_event_loop()
         for chat_id in self.subscribers:

@@ -2,7 +2,6 @@ from flask import Flask
 from API.signal_api import SignalAPI
 from Scheduler.scheduler import SchedulerManager
 from Services.signalService import SignalService
-from .bot import TelegramBot
 from flask_socketio import SocketIO
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address

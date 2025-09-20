@@ -150,17 +150,18 @@ class SignalService:
             else:
                 self.logger.info('Zones are not touched yet')
                 signal = 'None'
-            dataToStore = utility.removeDataFromListByKeyValueList(zones,zone_to_remove,key='timestamp')
-            try:
-                with open(self.Paths.zone_storage, "w") as f:
-                    for i, row in enumerate(tqdm(dataToStore, desc="Writing to untouch zone storage file")):
-                        f.write(json.dumps(row,default = self.default_json_serializer) + "\n")
-            except Exception as e:
-                self.logger.error(f"Error writing to file: {e}")
-            for callback in self.subscribers:
-                callback(signal)
-            self.redis.publish("signals_channel", json.dumps(signal))
-            self.logger.info("new signal generated")
+            if signal != 'None' and signal is not None:
+                dataToStore = utility.removeDataFromListByKeyValueList(zones,zone_to_remove,key='timestamp')
+                try:
+                    with open(self.Paths.zone_storage, "w") as f:
+                        for i, row in enumerate(tqdm(dataToStore, desc="Writing to untouch zone storage file")):
+                            f.write(json.dumps(row,default = self.default_json_serializer) + "\n")
+                except Exception as e:
+                    self.logger.error(f"Error writing to file: {e}")
+                for callback in self.subscribers:
+                    callback(signal)
+                self.redis.publish("signals_channel", json.dumps(signal))
+                self.logger.info(f"new signal generated : {signal['side']},{signal['tp']},{signal['sl']},{signal['entry']}")
             return signal
         except Exception as e:
             self.logger.error(f'{str(e)}')
