@@ -68,7 +68,7 @@ class TelegramBot:
             print("Invalid signal format:", signal)
             return
         text = f"📢 New Signal! Side: {signal['side']} | Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
-        loop = asyncio.get_event_loop()
+        loop = self.app.loop
         for chat_id in self.subscribers:
             asyncio.run_coroutine_threadsafe(
                 self.app.bot.send_message(chat_id=chat_id, text=text),

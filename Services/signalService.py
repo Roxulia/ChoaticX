@@ -13,6 +13,9 @@ from Data.binanceAPI import BinanceAPI
 from Utility.UtilityClass import UtilityFunctions as utility
 from Utility.MemoryUsage import MemoryUsage as mu
 from Exceptions.ServiceExceptions import *
+from Database.DataModels.FVG import FVG
+from Database.DataModels.OB import OB
+from Database.DataModels.Liq import LIQ
 import pandas as pd
 import json
 from dotenv import load_dotenv
@@ -101,15 +104,14 @@ class SignalService:
         return zones
 
     def get_untouched_zones(self):
-        zones = []
-        with open(self.Paths.zone_storage,'r') as f:
-            for line in f:
-                data = json.loads(line)
-                zones.append(data)
-        if zones:
-            return zones
-        else:
-            raise NoUntouchedZone
+        try:
+            zones = FVG.all() + OB.all() + LIQ.all()
+            if zones:
+                return zones
+            else:
+                raise NoUntouchedZone
+        except Exception as e:
+            raise e
 
     @mu.log_memory
     def get_current_signals(self):
@@ -132,7 +134,6 @@ class SignalService:
                 for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
                     curr_timestamp = pd.to_datetime(zone['timestamp'])
                     if curr_timestamp == zone_timestamp:
-                        zone_to_remove.append(zone_timestamp)
                         zone['candle_volume'] = candle['volume']
                         zone['candle_open'] = candle['open']
                         zone['candle_close'] = candle['close']
@@ -144,20 +145,21 @@ class SignalService:
                         zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)
                         
                         use_zones.append(zone)
-                use_zones = list(datagen.extract_confluent_tf(use_zones))
-                
-                signal = signal_gen.generate(use_zones)
+                        id = zone.get('id',None)
+                        if id is not None:
+                            zone_type = zone.get('type',None)
+                            if zone_type in ['Bearish FVG','Bullish FVG'] : 
+                                FVG.delete(id)
+                            elif zone_type in ['Bearish OB','Bullish OB'] :
+                                OB.delete(id)
+                            elif zone_type in ['Buy-Side Liq','Sell-Side Liq']:
+                                LIQ.delete(id)
+                input_set = list(datagen.extract_input_data(use_zones))
+                signal = signal_gen.generate(input_set)
             else:
                 self.logger.info('Zones are not touched yet')
                 signal = 'None'
             if signal != 'None' and signal is not None:
-                dataToStore = utility.removeDataFromListByKeyValueList(zones,zone_to_remove,key='timestamp')
-                try:
-                    with open(self.Paths.zone_storage, "w") as f:
-                        for i, row in enumerate(tqdm(dataToStore, desc="Writing to untouch zone storage file")):
-                            f.write(json.dumps(row,default = self.default_json_serializer) + "\n")
-                except Exception as e:
-                    self.logger.error(f"Error writing to file: {e}")
                 for callback in self.subscribers:
                     callback(signal)
                 self.redis.publish("signals_channel", json.dumps(signal))

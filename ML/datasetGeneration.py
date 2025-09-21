@@ -7,11 +7,14 @@ import datetime
 import decimal
 from Utility.MemoryUsage import MemoryUsage as mu
 from Data.Paths import Paths
+from Database.DataModels.FVG import FVG 
+from Database.DataModels.OB import OB
+from Database.DataModels.Liq import LIQ
+
 
 class DatasetGenerator:
-    def __init__(self,  zones_with_targets = [],timeframes = ['1h','4h','1D']):
+    def __init__(self,timeframes = ['1h','4h','1D']):
         self.Paths = Paths()
-        self.zones = zones_with_targets
         self.dataset = []
         self.total_line = 0
         self.timeframes = timeframes
@@ -84,18 +87,21 @@ class DatasetGenerator:
         tfs = { f'{prefix}conf_{key}_count' : value for key,value in tf_counts.items()}
         return {**data,**tfs}
 
-    def extract_confluent_tf(self,features):
-        
+    def extract_based_zone_confluent_tf(self,features):
         for zone in features:
             confluents = zone.get('liquidity_confluence',[]) + zone.get('core_confluence',[])
-            above_confluents = zone.get('above_liquidity_confluence',[]) + zone.get('above_core_confluence',[])
-            below_confluents = zone.get('below_liquidity_confluence',[]) + zone.get('below_core_confluence',[])
-            data = {k: v for k, v in zone.items() if k not in ['liquidity_confluence','core_confluence','above_liquidity_confluence','above_core_confluence','below_liquidity_confluence','below_core_confluence']}
+            data = {k: v for k, v in zone.items() if k not in ['liquidity_confluence','core_confluence']}
             extracted = self.preform_zone_confluent_extraction(confluents)
-            above_extracted = self.preform_zone_confluent_extraction(above_confluents,prefix='above_')
-            below_extracted = self.preform_zone_confluent_extraction(below_confluents,prefix='below_')
-            yield {**data,**extracted,**above_extracted,**below_extracted}
-        
+            yield {**data,**extracted}
+    
+    def extract_nearby_zones_confluent_tf(self,zone):
+        above_confluents = zone.get('above_liquidity_confluence',[]) + zone.get('above_core_confluence',[])
+        below_confluents = zone.get('below_liquidity_confluence',[]) + zone.get('below_core_confluence',[])
+        data = {k: v for k, v in zone.items() if k not in ['above_liquidity_confluence','above_core_confluence','below_liquidity_confluence','below_core_confluence']}
+        above_extracted = self.preform_zone_confluent_extraction(above_confluents,prefix='above_')
+        below_extracted = self.preform_zone_confluent_extraction(below_confluents,prefix='below_')
+        return {**data,**above_extracted,**below_extracted}
+
     def extract_confluent_tf_per_zone(self,zone):
         confluents = zone.get('liquidity_confluence',[]) + zone.get('core_confluence',[])
         data = {k: v for k, v in zone.items() if k not in ['liquidity_confluence','core_confluence']}
@@ -254,27 +260,21 @@ class DatasetGenerator:
         self.dataset = dataset
         return dataset
 
-    def extract_features_and_labels(self):
-        dataset = []
-        for zone in self.zones:
-            touch_candle = zone.get('touch_candle')
-            features= {k: v for k, v in zone.items() if k not in ['touch_candle','available_core','available_liquidity']}
-            if touch_candle is None:
-                features['candle_volume'] = None
-                features['candle_open'] = None
-                features['candle_close'] = None
-                features['candle_ema20'] = None
-                features['candle_ema50'] = None
-                features['candle_rsi'] = None
-                features['candle_atr'] = None
-                features['candle_timestamp'] = None
-            else:
-                features = {**features,**{f'candle_{k}': v for k,v in touch_candle.items()}}
-            
-            self.total_line += 1
-            dataset.append(features)
-            #print(features.keys())
-        return dataset
+    def extract_features_and_labels(self,zone):
+        touch_candle = zone.get('touch_candle')
+        features= {k: v for k, v in zone.items() if k not in ['touch_candle','available_core','available_liquidity']}
+        if touch_candle is None:
+            features['candle_volume'] = None
+            features['candle_open'] = None
+            features['candle_close'] = None
+            features['candle_ema20'] = None
+            features['candle_ema50'] = None
+            features['candle_rsi'] = None
+            features['candle_atr'] = None
+            features['candle_timestamp'] = None
+        else:
+            features = {**features,**{f'candle_{k}': v for k,v in touch_candle.items()}}
+        return features
     
     def extract_available_zones(self,confluents):
         for zone in confluents:
@@ -340,19 +340,55 @@ class DatasetGenerator:
             if row.get('target') is not None:
                 yield row
     
-    def store_untouch_zones(self,start = True):
-        features = self.extract_features_and_labels()
-        data = self.extract_confluent_tf(features)
-        
+    def store_untouch_zones(self,zones,start = True):
+        data = self.extract_based_zone_confluent_tf(zones)
         for i,row in enumerate(tqdm(data,desc="Writing to untouch zone storage file")):
             try:
-                if start:
-                        with open(self.Paths.zone_storage, "w") as f:
-                            f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
-                        start = False
+                zone_type = row.get('type',None)
+                if zone_type in ['Bearish FVG','Bullish FVG'] : 
+                    FVG.create(row)
+                elif zone_type in ['Bearish OB','Bullish OB'] :
+                    OB.create(row)
+                elif zone_type in ['Buy-Side Liq','Sell-Side Liq']:
+                    LIQ.create(row)
+            except Exception as e:
+                print(f'{e}')
+                raise e
+
+    @mu.log_memory
+    def get_dataset_list(self,zones):
+        
+        data = self.extract_based_zone_confluent_tf(zones)
+        
+        columns = set()
+        dataset_start = True
+        
+        for i, row in enumerate(tqdm(data, desc="Writing to JSONL",total=self.total_line, dynamic_ncols=True)):
+            touch_type = row.get('touch_type',None)
+            try:
+                if touch_type is not None :
+                    features = self.extract_features_and_labels(row)
+                    to_write = self.extract_nearby_zones_confluent_tf(features)
+                    if dataset_start:
+                        with open(self.Paths.raw_data, "w") as f:
+                            
+                            f.write(json.dumps(to_write , default=self.default_json_serializer) + "\n")
+                            for k,v in to_write.items():
+                                columns.add(k)
+                        dataset_start = False
+                    else:
+                        with open(self.Paths.raw_data, "a") as f:
+                            f.write(json.dumps(to_write , default=self.default_json_serializer) + "\n")
+                            for k,v in to_write.items():
+                                columns.add(k)
                 else:
-                    with open(self.Paths.zone_storage, "a") as f:
-                        f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
+                    zone_type = row.get('type',None)
+                    if zone_type in ['Bearish FVG','Bullish FVG'] : 
+                        FVG.create(row)
+                    elif zone_type in ['Bearish OB','Bullish OB'] :
+                        OB.create(row)
+                    elif zone_type in ['Buy-Side Liq','Sell-Side Liq']:
+                        LIQ.create(row)
             except TypeError as e:
                 print(f"\n🚨 JSON serialization error at row {i}")
                 for k, v in row.items():
@@ -369,57 +405,8 @@ class DatasetGenerator:
                     except ValueError:
                         print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
                 raise e
-
-    @mu.log_memory
-    def get_dataset_list(self):
-        features = self.extract_features_and_labels()
-        data = self.extract_confluent_tf(features)
-        columns = set()
-        dataset_start = True
-        storage_start = True
-        
-        for i, row in enumerate(tqdm(data, desc="Writing to JSONL",total=self.total_line, dynamic_ncols=True)):
-            touch_type = row.get('touch_type',None)
-            try:
-                if touch_type is not None :
-                    if dataset_start:
-                        with open(self.Paths.raw_data, "w") as f:
-                            f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
-                            for k,v in row.items():
-                                columns.add(k)
-                        dataset_start = False
-                    else:
-                        with open(self.Paths.raw_data, "a") as f:
-                            f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
-                            for k,v in row.items():
-                                columns.add(k)
-                else:
-                    if storage_start:
-                        with open(self.Paths.zone_storage, "w") as f:
-                            f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
-                            for k,v in row.items():
-                                columns.add(k)
-                        storage_start = False
-                    else:
-                        with open(self.Paths.zone_storage, "a") as f:
-                            f.write(json.dumps(row , default=self.default_json_serializer) + "\n")
-                            for k,v in row.items():
-                                columns.add(k)
-            except TypeError as e:
-                print(f"\n🚨 JSON serialization error at row {i}")
-                for k, v in row.items():
-                    try:
-                        json.dumps(v,default=self.default_json_serializer)  # test if this key's value is serializable
-                    except TypeError:
-                        print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
-                raise e  
-            except ValueError as e:
-                print(f"\n🚨 JSON serialization error at row {i}")
-                for k,v in row.items():
-                    try:
-                        json.dumps(v,default=self.default_json_serializer)  # test if this key's value is serializable
-                    except ValueError:
-                        print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
+            except Exception as e:
+                print(f'{e}')
                 raise e
         self.store_column_list(list(columns))
 
@@ -428,3 +415,8 @@ class DatasetGenerator:
         path = f'{self.Paths.columns_list}/{filename}.json'
         with open(path,'w') as f :
             json.dump(columns,f)
+
+    def extract_input_data(self,zones):
+        data = list(self.extract_based_zone_confluent_tf(zones))
+        for z in data:
+            yield self.extract_nearby_zones_confluent_tf(z)

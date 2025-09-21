@@ -148,15 +148,15 @@ class DataCleaner:
 
     def makeValuesRatioByZonePrice(self,df):
         columns = list(df.columns)
-        df['ema_20_by_price'] = self.checkColandCalculate(['zone_high','zone_low','ema 20'],df)
-        df['ema_50_by_price'] = self.checkColandCalculate(['zone_high','zone_low','ema 50'],df)
-        df['above_ema_20_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_ema 20'],df)
-        df['above_ema_50_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_ema 50'],df)
-        df['below_ema_20_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_ema 20'],df)
-        df['below_ema_50_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_ema 50'],df)
+        df['ema_20_by_price'] = self.checkColandCalculate(['zone_high','zone_low','ema_20'],df)
+        df['ema_50_by_price'] = self.checkColandCalculate(['zone_high','zone_low','ema_50'],df)
+        df['above_ema_20_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_ema_20'],df)
+        df['above_ema_50_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_ema_50'],df)
+        df['below_ema_20_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_ema_20'],df)
+        df['below_ema_50_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_ema_50'],df)
         df['candle_ema_20_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_ema20'],df)
         df['candle_ema_50_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_ema50'],df)
-        calculated_cols = ['ema 20','ema 50','above_ema 20','above_ema 50','below_ema 20','below_ema 50','candle_ema20','candle_ema50']
+        calculated_cols = ['ema_20','ema_50','above_ema_20','above_ema_50','below_ema_20','below_ema_50','candle_ema20','candle_ema50']
         
         df = df.drop(columns =[col for col in calculated_cols if col in columns])
         return df
