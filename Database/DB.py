@@ -17,7 +17,7 @@ class MySQLDB():
 
             # Create handlers
             c_handler = logging.StreamHandler()
-            f_handler = logging.FileHandler(log_file)
+            f_handler = logging.FileHandler(log_file,encoding="utf-8")
 
             c_handler.setLevel(logging.INFO)
             f_handler.setLevel(logging.DEBUG)

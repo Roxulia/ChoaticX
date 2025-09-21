@@ -59,8 +59,8 @@ class ZoneDetector:
                     fvg_indices.append({
                         'index': i,
                         'type': 'Bullish FVG',
-                        'ema 20': ema20[i],
-                        'ema 50': ema50[i],
+                        'ema_20': ema20[i],
+                        'ema_50': ema50[i],
                         'atr': atr[i],
                         'rsi': rsi[i],
                         'atr_mean': atr_mean[i],
@@ -88,8 +88,8 @@ class ZoneDetector:
                     fvg_indices.append({
                         'index': i,
                         'type': 'Bearish FVG',
-                        'ema 20': ema20[i],
-                        'ema 50': ema50[i],
+                        'ema_20': ema20[i],
+                        'ema_50': ema50[i],
                         'atr': atr[i],
                         'rsi': rsi[i],
                         'atr_mean': atr_mean[i],
@@ -171,8 +171,8 @@ class ZoneDetector:
                     ob_list.append({
                         'index': i,
                         'type': 'Bullish OB',
-                        'ema 20': ema20[i],
-                        'ema 50': ema50[i],
+                        'ema_20': ema20[i],
+                        'ema_50': ema50[i],
                         'atr': atr[i],
                         'rsi': rsi[i],
                         'atr_mean': atr_mean[i],
@@ -206,8 +206,8 @@ class ZoneDetector:
                     ob_list.append({
                         'index': i,
                         'type': 'Bearish OB',
-                        'ema 20': ema20[i],
-                        'ema 50': ema50[i],
+                        'ema_20': ema20[i],
+                        'ema_50': ema50[i],
                         'atr': atr[i],
                         'rsi': rsi[i],
                         'atr_mean': atr_mean[i],
@@ -326,7 +326,7 @@ class ZoneDetector:
             result = []
             used = set()
             for i, base in tqdm(enumerate(candidates),desc = 'extracting Liquidity Zones',disable=inner_func):
-                if base['index'] in used:
+                if base['timestamp'] in used:
                     continue
 
                 base_level = base['Price']
@@ -335,16 +335,16 @@ class ZoneDetector:
 
                 group = [base]
                 prices = [base['Price']]
-                end_idx = base['index']
+                end_idx = base['timestamp']
 
                 for other in candidates[i+1:]:
-                    if other['index'] in used:
+                    if other['timestamp'] in used:
                         continue
                     if range_low <= other['Price'] <= range_high:
                         group.append(other)
-                        used.add(other['index'])
+                        used.add(other['timestamp'])
                         prices.append(other['Price'])
-                        end_idx = other['index']
+                        end_idx = other['timestamp']
 
                 if len(group) < 2:
                     continue  # not enough for liquidity
@@ -353,10 +353,10 @@ class ZoneDetector:
                 zone_high = avg_level + pip_range
                 zone_low = avg_level - pip_range
                 equal_level_deviation = np.std(prices)
-                duration = end_idx - group[0]['index']
+                duration = end_idx - group[0]['timestamp']
 
                 # Average volume around touches
-                volumes = [self.df.iloc[g['index']]['volume'] for g in group if g['index'] < len(self.df)]
+                volumes = [self.df.loc[g['timestamp']]['volume'] for g in group]
                 avg_volume = np.mean(volumes) if volumes else None
 
                 ema20s = [g['ema 20'] for g in group if 'ema 20' in g]
@@ -383,15 +383,12 @@ class ZoneDetector:
                     'zone_high': zone_high,
                     'zone_low': zone_low,
                     'count': len(group),
-                    'index' : group[0]['index'],
-                    'end_index': end_idx,
-                    'swept_index': swept_index,
                     'swept_time': timestamps[swept_index] if swept_index is not None and swept_index < len(timestamps) else None,
                     'equal_level_deviation': equal_level_deviation,
                     'avg_volume_around_zone': avg_volume,
-                    'duration_between_first_last_touch': duration,
-                    'ema 20' : np.mean(ema20s),
-                    'ema 50' : np.mean(ema50s),
+                    'duration_between_first_last_touch': duration.total_second(),
+                    'ema_20' : np.mean(ema20s),
+                    'ema_50' : np.mean(ema50s),
                     'rsi' : np.mean(rsis),
                     'atr' : np.mean(atrs),
                     'atr_mean' : np.mean(atr_means),
