@@ -1,4 +1,5 @@
 from .BaseModel import BaseModel 
+from ..DB import MySQLDB as DB
 class Signals(BaseModel):
     table = 'signals'
     columns = {
@@ -10,3 +11,10 @@ class Signals(BaseModel):
         'result' : "ENUM('PENDING','WIN','LOSE') DEFAULT 'PENDING'",
         'timestamp' : "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
     }
+
+    @classmethod
+    def getPendingSignals(cls):
+        sql = f"SELECT * FROM {cls.table} WHERE result = 'PENDING'"
+        return DB.execute(sql,fetchall= True)
+    
+    

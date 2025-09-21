@@ -55,7 +55,7 @@ class ATHHandler():
             'avg_volume_past_5': avg_volume_past_5[index],
             'prev_volatility_5': prev_volatility_5[index],
             'momentum_5': momentum_5.iloc[index],
-            'type': 'ATH',
+            'zone_type': 'ATH',
             'index': index,
             'timestamp' : ATH_zone['timestamp']
         }

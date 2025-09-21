@@ -10,7 +10,7 @@ class DataCleaner:
     def __init__(self,timeframes = ['1h','4h','1D'],total_line=1000,batch_size=1000):
         self.Paths = Paths()
         self.total_line = np.ceil(total_line / batch_size)
-        self.datasplit =  DataSplit(random_state=42,shuffle=False,train_size=0.6,test_size=0.4)
+        self.datasplit =  DataSplit(random_state=42,shuffle=True,train_size=0.6,test_size=0.4)
         self.batch_size = batch_size
         self.below_above_col = ['distance_to_above','distance_to_below',
                                 'below_zone_high','below_zone_low','below_zone_width','below_zone_count',
@@ -122,12 +122,12 @@ class DataCleaner:
         columns = list(df.columns)
         if 'touch_type' in columns : 
             df['touch_type'] = df['touch_type'].apply(lambda x : self.touch_types[x] if x is not None else 0)
-        if 'type' in columns : 
-            df['type'] = df['type'].apply(lambda x : self.zone_types.index(x)+1 if x  in self.zone_types else 0)
-        if 'above_type' in columns : 
-            df['above_type'] = df['above_type'].apply(lambda x : self.zone_types.index(x)+1 if not pd.isna(x) and x in self.zone_types else 0)
-        if 'below_type' in columns : 
-            df['below_type'] = df['below_type'].apply(lambda x : self.zone_types.index(x)+1 if not pd.isna(x) and x in self.zone_types else 0)
+        if 'zone_type' in columns : 
+            df['zone_type'] = df['zone_type'].apply(lambda x : self.zone_types.index(x)+1 if x  in self.zone_types else 0)
+        if 'above_zone_type' in columns : 
+            df['above_zone_type'] = df['above_zone_type'].apply(lambda x : self.zone_types.index(x)+1 if not pd.isna(x) and x in self.zone_types else 0)
+        if 'below_zone_type' in columns : 
+            df['below_zone_type'] = df['below_zone_type'].apply(lambda x : self.zone_types.index(x)+1 if not pd.isna(x) and x in self.zone_types else 0)
         
         return df
 

@@ -3,14 +3,12 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 import json
-import datetime
-import decimal
 from Utility.MemoryUsage import MemoryUsage as mu
 from Data.Paths import Paths
 from Database.DataModels.FVG import FVG 
 from Database.DataModels.OB import OB
 from Database.DataModels.Liq import LIQ
-
+from Utility.UtilityClass import UtilityFunctions as utility
 
 class DatasetGenerator:
     def __init__(self,timeframes = ['1h','4h','1D']):
@@ -18,21 +16,6 @@ class DatasetGenerator:
         self.dataset = []
         self.total_line = 0
         self.timeframes = timeframes
-
-    def default_json_serializer(self,obj):
-        if isinstance(obj, (datetime.datetime, datetime.date)):
-            return obj.isoformat()
-        elif isinstance(obj, decimal.Decimal):
-            return float(obj)
-        elif isinstance(obj, (np.integer, np.int64, np.int32)):
-            return int(obj)
-        elif isinstance(obj, (np.floating, np.float64, np.float32)):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        elif hasattr(obj, '__str__'):
-            return str(obj)
-        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
     def perform_counts(self,types = [],timeframes = []):
         type_counts = {
@@ -344,13 +327,20 @@ class DatasetGenerator:
         data = self.extract_based_zone_confluent_tf(zones)
         for i,row in enumerate(tqdm(data,desc="Writing to untouch zone storage file")):
             try:
-                zone_type = row.get('type',None)
+                zone_type = row.get('zone_type',None)
+                sql_data = {k: utility.to_sql_friendly(v) for k, v in row.items()}
                 if zone_type in ['Bearish FVG','Bullish FVG'] : 
-                    FVG.create(row)
+                    fvg_columns = [k for k,v in FVG.columns.items()]
+                    sql_data = {k:v for k,v in sql_data.items() if k in fvg_columns}
+                    FVG.create(sql_data)
                 elif zone_type in ['Bearish OB','Bullish OB'] :
-                    OB.create(row)
+                    ob_columns = [k for k,v in OB.columns.items()]
+                    sql_data = {k:v for k,v in sql_data.items() if k in ob_columns}
+                    OB.create(sql_data)
                 elif zone_type in ['Buy-Side Liq','Sell-Side Liq']:
-                    LIQ.create(row)
+                    liq_columns = [k for k,v in LIQ.columns.items()]
+                    sql_data = {k:v for k,v in sql_data.items() if k in liq_columns}
+                    LIQ.create(sql_data)
             except Exception as e:
                 print(f'{e}')
                 raise e
@@ -372,28 +362,35 @@ class DatasetGenerator:
                     if dataset_start:
                         with open(self.Paths.raw_data, "w") as f:
                             
-                            f.write(json.dumps(to_write , default=self.default_json_serializer) + "\n")
+                            f.write(json.dumps(to_write , default=utility.default_json_serializer) + "\n")
                             for k,v in to_write.items():
                                 columns.add(k)
                         dataset_start = False
                     else:
                         with open(self.Paths.raw_data, "a") as f:
-                            f.write(json.dumps(to_write , default=self.default_json_serializer) + "\n")
+                            f.write(json.dumps(to_write , default=utility.default_json_serializer) + "\n")
                             for k,v in to_write.items():
                                 columns.add(k)
                 else:
-                    zone_type = row.get('type',None)
+                    zone_type = row.get('zone_type',None)
+                    sql_data = {k: utility.to_sql_friendly(v) for k, v in row.items()}
                     if zone_type in ['Bearish FVG','Bullish FVG'] : 
-                        FVG.create(row)
+                        fvg_columns = [k for k,v in FVG.columns.items()]
+                        sql_data = {k:v for k,v in sql_data.items() if k in fvg_columns}
+                        FVG.create(sql_data)
                     elif zone_type in ['Bearish OB','Bullish OB'] :
-                        OB.create(row)
+                        ob_columns = [k for k,v in OB.columns.items()]
+                        sql_data = {k:v for k,v in sql_data.items() if k in ob_columns}
+                        OB.create(sql_data)
                     elif zone_type in ['Buy-Side Liq','Sell-Side Liq']:
-                        LIQ.create(row)
+                        liq_columns = [k for k,v in LIQ.columns.items()]
+                        sql_data = {k:v for k,v in sql_data.items() if k in liq_columns}
+                        LIQ.create(sql_data)
             except TypeError as e:
                 print(f"\n🚨 JSON serialization error at row {i}")
                 for k, v in row.items():
                     try:
-                        json.dumps(v,default=self.default_json_serializer)  # test if this key's value is serializable
+                        json.dumps(v,default=utility.default_json_serializer)  # test if this key's value is serializable
                     except TypeError:
                         print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
                 raise e  
@@ -401,7 +398,7 @@ class DatasetGenerator:
                 print(f"\n🚨 JSON serialization error at row {i}")
                 for k,v in row.items():
                     try:
-                        json.dumps(v,default=self.default_json_serializer)  # test if this key's value is serializable
+                        json.dumps(v,default=utility.default_json_serializer)  # test if this key's value is serializable
                     except ValueError:
                         print(f"  ❌ Key '{k}' is not serializable. Value: {v} (type: {type(v)})")
                 raise e

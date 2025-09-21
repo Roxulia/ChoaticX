@@ -1,3 +1,7 @@
+import numpy as np
+import pandas as pd
+from datetime import datetime,date
+import decimal
 class UtilityFunctions():
     @staticmethod
     def merge_lists_by_key(old_list, new_list, key="id"):
@@ -76,3 +80,36 @@ class UtilityFunctions():
                 f: v for f, v in importance_dict.items()
                 if v >= threshold
             }
+    @staticmethod
+    def to_sql_friendly(value):
+        """Convert numpy / python objects into SQL-friendly types."""
+        if isinstance(value, (int, np.int32, np.int64)):
+            return int(value)
+        elif isinstance(value, (float, np.float32, np.float64)):
+            return float(value)
+        elif isinstance(value, (bool, np.bool_)):
+            return bool(value)
+        elif isinstance(value, (pd.Timestamp, np.datetime64)):
+            return pd.to_datetime(value).to_pydatetime()  # convert to Python datetime
+        elif isinstance(value, datetime):
+            return value  # already fine
+        elif isinstance(value, (list, dict)):
+            return str(value)  # store as JSON/text
+        else:
+            return value
+    
+    @staticmethod
+    def default_json_serializer(obj):
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        elif isinstance(obj, decimal.Decimal):
+            return float(obj)
+        elif isinstance(obj, (np.integer, np.int64, np.int32)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float64, np.float32)):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif hasattr(obj, '__str__'):
+            return str(obj)
+        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")

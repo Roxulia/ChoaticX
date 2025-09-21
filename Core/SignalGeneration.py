@@ -7,15 +7,14 @@ import os
 from datetime import datetime,timezone
 from Database.DataModels.Signals import Signals
 from Exceptions.ServiceExceptions import *
+from Utility.UtilityClass import UtilityFunctions as utility
+
 class SignalGenerator:
     def __init__(self, modelHandler : ModelHandler = None,datacleaner : DataCleaner = None,ignore_cols = []):
         self.modelhandler = modelHandler
         self.datacleaner = datacleaner
         self.ignore_cols = ignore_cols
         self.filter = Filter()
-        self.signal_storage = os.getenv(key='SIGNAL_STORAGE')
-        if not os.path.exists(self.signal_storage):
-            open(self.signal_storage,'w')
 
     def generate(self, zones: list,backtest = False):
         if len(zones) == 0:
@@ -57,6 +56,7 @@ class SignalGenerator:
         }
 
         try:
+            sql_data = {k: utility.to_sql_friendly(v) for k, v in signal.items()}
             Signals.create(signal)
         except Exception as e:
             raise e
@@ -70,31 +70,14 @@ class SignalGenerator:
                 "meta": row.to_dict(),  # safer for later use
             }
 
-    def get_signals_count(self):
-        signals = []
-        if os.path.exists(self.signal_storage):
-            with open(self.signal_storage, 'r') as f:
-                for line in f:
-                    data = pd.read_csv(line)
-                    signals.append(data)
-        return len(signals)
     
     def get_running_signals(self):
-        signals = []
-        if os.path.exists(self.signal_storage):
-            with open(self.signal_storage,'r') as f:
-                for line in f:
-                    data = pd.read_csv(line)
-                    if data['result'] == 'pending':
-                        signal = {
-                            "timestamp" : data["signal_timestamp"],
-                            "side" : data['side'],
-                            "entry_price" : data['entry_price'],
-                            "tp" : data['tp'],
-                            "sl" : data['sl']
-                        }
-                        signals.append(signal)
-        if signals:
-            return signals
-        else:
-            return None
+        try:
+            signals = Signals.getPendingSignals()
+            if signals:
+                return signals
+            else:
+                raise EmptySignalException
+        except Exception as e:
+            raise e
+        

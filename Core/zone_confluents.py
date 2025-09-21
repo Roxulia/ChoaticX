@@ -11,8 +11,8 @@ class ConfluentsFinder():
         self.indexCalculate = IndexCalculator(self.zones)
 
     def seperate(self):
-        self.liq_zones = [z for z in self.zones if  z['type'] in ['Buy-Side Liq','Sell-Side Liq']]
-        self.core_zones = [z for z in self.zones if z['type'] not in ['Buy-Side Liq','Sell-Side Liq']]
+        self.liq_zones = [z for z in self.zones if  z['zone_type'] in ['Buy-Side Liq','Sell-Side Liq']]
+        self.core_zones = [z for z in self.zones if z['zone_type'] not in ['Buy-Side Liq','Sell-Side Liq']]
         self.based_zones = self.timeframes.getBasedZone(self.zones)
 
     def getTimeFrameList(self):
@@ -24,33 +24,51 @@ class ConfluentsFinder():
         return list(tfs)
 
     def get_available_cores(self,zone):
-        touch_time = zone.get('touch_time',None)
-        swept_time = zone.get('swept_time',None)
         available_core = []
-        if touch_time is None and swept_time is None:
+        touch_time = zone.get('touch_time')
+        swept_time = zone.get('swept_time')
+
+        # Pick whichever is available as the reference
+        ref_time = touch_time or swept_time
+        if ref_time is None:
             return []
-        for z in self.core_zones:
-            z_touch_time = z.get('touch_time',None)
+
+        for z in self.liq_zones:
+            z_touch_time = z.get('swept_time')
+
+            # If zone never swept, always available
             if z_touch_time is None:
                 available_core.append(z)
-            elif touch_time < z_touch_time:
+            # Compare safely
+            elif ref_time < z_touch_time:
                 available_core.append(z)
+
         return available_core
 
 
-    def get_available_liq(self,zone):
+
+    def get_available_liq(self, zone):
         available_liq = []
-        touch_time= zone.get('touch_time',None)
-        swept_time = zone.get('swept_time',None)
-        if touch_time is None and swept_time is None:
+        touch_time = zone.get('touch_time')
+        swept_time = zone.get('swept_time')
+
+        # Pick whichever is available as the reference
+        ref_time = touch_time or swept_time
+        if ref_time is None:
             return []
+
         for z in self.liq_zones:
-            z_touch_time = z.get('swept_time',None)
-            if z_touch_time is None :
+            z_touch_time = z.get('swept_time')
+
+            # If zone never swept, always available
+            if z_touch_time is None:
                 available_liq.append(z)
-            elif touch_time < z_touch_time:
+            # Compare safely
+            elif ref_time < z_touch_time:
                 available_liq.append(z)
+
         return available_liq
+
 
     @mu.log_memory
     def add_core_confluence(self,inner_func = False):
@@ -60,7 +78,7 @@ class ConfluentsFinder():
             for lz in available_zones:
                 if lz['zone_low'] <= m['zone_high'] and lz['zone_high'] >= m['zone_low']:
                     confluents.append({
-                        'type': lz['type'],
+                        'type': lz['zone_type'],
                         'timeframe': lz['time_frame'],
                     })
             m['core_confluence'] = confluents
@@ -73,7 +91,7 @@ class ConfluentsFinder():
             for lz in available_zones:
                 if lz['zone_low'] <= m['zone_high'] and lz['zone_high'] >= m['zone_low']:
                     confluents.append({
-                        'type': lz['type'],
+                        'type': lz['zone_type'],
                         'timeframe': lz['time_frame'],
                     })
             m['liquidity_confluence'] = confluents

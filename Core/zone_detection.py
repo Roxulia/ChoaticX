@@ -57,8 +57,8 @@ class ZoneDetector:
                         (j for j in range(i + 2, length) if opens[j] > next_low and closes[j] < next_low), None
                     )
                     fvg_indices.append({
-                        'index': i,
-                        'type': 'Bullish FVG',
+                        
+                        'zone_type': 'Bullish FVG',
                         'ema_20': ema20[i],
                         'ema_50': ema50[i],
                         'atr': atr[i],
@@ -86,8 +86,8 @@ class ZoneDetector:
                         (j for j in range(i + 2, length) if opens[j] < next_high and closes[j] > next_high), None
                     )
                     fvg_indices.append({
-                        'index': i,
-                        'type': 'Bearish FVG',
+                        
+                        'zone_type': 'Bearish FVG',
                         'ema_20': ema20[i],
                         'ema_50': ema50[i],
                         'atr': atr[i],
@@ -169,8 +169,8 @@ class ZoneDetector:
                     )
 
                     ob_list.append({
-                        'index': i,
-                        'type': 'Bullish OB',
+                        
+                        'zone_type': 'Bullish OB',
                         'ema_20': ema20[i],
                         'ema_50': ema50[i],
                         'atr': atr[i],
@@ -204,8 +204,8 @@ class ZoneDetector:
                     )
 
                     ob_list.append({
-                        'index': i,
-                        'type': 'Bearish OB',
+                        
+                        'zone_type': 'Bearish OB',
                         'ema_20': ema20[i],
                         'ema_50': ema50[i],
                         'atr': atr[i],
@@ -319,8 +319,6 @@ class ZoneDetector:
         lows = [s for s in self.swings if s['Type'] == 'Swing Low']
 
         pip_range = (self.df['high'].max() - self.df['low'].min()) * range_pct
-        ohlc_high = self.df['high'].values
-        ohlc_low = self.df['low'].values
 
         def process_zone(candidates, direction):
             result = []
@@ -356,7 +354,8 @@ class ZoneDetector:
                 duration = end_idx - group[0]['timestamp']
 
                 # Average volume around touches
-                volumes = [self.df.loc[g['timestamp']]['volume'] for g in group]
+                volumes = [self.df.loc[self.df['timestamp'] == g['timestamp'], 'volume'].iloc[0] for g in group]
+
                 avg_volume = np.mean(volumes) if volumes else None
 
                 ema20s = [g['ema 20'] for g in group if 'ema 20' in g]
@@ -366,27 +365,31 @@ class ZoneDetector:
                 atr_means = [g['atr_mean'] for g in group if 'atr_mean' in g]
                 timestamps = [g['timestamp'] for g in group if 'timestamp' in g]
                 # Find sweep candle
-                start = end_idx + 1
+                
                 swept_index = None
-                if start < n:
-                    if direction == 'Sell-Side':
-                        cond = ohlc_high[start:] >= range_high
-                    else:
-                        cond = ohlc_low[start:] <= range_low
+                swept_time = None
+                df = self.df.loc[(self.df['timestamp'] > end_idx)]
+                ohlc_high = df['high'].values
+                ohlc_low = df['low'].values
+                if direction == 'Sell-Side':
+                    cond = ohlc_high >= range_high
+                else:
+                    cond = ohlc_low <= range_low
 
-                    if np.any(cond):
-                        swept_index = start + int(np.argmax(cond))
+                if np.any(cond):
+                    swept_index =  int(np.argmax(cond))
+                    swept_time = df['timestamp'].iloc[swept_index]
 
                 result.append({
-                    'type': f'{direction} Liq',
+                    'zone_type': f'{direction} Liq',
                     'level': avg_level,
                     'zone_high': zone_high,
                     'zone_low': zone_low,
                     'count': len(group),
-                    'swept_time': timestamps[swept_index] if swept_index is not None and swept_index < len(timestamps) else None,
+                    'swept_time': swept_time,
                     'equal_level_deviation': equal_level_deviation,
                     'avg_volume_around_zone': avg_volume,
-                    'duration_between_first_last_touch': duration.total_second(),
+                    'duration_between_first_last_touch': duration.total_seconds(),
                     'ema_20' : np.mean(ema20s),
                     'ema_50' : np.mean(ema50s),
                     'rsi' : np.mean(rsis),

@@ -9,7 +9,7 @@ class IndexCalculator():
     def calculate(self):
         smallest_tf = self.timeframe.getSmallestTF(self.zones)
         for zone in self.zones:
-            if zone['type'] in ['Buy-Side Liq','Sell-Side Liq']:
+            if zone['zone_type'] in ['Buy-Side Liq','Sell-Side Liq']:
                 if zone.get('index') is not None:
                     zone['index'] = zone['index'] * self.timeframe.getMultiplier(smallest_tf,zone['time_frame'])
                 if zone.get('swept_index') is not None:
