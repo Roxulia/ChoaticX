@@ -11,13 +11,15 @@ class MySQLDB():
 
     @staticmethod
     def init_logger(log_file="db.log"):
+        load_dotenv()
+        file_path = f'{os.getenv('LOG_PATH')}/{log_file}' 
         if MySQLDB._logger is None:
             MySQLDB._logger = logging.getLogger("DBLogger")
             MySQLDB._logger.setLevel(logging.DEBUG)
 
             # Create handlers
             c_handler = logging.StreamHandler()
-            f_handler = logging.FileHandler(log_file,encoding="utf-8")
+            f_handler = logging.FileHandler(file_path,encoding="utf-8")
 
             c_handler.setLevel(logging.INFO)
             f_handler.setLevel(logging.DEBUG)

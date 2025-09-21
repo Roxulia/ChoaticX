@@ -42,15 +42,9 @@ class SignalService:
         self.initiate_logging()
 
     def initiate_logging(self):
-        # Create logs directory if it doesn't exist
-        LOG_DIR = "logs"
-        os.makedirs(LOG_DIR, exist_ok=True)
-
-        # Configure logger
-          # Use INFO or WARNING in production
-
+        load_dotenv()
         # File handler
-        file_handler = logging.FileHandler(os.path.join(LOG_DIR, "signal_service.log"))
+        file_handler = logging.FileHandler(os.path.join(os.getenv(key='LOG_PATH'), "signal_service.log"))
         file_handler.setLevel(logging.DEBUG)
 
         # Console handler (optional)
@@ -123,7 +117,6 @@ class SignalService:
             reactor = ZoneReactor()
             datagen = DatasetGenerator()
             reaction,zone_timestamp = reactor.get_last_candle_reaction(zones,candle)
-            zone_to_remove = []
             if not reaction == 'None':
                 nearbyzone = NearbyZones()
                 use_zones = []
@@ -147,7 +140,7 @@ class SignalService:
                         use_zones.append(zone)
                         id = zone.get('id',None)
                         if id is not None:
-                            zone_type = zone.get('type',None)
+                            zone_type = zone.get('zone_type',None)
                             if zone_type in ['Bearish FVG','Bullish FVG'] : 
                                 FVG.delete(id)
                             elif zone_type in ['Bearish OB','Bullish OB'] :
@@ -290,10 +283,11 @@ class SignalService:
     
     def get_running_signals(self):
         signal_gen = SignalGenerator()
-        signals = signal_gen.get_running_signals()
-        if signals is None:
-            raise EmptySignalException
-        return signals
+        try:
+            signals = signal_gen.get_running_signals()
+            return signals
+        except Exception as e:
+            raise e
 
     def update_untouched_zones(self):
         try:
@@ -325,8 +319,8 @@ class SignalService:
             df = self.get_latest_zones('3 years')
         except CantFetchCandleData:
             raise CantFetchCandleData
-        datagen = DatasetGenerator(df,self.timeframes)
-        datagen.get_dataset_list()
+        datagen = DatasetGenerator(self.timeframes)
+        datagen.get_dataset_list(df)
         return datagen.total_line
     
     def clean_dataset(self,total):

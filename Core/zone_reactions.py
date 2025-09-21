@@ -53,7 +53,7 @@ class ZoneReactor:
         for zone in tqdm(zones, desc="Getting Zone Reactions"):
             zone_high = zone['zone_high']
             zone_low = zone['zone_low']
-            zone_type = zone['type']
+            zone_type = zone['zone_type']
             end_timestamp = pd.to_datetime(zone['timestamp'])  # use timestamp instead of index
 
             if zone_type in ['Buy-Side Liq', 'Sell-Side Liq']:
