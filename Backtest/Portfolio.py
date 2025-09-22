@@ -97,19 +97,19 @@ class Portfolio:
             'timestamp' : str(trade.meta['timestamp']),
             'zone_high' : float(trade.meta['zone_high']),
             'zone_low' : float(trade.meta['zone_low']),
-            'type' : str(trade.meta['type'])
+            'zone_type' : str(trade.meta['zone_type'])
         }
         above_zone = {
             'timestamp' : str(trade.meta['above_timestamp']),
             'zone_high' : float(trade.meta['above_zone_high']),
             'zone_low' : float(trade.meta['above_zone_low']),
-            'type' : str(trade.meta['above_type'])
+            'zone_type' : str(trade.meta['above_zone_type'])
         }
         below_zone = {
             'timestamp' : str(trade.meta['below_timestamp']),
             'zone_high' : float(trade.meta['below_zone_high']),
             'zone_low' : float(trade.meta['below_zone_low']),
-            'type' : str(trade.meta['below_type'])
+            'zone_type' : str(trade.meta['below_zone_type'])
         }
         record = {
             'entry time' : str(trade.entry_time),
