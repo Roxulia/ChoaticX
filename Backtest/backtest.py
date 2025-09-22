@@ -20,6 +20,8 @@ from tqdm import tqdm
 import os
 from Utility.MemoryUsage import MemoryUsage as mu
 from Exceptions.ServiceExceptions import *
+import traceback
+
 
 class BackTestHandler:
     def __init__(self,time_frames = ['1h','4h','1D'],lookback = '1 years',ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high','candle_low','candle_open','candle_high','candle_close']):
@@ -100,8 +102,11 @@ class BackTestHandler:
                                     
                                     self.used_zones =  self.used_zones + [item['timestamp'] for item in use_zones]
                                     self.warmup_zones = utility.removeDataFromListByKeyValueList(self.warmup_zones,key='timestamp',to_remove=self.used_zones)
-                                    use_zones = list(datagen.extract_confluent_tf(use_zones))
-                                    signal = signalGen.generate(use_zones, backtest=True)
+                                    use_zones = list(datagen.extract_input_data(use_zones))
+                                    try:
+                                        signal = signalGen.generate(use_zones, backtest=True)
+                                    except NotEnoughRR as e:
+                                        continue
                                     
                         # Manage trades
                         for trade in self.portfolio.open_trades:  # no list() copy
@@ -123,8 +128,10 @@ class BackTestHandler:
                         pbar.update(1)
         except BalanceZero as e:
             print("No Balance Left")
-        except:
-            print("Unknown Error Occurred")
+        except Exception as e:
+            stack_trace = traceback.format_exc()
+            print(f"Unknown Error Occurred : {e}")
+            print(stack_trace)
         finally:
             print("Backtest completed.")
             self.portfolio.stats()
@@ -168,8 +175,8 @@ class BackTestHandler:
                 zones = zones + detector.get_zones(inner_func=True)
             confluentfinder = ConfluentsFinder(zones)
             confluent_zones = confluentfinder.getConfluents(inner_func=True)
-            datagen = DatasetGenerator(confluent_zones)
-            temp_zones = datagen.extract_confluent_tf(confluent_zones)
+            datagen = DatasetGenerator()
+            temp_zones = list(datagen.extract_input_data(confluent_zones))
             self.warmup_zones =  utility.merge_lists_by_key(self.warmup_zones,temp_zones,"timestamp")
             self.warmup_zones = utility.removeDataFromListByKeyValueList(self.warmup_zones,self.used_zones,'timestamp')
         except Exception as e:
@@ -196,8 +203,8 @@ class BackTestHandler:
             self.ATH = ATHHandler(warm_up_dfs[0]).getATHFromCandles()
             confluentfinder = ConfluentsFinder(zones)
             confluent_zones = confluentfinder.getConfluents()
-            datagen = DatasetGenerator(confluent_zones)
-            zones = list(datagen.extract_confluent_tf(confluent_zones))
+            datagen = DatasetGenerator()
+            zones = list(datagen.extract_input_data(confluent_zones))
             zones = sorted(zones,key=lambda x : x.get("timestamp",None))
             self.warmup_zones = zones
         except Exception as e:

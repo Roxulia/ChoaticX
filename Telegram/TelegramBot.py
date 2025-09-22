@@ -8,12 +8,12 @@ import redis,json,threading
 import asyncio
 import logging
 from logging.handlers import RotatingFileHandler
+from Database.DataModels.Subscribers import Subscribers
 
 class TelegramBot:
     def __init__(self, service : SignalService):
         load_dotenv()
         self.TELEGRAM_TOKEN = os.getenv("BOT_API")
-        self.subscribers = set()
         self.service = service
         self.app = Application.builder().token(self.TELEGRAM_TOKEN).build()
         self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
@@ -26,13 +26,31 @@ class TelegramBot:
 
     async def subscribe(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id = update.effective_chat.id
-        self.subscribers.add(chat_id)
-        await update.message.reply_text("✅ Subscribed for auto broadcasts!")
+        try:
+            existed = Subscribers.getByChatID(chat_id)
+            if existed:
+                Subscribers.update(existed['id'],{"is_active":True})
+            else:
+                Subscribers.create({"chat_id":chat_id})
+            await update.message.reply_text("✅ Subscribed for auto broadcasts!")
+        except Exception as e:
+            print("Error in Database")
+            await update.message.reply_text("Unknown Error Occur !! Pls Contact Us for Support")
+        
 
     async def unsubscribe(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id = update.effective_chat.id
-        self.subscribers.discard(chat_id)
-        await update.message.reply_text("❌ Unsubscribed.")
+        try:
+            existed = Subscribers.getByChatID(chat_id)
+            if existed:
+                Subscribers.update(existed['id'],{"is_active":False})
+                await update.message.reply_text("❌ Unsubscribed.")
+            else:
+                Subscribers.create({"chat_id":chat_id,"is_active":False})
+                await update.message.reply_text("U Haven't Subcribed to this Channel")
+        except Exception as e:
+            print("Error in Database")
+            await update.message.reply_text("Unknown Error Occur !! Pls Contact Us for Support")
 
     async def get_zones(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
@@ -69,7 +87,8 @@ class TelegramBot:
             return
         text = f"📢 New Signal! Side: {signal['side']} | Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
         loop = self.app.loop
-        for chat_id in self.subscribers:
+        subscribers = Subscribers.getActiveSubscribers()
+        for chat_id in subscribers:
             asyncio.run_coroutine_threadsafe(
                 self.app.bot.send_message(chat_id=chat_id, text=text),
                 loop
@@ -90,3 +109,4 @@ class TelegramBot:
         self.app.add_handler(CommandHandler("zones", self.get_zones))
         self.app.add_handler(CommandHandler("signals", self.get_running_signals))
         self.app.run_polling()
+

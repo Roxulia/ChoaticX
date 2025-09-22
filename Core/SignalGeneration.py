@@ -54,10 +54,11 @@ class SignalGenerator:
             'sl' : sl,
             'result' : "Pending",
         }
-
+        
         try:
-            sql_data = {k: utility.to_sql_friendly(v) for k, v in signal.items()}
-            Signals.create(signal)
+            if not backtest:
+                sql_data = {k: utility.to_sql_friendly(v) for k, v in signal.items()}
+                Signals.create(signal)
         except Exception as e:
             raise e
         finally:
