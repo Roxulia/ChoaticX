@@ -25,10 +25,12 @@ class SchedulerManager:
             id="update_zones")
 
         # 2. Check signals on every 1h candle close
-        self.scheduler.add_job(lambda: self.task_queue.put((2, self.service.get_current_signals)),
+        self.scheduler.add_job(lambda: self.task_queue.put((3, self.service.get_current_signals)),
             'interval',
             hours=1,
             id="get_signals")
+        
+        self.scheduler.add_job(lambda : self.task_queue.put((2,self.service.update_running_signals)),'interval',hours=1,id = "update_signals")
 
         self.scheduler.start()
 

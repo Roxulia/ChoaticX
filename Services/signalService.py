@@ -288,6 +288,35 @@ class SignalService:
             return signals
         except Exception as e:
             raise e
+        
+    def update_running_signals(self):
+        try:
+            signal_gen = SignalGenerator()
+            signals = signal_gen.get_running_signals()
+            if not signals:
+                raise EmptySignalException
+            else:
+                candle = self.api.get_latest_candle()
+                for s in signals:
+                    signal_position = s['position']
+                    if signal_position is 'Long' : 
+                        if s['sl'] >= candle['low']:
+                            signal_gen.updateSignalStatus(s['id'],"LOSE")
+                        elif s['tp'] <= candle['high']:
+                            signal_gen.updateSignalStatus(s['id'],"WIN")
+                        else:
+                            continue
+                    elif signal_position is 'Short':
+                        if s['sl'] <= candle['high']:
+                            signal_gen.updateSignalStatus(s['id'],"LOSE")
+                        elif s['tp'] >= candle['low']:
+                            signal_gen.updateSignalStatus(s['id'],"WIN")
+                        else:
+                            continue
+                    else:
+                        continue
+        except Exception as e:
+            raise e
 
     def update_untouched_zones(self):
         try:
