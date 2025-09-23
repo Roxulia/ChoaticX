@@ -82,3 +82,12 @@ class SignalGenerator:
         except Exception as e:
             raise e
         
+    def updateSignalStatus(self,id,status):
+        try:
+            signal = Signals.find(id)
+            if signal:
+                Signals.update(id,{'result':status})  
+            else:
+                raise EmptySignalException
+        except Exception as e:
+            raise e 
