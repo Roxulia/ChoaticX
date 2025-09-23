@@ -13,6 +13,8 @@ class MySQLDB():
     def init_logger(log_file="db.log"):
         load_dotenv()
         file_path = f'{os.getenv('LOG_PATH')}/{log_file}' 
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
         if MySQLDB._logger is None:
             MySQLDB._logger = logging.getLogger("DBLogger")
             MySQLDB._logger.setLevel(logging.DEBUG)
