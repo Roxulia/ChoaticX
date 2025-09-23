@@ -58,7 +58,7 @@ class TelegramBot:
             sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
             msg = "Recent Zones\n"
             for zz in sorted_zones:
-                msg = msg +  f"Zone Type : {zz['type']},Zone High: {zz['zone_high']}, Low: {zz['zone_low']}, Time: {zz['timestamp']}\n"
+                msg = msg +  f"Zone Type : {zz['zone_type']},Zone High: {zz['zone_high']}, Low: {zz['zone_low']}, Time: {zz['timestamp']}\n"
             
             await update.message.reply_text(msg)
         except NoUntouchedZone as e:
