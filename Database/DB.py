@@ -1,12 +1,14 @@
 import mysql.connector
+from mysql.connector.connection_cext import CMySQLConnection as connection
+from mysql.connector.cursor_cext import CMySQLCursorDict as cursor
 import os
 import logging
 from mysql.connector import Error
 from dotenv import load_dotenv
 
 class MySQLDB():
-    _connection = None
-    _cursor = None
+    _connection:connection|None = None
+    _cursor:cursor|None = None
     _logger = None
 
     @staticmethod
@@ -36,8 +38,8 @@ class MySQLDB():
             MySQLDB._logger.addHandler(f_handler)
 
     @staticmethod
-    def connect():
-        if MySQLDB._connection is None:
+    def connect() -> tuple[connection,cursor]:
+        if MySQLDB._connection is None or  not MySQLDB._connection.is_connected():
             load_dotenv()
             try:
                 MySQLDB._connection = mysql.connector.connect(
@@ -50,6 +52,12 @@ class MySQLDB():
                 MySQLDB._logger.info("✅ Database connected")
             except Error as e:
                 MySQLDB._logger.error(f"❌ Error: {e}")
+        else:
+        # make sure the connection didn't silently die
+            try:
+                MySQLDB._connection.ping(reconnect=True, attempts=3, delay=5)
+            except Error as e:
+                MySQLDB._logger.error(f"❌ Ping failed: {e}")
         return MySQLDB._connection, MySQLDB._cursor
     
     @staticmethod
