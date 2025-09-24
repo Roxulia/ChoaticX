@@ -74,7 +74,7 @@ class TelegramBot:
                 sorted_signals = sorted_signals[-5:]
             msg = "Recent Running Signals\n"
             for s in sorted_signals:
-                msg = msg +  f"Signal Side: {s['side']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']}\n"
+                msg = msg +  f"Signal Side: {s['position']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']}\n"
             await update.message.reply_text(msg)
         except EmptySignalException as e:
             await update.message.reply_text(str(e))
@@ -87,7 +87,7 @@ class TelegramBot:
         if not isinstance(signal, dict):
             print("Invalid signal format:", signal)
             return
-        text = f"📢 New Signal! Side: {signal['side']} | Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
+        text = f"📢 New Signal! Side: {signal['position']} | Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
         loop = self.app.loop
         subscribers = Subscribers.getActiveSubscribers()
         for chat_id in subscribers:
