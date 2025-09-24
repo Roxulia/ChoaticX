@@ -58,7 +58,7 @@ class SignalGenerator:
         try:
             if not backtest:
                 sql_data = {k: utility.to_sql_friendly(v) for k, v in signal.items()}
-                Signals.create(signal)
+                Signals.create(sql_data)
         except Exception as e:
             raise e
         finally:

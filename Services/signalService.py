@@ -153,9 +153,8 @@ class SignalService:
                 self.logger.info('Zones are not touched yet')
                 signal = 'None'
             if signal != 'None' and signal is not None:
-                for callback in self.subscribers:
-                    callback(signal)
-                self.redis.publish("signals_channel", json.dumps(signal))
+                data = {k:v for k,v in signal.items() if k is not "meta"}
+                self.redis.publish("signals_channel", json.dumps(data))
                 self.logger.info(f"new signal generated : {signal['side']},{signal['tp']},{signal['sl']},{signal['entry']}")
             return signal
         except Exception as e:
@@ -331,12 +330,12 @@ class SignalService:
                     temp_df.append(row)
             df_from_storage = self.get_untouched_zones()
             if df_from_storage is None:
-                datagen = DatasetGenerator(temp_df)
-                datagen.store_untouch_zones()
+                datagen = DatasetGenerator()
+                datagen.store_untouch_zones(temp_df)
             else:
                 df_final = utility.merge_lists_by_key(df_from_storage,temp_df,key="timestamp")
-                datagen = DatasetGenerator(df_final)
-                datagen.store_untouch_zones()
+                datagen = DatasetGenerator()
+                datagen.store_untouch_zones(df_final)
         except CantFetchCandleData as e:
             self.logger.exception(f'{(e)}')
         except Exception as e:
