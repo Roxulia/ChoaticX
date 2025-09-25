@@ -19,7 +19,7 @@ class SchedulerManager:
     def start(self):
         # Plan B example:
         # 1. Update zones every 3 hours
-        self.scheduler.add_job(lambda: self.task_queue.put((1, self.service.update_untouched_zones)),
+        self.scheduler.add_job(lambda: self.task_queue.put((1, self.service.update_untouched_zones())),
             'interval',
             hours=4,
             id="update_zones")
@@ -30,7 +30,7 @@ class SchedulerManager:
             hours=1,
             id="get_signals")
         
-        self.scheduler.add_job(lambda : self.task_queue.put((2,self.service.update_running_signals)),'interval',hours=1,id = "update_signals")
+        self.scheduler.add_job(lambda : self.task_queue.put((2,self.service.update_running_signals())),'interval',hours=1,id = "update_signals")
 
         self.scheduler.start()
 
