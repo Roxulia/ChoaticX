@@ -153,7 +153,7 @@ class SignalService:
                 self.logger.info('Zones are not touched yet')
                 signal = 'None'
             if signal != 'None' and signal is not None:
-                data = {k:v for k,v in signal.items() if k is not "meta"}
+                data = {k:v for k,v in signal.items() if k != "meta"}
                 self.redis.publish("signals_channel", json.dumps(data))
                 self.logger.info(f"new signal generated : {signal['side']},{signal['tp']},{signal['sl']},{signal['entry']}")
             return signal
@@ -298,14 +298,14 @@ class SignalService:
                 candle = self.api.get_latest_candle()
                 for s in signals:
                     signal_position = s['position']
-                    if signal_position is 'Long' : 
+                    if signal_position == 'Long' : 
                         if s['sl'] >= candle['low']:
                             signal_gen.updateSignalStatus(s['id'],"LOSE")
                         elif s['tp'] <= candle['high']:
                             signal_gen.updateSignalStatus(s['id'],"WIN")
                         else:
                             continue
-                    elif signal_position is 'Short':
+                    elif signal_position == 'Short':
                         if s['sl'] <= candle['high']:
                             signal_gen.updateSignalStatus(s['id'],"LOSE")
                         elif s['tp'] >= candle['low']:
