@@ -103,9 +103,12 @@ class TelegramBot:
 
     def listener(self):
         for message in self.pubsub.listen():
+            print("🔔 PubSub received:", message)  # <--- ADD THIS
             if message['type'] == 'message':
                 data = json.loads(message['data'])
+                print("📩 Parsed signal:", data)   # <--- ADD THIS
                 self.broadcast_signals(data)
+
 
     def run(self):
         # Register bot handlers
