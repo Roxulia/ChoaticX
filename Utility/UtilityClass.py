@@ -95,7 +95,7 @@ class UtilityFunctions():
             return value  # already fine
         elif isinstance(value, (list, dict)):
             return str(value)  # store as JSON/text
-        elif isinstance(value,(pd.NA)):
+        elif pd.isna(value):
             return None
         else:
             return value
