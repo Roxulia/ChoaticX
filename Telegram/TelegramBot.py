@@ -101,17 +101,18 @@ class TelegramBot:
             await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
 
     async def listener(self):
-        for message in self.pubsub.listen():
-            print("🔔 PubSub received:", message)  # <--- ADD THIS
-            if message['type'] == 'message':
-                data = json.loads(message['data'])
-                print("📩 Parsed signal:", data)   # <--- ADD THIS
-                await self.broadcast_signals(data)
+        def blocking():
+            for message in self.pubsub.listen():
+                if message["type"] == "message":
+                    return json.loads(message["data"])
+
+        while True:
+            data = await asyncio.to_thread(blocking)
+            await self.broadcast_signals(data)
 
 
     def run(self):
         # Register bot handlers
-        self.app.create_task(self.listener())
         self.app.add_handler(CommandHandler("start", self.start))
         self.app.add_handler(CommandHandler("subscribe", self.subscribe))
         self.app.add_handler(CommandHandler("unsubscribe", self.unsubscribe))
