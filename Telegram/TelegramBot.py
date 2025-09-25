@@ -93,8 +93,8 @@ class TelegramBot:
     )
 
         subscribers = Subscribers.getActiveSubscribers()
-        for chat_id in subscribers:
-            await self.app.bot.send_message(chat_id=chat_id, text=text)
+        for s in subscribers:
+            await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
 
     async def listener(self):
         for message in self.pubsub.listen():
