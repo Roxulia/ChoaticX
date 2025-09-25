@@ -15,7 +15,7 @@ class TelegramBot:
         load_dotenv()
         self.TELEGRAM_TOKEN = os.getenv("BOT_API")
         self.service = service
-        self.app = Application.builder().token(self.TELEGRAM_TOKEN).build()
+        self.app = Application.builder().token(self.TELEGRAM_TOKEN).post_init(self.post_init).build()
         self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
         self.pubsub = self.redis.pubsub()
         self.pubsub.subscribe("signals_channel")
