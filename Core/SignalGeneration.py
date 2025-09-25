@@ -63,7 +63,7 @@ class SignalGenerator:
             raise e
         finally:
             return {
-                "side": position,
+                "position": position,
                 "entry_price": entry,
                 "tp": tp,
                 "sl": sl,
