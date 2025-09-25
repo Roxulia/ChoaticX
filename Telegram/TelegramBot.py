@@ -82,37 +82,32 @@ class TelegramBot:
             await update.message.reply_text(f"Error: {str(e)}")
 
     # ---------------- Broadcast ----------------
-    def broadcast_signals(self, signal):
+    async def broadcast_signals(self, signal):
         """This is called by the service when a new signal is generated."""
         if not isinstance(signal, dict):
             print("Invalid signal format:", signal)
             return
-        text = f"📢 New Signal! Side: {signal['position']} | Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            # If no loop is running (e.g. from another thread), create one
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        text = (
+        f"📢 New Signal! Side: {signal['position']} "
+        f"| Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
+    )
+
         subscribers = Subscribers.getActiveSubscribers()
         for chat_id in subscribers:
-            asyncio.run_coroutine_threadsafe(
-                self.app.bot.send_message(chat_id=chat_id, text=text),
-                loop
-            )
+            await self.app.bot.send_message(chat_id=chat_id, text=text)
 
-    def listener(self):
+    async def listener(self):
         for message in self.pubsub.listen():
             print("🔔 PubSub received:", message)  # <--- ADD THIS
             if message['type'] == 'message':
                 data = json.loads(message['data'])
                 print("📩 Parsed signal:", data)   # <--- ADD THIS
-                self.broadcast_signals(data)
+                await self.broadcast_signals(data)
 
 
     def run(self):
         # Register bot handlers
-        threading.Thread(target=self.listener, daemon=True).start()
+        self.app.create_task(self.listener())
         self.app.add_handler(CommandHandler("start", self.start))
         self.app.add_handler(CommandHandler("subscribe", self.subscribe))
         self.app.add_handler(CommandHandler("unsubscribe", self.unsubscribe))
