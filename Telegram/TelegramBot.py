@@ -15,11 +15,15 @@ class TelegramBot:
         load_dotenv()
         self.TELEGRAM_TOKEN = os.getenv("BOT_API")
         self.service = service
-        self.app = Application.builder().token(self.TELEGRAM_TOKEN).build()
+        self.app = Application.builder().token(self.TELEGRAM_TOKEN).post_init(self.post_init).build()
         self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
         self.pubsub = self.redis.pubsub()
         self.pubsub.subscribe("signals_channel")
-
+        
+    async def post_init(self, app: Application):
+        # Start Redis listener as background task once loop is running
+        app.create_task(self.listener())
+        
     # ---------------- Handlers ----------------
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Hey! I’m your ChaoticX bot. Try /zones to see latest zone formation.\n Type /subscribe to enable bot to send u signal everytime it finds a signal")
@@ -58,7 +62,7 @@ class TelegramBot:
             sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
             msg = "Recent Zones\n"
             for zz in sorted_zones:
-                msg = msg +  f"Zone Type : {zz['type']},Zone High: {zz['zone_high']}, Low: {zz['zone_low']}, Time: {zz['timestamp']}\n"
+                msg = msg +  f"Zone Type : {zz['zone_type']},Zone High: {zz['zone_high']}, Low: {zz['zone_low']}, Time: {zz['timestamp']}\n"
             
             await update.message.reply_text(msg)
         except NoUntouchedZone as e:
@@ -82,29 +86,32 @@ class TelegramBot:
             await update.message.reply_text(f"Error: {str(e)}")
 
     # ---------------- Broadcast ----------------
-    def broadcast_signals(self, signal):
+    async def broadcast_signals(self, signal):
         """This is called by the service when a new signal is generated."""
         if not isinstance(signal, dict):
             print("Invalid signal format:", signal)
             return
-        text = f"📢 New Signal! Side: {signal['position']} | Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
-        loop = self.app.loop
-        subscribers = Subscribers.getActiveSubscribers()
-        for chat_id in subscribers:
-            asyncio.run_coroutine_threadsafe(
-                self.app.bot.send_message(chat_id=chat_id, text=text),
-                loop
-            )
+        text = (
+        f"📢 New Signal! Side: {signal['position']} "
+        f"| Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
+    )
 
-    def listener(self):
+        subscribers = Subscribers.getActiveSubscribers()
+        for s in subscribers:
+            await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+
+    async def listener(self):
         for message in self.pubsub.listen():
+            print("🔔 PubSub received:", message)  # <--- ADD THIS
             if message['type'] == 'message':
                 data = json.loads(message['data'])
-                self.broadcast_signals(data)
+                print("📩 Parsed signal:", data)   # <--- ADD THIS
+                await self.broadcast_signals(data)
+
 
     def run(self):
         # Register bot handlers
-        threading.Thread(target=self.listener, daemon=True).start()
+        self.app.create_task(self.listener())
         self.app.add_handler(CommandHandler("start", self.start))
         self.app.add_handler(CommandHandler("subscribe", self.subscribe))
         self.app.add_handler(CommandHandler("unsubscribe", self.unsubscribe))
