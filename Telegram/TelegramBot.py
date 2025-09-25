@@ -88,7 +88,12 @@ class TelegramBot:
             print("Invalid signal format:", signal)
             return
         text = f"📢 New Signal! Side: {signal['position']} | Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
-        loop = self.app.loop
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # If no loop is running (e.g. from another thread), create one
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
         subscribers = Subscribers.getActiveSubscribers()
         for chat_id in subscribers:
             asyncio.run_coroutine_threadsafe(
