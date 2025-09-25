@@ -328,14 +328,8 @@ class SignalService:
                     continue
                 else:
                     temp_df.append(row)
-            df_from_storage = self.get_untouched_zones()
-            if df_from_storage is None:
-                datagen = DatasetGenerator()
-                datagen.store_untouch_zones(temp_df)
-            else:
-                df_final = utility.merge_lists_by_key(df_from_storage,temp_df,key="timestamp")
-                datagen = DatasetGenerator()
-                datagen.store_untouch_zones(df_final)
+            datagen = DatasetGenerator()
+            datagen.store_untouch_zones(temp_df)
         except CantFetchCandleData as e:
             self.logger.exception(f'{(e)}')
         except Exception as e:

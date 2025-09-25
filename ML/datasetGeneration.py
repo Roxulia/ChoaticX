@@ -389,15 +389,27 @@ class DatasetGenerator:
                     if zone_type in ['Bearish FVG','Bullish FVG'] : 
                         fvg_columns = [k for k,v in FVG.columns.items()]
                         sql_data = {k:v for k,v in sql_data.items() if k in fvg_columns}
-                        FVG.create(sql_data)
+                        existed_zone = FVG.GetByTimeStamp(sql_data['timestamp'])
+                        if existed_zone:
+                            FVG.update(existed_zone['id'],sql_data)
+                        else:
+                            FVG.create(sql_data)
                     elif zone_type in ['Bearish OB','Bullish OB'] :
                         ob_columns = [k for k,v in OB.columns.items()]
                         sql_data = {k:v for k,v in sql_data.items() if k in ob_columns}
-                        OB.create(sql_data)
+                        existed_zone = OB.GetByTimeStamp(sql_data['timestamp'])
+                        if existed_zone:
+                            OB.update(existed_zone['id'],sql_data)
+                        else:
+                            OB.create(sql_data)
                     elif zone_type in ['Buy-Side Liq','Sell-Side Liq']:
                         liq_columns = [k for k,v in LIQ.columns.items()]
                         sql_data = {k:v for k,v in sql_data.items() if k in liq_columns}
-                        LIQ.create(sql_data)
+                        existed_zone = LIQ.GetByTimeStamp(sql_data['timestamp'])
+                        if existed_zone:
+                            LIQ.update(existed_zone['id'],sql_data)
+                        else:
+                            LIQ.create(sql_data)
             except TypeError as e:
                 print(f"\n🚨 JSON serialization error at row {i}")
                 for k, v in row.items():
