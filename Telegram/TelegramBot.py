@@ -19,7 +19,11 @@ class TelegramBot:
         self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
         self.pubsub = self.redis.pubsub()
         self.pubsub.subscribe("signals_channel")
-
+        
+    async def post_init(self, app: Application):
+        # Start Redis listener as background task once loop is running
+        app.create_task(self.listener())
+        
     # ---------------- Handlers ----------------
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Hey! I’m your ChaoticX bot. Try /zones to see latest zone formation.\n Type /subscribe to enable bot to send u signal everytime it finds a signal")
