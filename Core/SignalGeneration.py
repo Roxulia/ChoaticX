@@ -74,7 +74,7 @@ class SignalGenerator:
     
     def get_running_signals(self):
         try:
-            signals = Signals.getPendingSignals()
+            signals = Signals.getPendingSignals(5)
             if signals:
                 return signals
             else:

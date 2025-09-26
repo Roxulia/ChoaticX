@@ -7,7 +7,9 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import redis,json,threading,os
 from Database.DB import MySQLDB as DB
+from Database.Cache import Cache
 
+Cache.init()
 app = Flask(__name__)
 socketio = SocketIO(app,cors_allowed_origins="*")
 limiter = Limiter(

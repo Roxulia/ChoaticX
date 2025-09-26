@@ -11,6 +11,7 @@ from Database.DataModels.OB import OB
 from Database.DataModels.Liq import LIQ
 from Database.DataModels.Signals import Signals
 from Database.DataModels.Subscribers import Subscribers
+from Database.Cache import Cache
 
 @mu.log_memory
 def initialState():
@@ -61,6 +62,7 @@ def run_all_process():
         print("Process Fail")
 
 if __name__ == "__main__" :
+    Cache.init()
     pd.set_option('future.no_silent_downcasting', True)
     parser = argparse.ArgumentParser(description="run training program")
     parser.add_argument("option",help="'*' to do all process\n'train' to Train Model\n'backtest' to Test the Model",default='*')

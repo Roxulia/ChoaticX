@@ -40,7 +40,4 @@ class OB(BaseModel):
         'conf_1D_count' : 'INTEGER',
     }
 
-    @classmethod
-    def GetByTimeStamp(cls,timestamp):
-        sql = f"SELECT * FROM {cls.table} WHERE timestamp = %s"
-        return DB.execute(sql,[timestamp],fetchone=True)
+    

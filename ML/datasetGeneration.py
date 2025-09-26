@@ -8,6 +8,7 @@ from Data.Paths import Paths
 from Database.DataModels.FVG import FVG 
 from Database.DataModels.OB import OB
 from Database.DataModels.Liq import LIQ
+from Database.Cache import Cache
 from Utility.UtilityClass import UtilityFunctions as utility
 
 class DatasetGenerator:
@@ -410,6 +411,7 @@ class DatasetGenerator:
                             LIQ.update(existed_zone['id'],sql_data)
                         else:
                             LIQ.create(sql_data)
+                    
             except TypeError as e:
                 print(f"\n🚨 JSON serialization error at row {i}")
                 for k, v in row.items():

@@ -3,6 +3,9 @@ from Services.signalService import SignalService
 from Data.binanceAPI import BinanceAPI
 from Database.DB import MySQLDB as DB
 import time
+from Database.Cache import Cache
+
+Cache.init()
 if __name__ == "__main__":
     DB.init_logger("schedule_runner_db.log")
     service = SignalService()
