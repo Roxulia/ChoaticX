@@ -19,7 +19,7 @@ class Signals(BaseModel):
         cached = Cache.get(raw_key)
         if cached is not None:
             return cached
-        sql = f"SELECT * FROM {cls.table} WHERE result = 'PENDING' ORDER BY timestamp LIMITTED {limit}"
+        sql = f"SELECT * FROM {cls.table} WHERE result = 'PENDING' ORDER BY timestamp LIMIT {limit}"
         result = DB.execute(sql,fetchall= True)
         Cache.set(raw_key,result,60)
         return result
