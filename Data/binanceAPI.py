@@ -85,7 +85,8 @@ class BinanceAPI:
             df = self.add_TA(df)
             df['timestamp'] = df.index
             return df
-        except:
+        except Exception as e:
+            print(f'{str(e)}')
             raise CantFetchCandleData
         
     
@@ -101,7 +102,7 @@ class BinanceAPI:
     def get_latest_candle(self,symbol='BTCUSDT',interval = '1h'):
         tf = timeFrame()
         try:
-            klines = self.client.get_historical_klines(symbol,tf.getTimeFrame(interval) , limit = 100)
+            klines = self.apiclient.get_historical_klines(symbol,tf.getTimeFrame(interval) , limit = 100)
 
             df = pd.DataFrame(klines, columns=[
                 'timestamp', 'open', 'high', 'low', 'close', 'volume',
@@ -117,7 +118,8 @@ class BinanceAPI:
             df = self.add_TA(df)
             df['timestamp'] = df.index
             return df.iloc[-1]
-        except:
+        except Exception as e:
+            print(f'{str(e)}')
             raise CantFetchCandleData
     
     def store_OHLCV(self, symbol='BTCUSDT', interval='1h',lookback='3 years'):
