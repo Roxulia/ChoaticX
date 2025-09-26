@@ -97,7 +97,7 @@ class BaseModel:
         cached = Cache.get(raw_key)
         if cached is not None:
             return cached
-        sql = f"SELECT * FROM {cls.table} ORDER BY {key} DESC LIMITTED = {limit}"
+        sql = f"SELECT * FROM {cls.table} ORDER BY {key} DESC LIMITTED {limit}"
         result = DB.execute(sql,fetchall= True)
         Cache.set(raw_key,result,60)
         return result
