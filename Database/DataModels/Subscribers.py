@@ -7,6 +7,7 @@ class Subscribers(BaseModel):
         "chat_id": "BIGINT NOT NULL UNIQUE",
         "username": "VARCHAR(255)",
         "is_active": "BOOLEAN DEFAULT TRUE",
+        "tier" : "BIGINT DEFAULT 1",
         "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
         "updated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
     }

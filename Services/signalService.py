@@ -155,7 +155,7 @@ class SignalService:
             if signal != 'None' and signal is not None:
                 data = {k:v for k,v in signal.items() if k != "meta"}
                 self.redis.publish("signals_channel", json.dumps(data))
-                self.logger.info(f"new signal generated : {signal['side']},{signal['tp']},{signal['sl']},{signal['entry']}")
+                self.logger.info(f"new signal generated : {signal['position']},{signal['tp']},{signal['sl']},{signal['entry']}")
             return signal
         except Exception as e:
             self.logger.error(f'{str(e)}')
