@@ -1,5 +1,7 @@
 import os
 import pandas as pd
+import asyncio
+from binance import AsyncClient, BinanceSocketManager
 from binance.client import Client
 from dotenv import load_dotenv
 import ta
@@ -9,10 +11,56 @@ from Exceptions.ServiceExceptions import *
 class BinanceAPI:
     def __init__(self):
         load_dotenv()
-        api_key = os.getenv("BINANCE_API_KEY")
-        api_secret = os.getenv("BINANCE_SECRET_KEY")
+        self.api_key = os.getenv("BINANCE_API_KEY")
+        self.api_secret = os.getenv("BINANCE_SECRET_KEY")
         self.data_root = os.getenv("DATA_PATH")
-        self.client = Client(api_key, api_secret)
+        self.apiclient = Client(self.api_key, self.api_secret)
+        self.broadcast_client = None
+        self.bm = None
+
+    async def connect(self):
+        """Initialize async client + socket manager."""
+        try:
+            self.broadcast_client= await AsyncClient.create(self.api_key, self.api_secret)
+            self.bm = BinanceSocketManager(self.broadcast_client)
+        except Exception as e:
+            raise e
+
+    async def close(self):
+        """Close connection gracefully."""
+        try:
+            if self.broadcast_client:
+                await self.broadcast_client.close_connection()
+        except Exception as e:
+            raise e
+
+    async def listen_kline(self, symbols, intervals, callback):
+        """
+        Subscribe to Binance kline broadcasts.
+        - symbols: list of trading pairs, e.g. ["BTCUSDT"]
+        - intervals: list of intervals, e.g. ["1h", "4h"]
+        - callback: function to call when candle closes
+        """
+        if not self.bm:
+            raise RuntimeError("Call connect() before listen_kline()")
+        try:
+            streams = []
+            for sym in symbols:
+                for itv in intervals:
+                    streams.append(f"{sym.lower()}@kline_{itv}")
+
+            ms = self.bm.multiplex_socket(streams)
+
+            async with ms as stream:
+                while True:
+                    msg = await stream.recv()
+                    data = msg.get("data", {})
+                    kline = data.get("k", {})
+
+                    if kline.get("x"):  # ✅ candle closed
+                        await callback(kline)
+        except Exception as e:
+            raise e
 
     def get_ohlcv(self, symbol='BTCUSDT', interval='1h', lookback='3 years'):
         """
@@ -21,7 +69,7 @@ class BinanceAPI:
         print(f'Fetching {lookback} worth of {interval} timeframe candle data...')
         tf = timeFrame()
         try:
-            klines = self.client.get_historical_klines(symbol,tf.getTimeFrame(interval) , lookback)
+            klines = self.apiclient.get_historical_klines(symbol,tf.getTimeFrame(interval) , lookback)
 
             df = pd.DataFrame(klines, columns=[
                 'timestamp', 'open', 'high', 'low', 'close', 'volume',

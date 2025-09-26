@@ -1,11 +1,13 @@
 from Scheduler.scheduler import SchedulerManager
 from Services.signalService import SignalService
+from Data.binanceAPI import BinanceAPI
 from Database.DB import MySQLDB as DB
 import time
 if __name__ == "__main__":
     DB.init_logger("schedule_runner_db.log")
     service = SignalService()
-    scheduler_manager = SchedulerManager(service)
+    api = BinanceAPI()
+    scheduler_manager = SchedulerManager(service,api)
     scheduler_manager.start()
     try:
         while True:

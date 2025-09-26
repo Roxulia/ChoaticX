@@ -9,11 +9,8 @@ class BaseModel:
         if not cls.table or not cls.columns:
             raise ValueError("Table name and columns must be defined in subclass")
 
-        # Build SQL from dict
-        col_defs = []
-        for col_name, col_type in cls.columns.items():
-            col_defs.append(f"{col_name} {col_type}")
-        
+        # Ensure table exists (empty shell if needed)
+        col_defs = [f"{col} {ctype}" for col, ctype in cls.columns.items()]
         sql = f"""
         CREATE TABLE IF NOT EXISTS {cls.table} (
             {', '.join(col_defs)}
@@ -21,6 +18,31 @@ class BaseModel:
         """
         DB.execute(sql, commit=True)
         DB._logger.info(f"✅ Table `{cls.table}` ensured in DB")
+
+        # Fetch existing columns
+        query = f"""
+        SELECT COLUMN_NAME, COLUMN_TYPE 
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s
+        """
+        existing = DB.execute(query, (cls.table,),fetchall=True)
+        existing_cols = {row['COLUMN_NAME']: row['COLUMN_TYPE'] for row in existing}
+
+        # Add missing columns
+        for col_name, col_type in cls.columns.items():
+            if col_name not in existing_cols:
+                alter_sql = f"ALTER TABLE {cls.table} ADD COLUMN {col_name} {col_type}"
+                DB.execute(alter_sql, commit=True)
+                DB._logger.info(f"➕ Added column `{col_name}` {col_type} to `{cls.table}`")
+
+        # (Optional) Warn if column types differ
+        for col_name, col_type in cls.columns.items():
+            if col_name in existing_cols and existing_cols[col_name].lower() != col_type.lower():
+                DB._logger.warning(
+                    f"⚠ Column `{col_name}` type mismatch: DB has {existing_cols[col_name]}, "
+                    f"expected {col_type}"
+                )
+
 
     @classmethod
     def create(cls, data: dict):

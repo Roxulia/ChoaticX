@@ -80,3 +80,6 @@ class MySQLDB():
         except Exception as e:
             MySQLDB._logger.error(f"❌ Query Error: {e} | SQL: {query} | Params: {params}")
             return None
+        finally:
+            cur.close()
+            conn.close()
