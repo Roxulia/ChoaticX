@@ -16,6 +16,7 @@ from Exceptions.ServiceExceptions import *
 from Database.DataModels.FVG import FVG
 from Database.DataModels.OB import OB
 from Database.DataModels.Liq import LIQ
+from Database.Cache import Cache
 import pandas as pd
 import json
 from dotenv import load_dotenv
@@ -36,7 +37,6 @@ class SignalService:
         self.timeframes = timeframes
         self.ignore_cols = ignore_cols
         self.subscribers = []
-        self.redis = redis.Redis(host="127.0.0.1",port = 6379,db = 0)
         self.logger = logging.getLogger("SignalService")
         self.logger.setLevel(logging.DEBUG)
         self.initiate_logging()
@@ -99,7 +99,7 @@ class SignalService:
 
     def get_untouched_zones(self):
         try:
-            zones = FVG.all() + OB.all() + LIQ.all()
+            zones = FVG.getRecentData(key="timestamp",limit=5) + OB.getRecentData(key="timestamp",limit=5) + LIQ.getRecentData(key="timestamp",limit=5)
             if zones:
                 return zones
             else:
@@ -154,7 +154,7 @@ class SignalService:
                 signal = 'None'
             if signal != 'None' and signal is not None:
                 data = {k:v for k,v in signal.items() if k != "meta"}
-                self.redis.publish("signals_channel", json.dumps(data))
+                Cache._client.publish("signals_channel", json.dumps(data))
                 self.logger.info(f"new signal generated : {signal['position']},{signal['tp']},{signal['sl']},{signal['entry']}")
             return signal
         except Exception as e:

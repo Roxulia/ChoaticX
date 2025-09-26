@@ -73,11 +73,8 @@ class TelegramBot:
     async def get_running_signals(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             signals = self.service.get_running_signals()
-            sorted_signals = sorted(signals, key=lambda x: x.get("timestamp"))
-            if len(signals) > 5 :
-                sorted_signals = sorted_signals[-5:]
             msg = "Recent Running Signals\n"
-            for s in sorted_signals:
+            for s in signals:
                 msg = msg +  f"Signal Side: {s['position']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']}\n"
             await update.message.reply_text(msg)
         except EmptySignalException as e:

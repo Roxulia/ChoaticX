@@ -1,4 +1,5 @@
 from ..DB import MySQLDB as DB
+from ..Cache import Cache
 
 class BaseModel:
     table :str = None  # to override in subclasses
@@ -50,6 +51,9 @@ class BaseModel:
         values = ", ".join(["%s"] * len(data))
         sql = f"INSERT INTO {cls.table} ({keys}) VALUES ({values})"
         DB.execute(sql, list(data.values()), commit=True)
+        keys = Cache._client.keys(f"{cls.table}:*")
+        for k in keys:
+            Cache._client.delete(k)
         print(f"✅ Inserted into {cls.table}")
 
     @classmethod
@@ -59,18 +63,52 @@ class BaseModel:
 
     @classmethod
     def find(cls, record_id):
+        raw_key = f"{cls.table}:find:id:{record_id}"
+        cached = Cache.get(raw_key)
+        if cached is not None:
+            return cached
         sql = f"SELECT * FROM {cls.table} WHERE id = %s"
-        return DB.execute(sql, [record_id], fetchone=True)
+        result =  DB.execute(sql, [record_id], fetchone=True)
+        Cache.set(raw_key,result,60)
+        return result
 
     @classmethod
     def update(cls, record_id, data: dict):
         set_clause = ", ".join([f"{k}=%s" for k in data.keys()])
         sql = f"UPDATE {cls.table} SET {set_clause} WHERE id = %s"
         DB.execute(sql, list(data.values()) + [record_id], commit=True)
+        keys = Cache._client.keys(f"{cls.table}:*")
+        for k in keys:
+            Cache._client.delete(k)
         print(f"✅ Updated {cls.table} id={record_id}")
 
     @classmethod
     def delete(cls, record_id):
         sql = f"DELETE FROM {cls.table} WHERE id = %s"
         DB.execute(sql, [record_id], commit=True)
+        keys = Cache._client.keys(f"{cls.table}:*")
+        for k in keys:
+            Cache._client.delete(k)
         print(f"🗑 Deleted from {cls.table} id={record_id}")
+
+    @classmethod
+    def getRecentData(cls,limit,key):
+        raw_key = f"{cls.table}:find:{key}:{limit}:ORDER"
+        cached = Cache.get(raw_key)
+        if cached is not None:
+            return cached
+        sql = f"SELECT * FROM {cls.table} ORDER BY {key} DESC LIMITTED = {limit}"
+        result = DB.execute(sql,fetchall= True)
+        Cache.set(raw_key,result,60)
+        return result
+    
+    @classmethod
+    def GetByTimeStamp(cls,timestamp):
+        raw_key = f"{cls.table}:find:timestamp:{timestamp}"
+        cached = Cache.get(raw_key)
+        if not cached:
+            return cached
+        sql = f"SELECT * FROM {cls.table} WHERE timestamp = %s"
+        result =  DB.execute(sql,[timestamp],fetchone=True)
+        Cache.set(raw_key,result)
+        return result
