@@ -106,7 +106,7 @@ class BaseModel:
     def GetByTimeStamp(cls,timestamp):
         raw_key = f"{cls.table}:find:timestamp:{timestamp}"
         cached = Cache.get(raw_key)
-        if not cached:
+        if cached is not None:
             return cached
         sql = f"SELECT * FROM {cls.table} WHERE timestamp = %s"
         result =  DB.execute(sql,[timestamp],fetchone=True)
