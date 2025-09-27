@@ -3,6 +3,7 @@ import pandas as pd
 from Utility.MemoryUsage import  MemoryUsage as mu
 import os
 from dotenv import load_dotenv
+from Exceptions.ServiceExceptions import *
 class ZoneReactor:
     def __init__(self):
         self.reaction_storage = os.getenv(key='REACTION_STORAGE')
@@ -60,16 +61,25 @@ class ZoneReactor:
                 touch_time = zone.get('swept_time', None)
                 if touch_time is not None:
                     touch_time = pd.to_datetime(touch_time)
+                    touch_from = None
                     touch_candle = candles_data.loc[candles_data['timestamp'] == touch_time]
                     if touch_candle.empty:
                         zone['touch_type'] = None
                         zone['touch_candle'] = None
+                        zone['touch_from'] = touch_from
                         yield zone
                         continue
 
                     open_ = float(touch_candle['open'].iloc[0])
                     close = float(touch_candle['close'].iloc[0])
-                    
+
+                    if open_ > zone_high :
+                        touch_from = 'Above'
+                    elif open_ < zone_low:
+                        touch_from = 'Below'
+                    else:
+                        touch_from = 'Inside'
+
                     if zone_low <= close <= zone_high:
                         touch_type = 'body_close_inside'
                     elif (open_ > zone_high and close < zone_low) or (open_ < zone_low and close > zone_high):
@@ -84,20 +94,25 @@ class ZoneReactor:
                     
                     zone['touch_type'] = touch_type
                     zone['touch_candle'] = touch_candle.iloc[0]
+                    zone['touch_from'] = touch_from
                     yield zone
                     continue
                 else:
                     
                     zone['touch_type'] = None
                     zone['touch_candle'] = None
+                    zone['touch_from'] = touch_from
                     yield zone
                     continue
             else:
                 touch_type = None
                 touch_candle = None
-
+                touch_from = None
                 touch_time = zone.get('touch_time',None)
                 if touch_time is None:
+                    zone['touch_type'] = None
+                    zone['touch_candle'] = None
+                    zone['touch_from'] = None
                     yield zone
                     continue
                 else:
@@ -106,12 +121,20 @@ class ZoneReactor:
                     if touch_candle.empty:
                         zone['touch_type'] = None
                         zone['touch_candle'] = None
+                        zone['touch_from'] = None
                         yield zone
                         continue
 
                     open_ = float(touch_candle['open'].iloc[0])
                     close = float(touch_candle['close'].iloc[0])
-                    
+
+                    if open_ > zone_high :
+                        touch_from = 'Above'
+                    elif open_ < zone_low:
+                        touch_from = 'Below'
+                    else:
+                        touch_from = 'Inside'
+
                     if zone_low <= close <= zone_high:
                         touch_type = 'body_close_inside'
                     elif (open_ > zone_high and close < zone_low) or (open_ < zone_low and close > zone_high):
@@ -125,6 +148,7 @@ class ZoneReactor:
 
                 zone['touch_type'] = touch_type
                 zone['touch_candle'] = touch_candle.iloc[0]
+                zone['touch_from'] = touch_from
                 yield zone
 
 
@@ -228,17 +252,23 @@ class ZoneReactor:
             zone_low = zone['zone_low']
             zone_timestamp = pd.to_datetime(zone['timestamp'])
             if (zone_low > open_ and zone_low <= high) or (zone_high < open_ and zone_high >= low):
+                touch_from = 'Inside'
+                if zone_low > open_:
+                    touch_from = 'Below'
+                elif zone_high < open_:
+                    touch_from = 'Above'
+
                 if zone_low <= close <= zone_high:
-                    return 'body_close_inside',zone_timestamp
+                    return {'touch_from':touch_from,'touch_type':'body_close_inside','touch_time':zone_timestamp}
                 elif (open_ > zone_high and close < zone_low) or (open_ < zone_low and close > zone_high):
-                    return 'engulf',zone_timestamp
+                    return {'touch_from':touch_from,'touch_type':'engulf','touch_time':zone_timestamp}
                 elif close > zone_high and open_ > zone_high:
-                    return 'body_close_above',zone_timestamp
+                    return {'touch_from':touch_from,'touch_type':'body_close_above','touch_time':zone_timestamp}
                 elif close < zone_low and open_ < zone_low:
-                    return 'body_close_below',zone_timestamp
+                    return {'touch_from':touch_from,'touch_type':'body_close_below','touch_time':zone_timestamp}
                 else:
-                    return 'wick_touch',zone_timestamp
-        return 'None','None'
+                    return {'touch_from':touch_from,'touch_type':'wick_touch','touch_time':zone_timestamp}
+        raise CandleNotTouch
 
     @mu.log_memory
     def perform_reaction_check(self,zones,candles_data):

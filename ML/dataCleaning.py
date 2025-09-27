@@ -26,6 +26,11 @@ class DataCleaner:
             'body_close_below' : 4,
             'wick_touch' : 5
         }
+        self.touch_from = {
+            'Below' : 1,
+            'Above' : 2,
+            'Inside' : 0
+        }
         self.zone_types = [
             'Bearish FVG',
             'Bullish FVG',
@@ -128,7 +133,8 @@ class DataCleaner:
             df['above_zone_type'] = df['above_zone_type'].apply(lambda x : self.zone_types.index(x)+1 if not pd.isna(x) and x in self.zone_types else 0)
         if 'below_zone_type' in columns : 
             df['below_zone_type'] = df['below_zone_type'].apply(lambda x : self.zone_types.index(x)+1 if not pd.isna(x) and x in self.zone_types else 0)
-        
+        if 'touch_from' in columns:
+            df['touch_from'] = df['touch_from'].apply(lambda x : self.touch_from[x] if x is not None else 0)
         return df
 
     def fillNaN(self,df):

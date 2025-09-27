@@ -41,3 +41,7 @@ class EmptyDataInput(Exception):
 class NotEnoughRR(Exception):
     def __init__(self):
         super().__init__("RR Ratio Too Low")
+
+class CandleNotTouch(Exception):
+    def __init__(self):
+        super().__init__("Candle Does Not Touch")
