@@ -31,9 +31,10 @@ class SignalGenerator:
             row = zones.iloc[0].copy()
 
             if row["target"] == 0:  # Short
+                position = "Short"
                 if row["touch_from"] == "Above":  # touched from above
                     entry = row["zone_high"]
-                    sl = row["zone_high"] + row['candle_atr'] 
+                    sl = row["candle_bb_high"]  
                     tp = row["below_zone_high"]
                 else:
                     # edge case: price touches supply from below (rare, breakout retest)
@@ -42,10 +43,11 @@ class SignalGenerator:
                     tp = row["below_zone_high"]
             
             else:  # Long
+                position = "Long"
                 if row["touch_from"] == "Below":  # touched from below
                     entry = row["zone_low"]   # aggressive
                     # entry = row["zone_low"]  # safer option
-                    sl = row["zone_low"] - row["candle_atr"]
+                    sl = row["candle_bb_low"]
                     tp = row["above_zone_low"]
                 else:
                     # edge case: price touches demand from above (breakout retest)

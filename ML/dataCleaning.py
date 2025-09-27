@@ -162,7 +162,10 @@ class DataCleaner:
         df['below_ema_50_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_ema_50'],df)
         df['candle_ema_20_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_ema20'],df)
         df['candle_ema_50_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_ema50'],df)
-        calculated_cols = ['ema_20','ema_50','above_ema_20','above_ema_50','below_ema_20','below_ema_50','candle_ema20','candle_ema50']
+        df['candle_bb_high_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_bb_high'],df)
+        df['candle_bb_mid_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_bb_mid'],df)
+        df['candle_bb_low_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_bb_low'],df)
+        calculated_cols = ['ema_20','ema_50','above_ema_20','above_ema_50','below_ema_20','below_ema_50','candle_ema20','candle_ema50','candle_bb_high','candle_bb_low','candle_bb_mid']
         
         df = df.drop(columns =[col for col in calculated_cols if col in columns])
         return df

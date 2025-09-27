@@ -133,6 +133,9 @@ class SignalService:
                     zone['candle_ema50'] = candle['ema50']
                     zone['candle_rsi'] = candle['rsi']
                     zone['candle_atr'] = candle['atr']
+                    zone['candle_bb_high'] = candle['bb_high']
+                    zone['candle_bb_low'] = candle['bb_low']
+                    zone['candle_bb_mid'] = candle['bb_mid']
                     zone['touch_type'] = reaction_data['touch_type']
                     zone['touch_from'] = reaction_data['touch_from']
                     zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)
