@@ -97,6 +97,11 @@ class BinanceAPI:
         data['atr'] = ta.volatility.average_true_range(data['high'], data['low'], data['close'], window=14)
         data['rsi'] = ta.momentum.rsi(data['close'], window=5)  # Faster RSI for quicker signal
         data['atr_mean'] = data['atr'].rolling(window=50).mean()
+
+        bb = ta.volatility.BollingerBands(close=data["close"], window=20, window_dev=2)
+        data["bb_high"] = bb.bollinger_hband()
+        data["bb_low"] = bb.bollinger_lband()
+        data["bb_mid"] = bb.bollinger_mavg()
         return data
     
     def get_latest_candle(self,symbol='BTCUSDT',interval = '1h'):
