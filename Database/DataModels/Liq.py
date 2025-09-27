@@ -36,6 +36,7 @@ class LIQ(BaseModel):
         'conf_1h_count' : 'INTEGER',
         'conf_4h_count' : 'INTEGER',
         'conf_1D_count' : 'INTEGER',
+        'touch_from' : 'VARCHAR(20)'
     }
 
     

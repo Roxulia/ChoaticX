@@ -116,42 +116,38 @@ class SignalService:
             ATH = athHandler.getATHFromStorage()
             reactor = ZoneReactor()
             datagen = DatasetGenerator()
-            reaction,zone_timestamp = reactor.get_last_candle_reaction(zones,candle)
-            if not reaction == 'None':
-                nearbyzone = NearbyZones()
-                use_zones = []
-                datacleaner = DataCleaner(self.timeframes)
-                model_handler = ModelHandler(model_type='xgb')
-                model_handler.load()
-                signal_gen = SignalGenerator(model_handler,datacleaner,self.ignore_cols)
-                for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
-                    curr_timestamp = pd.to_datetime(zone['timestamp'])
-                    if curr_timestamp == zone_timestamp:
-                        zone['candle_volume'] = candle['volume']
-                        zone['candle_open'] = candle['open']
-                        zone['candle_close'] = candle['close']
-                        zone['candle_ema20'] = candle['ema20']
-                        zone['candle_ema50'] = candle['ema50']
-                        zone['candle_rsi'] = candle['rsi']
-                        zone['candle_atr'] = candle['atr']
-                        zone['touch_type'] = reaction
-                        zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)
-                        
-                        use_zones.append(zone)
-                        id = zone.get('id',None)
-                        if id is not None:
-                            zone_type = zone.get('zone_type',None)
-                            if zone_type in ['Bearish FVG','Bullish FVG'] : 
-                                FVG.delete(id)
-                            elif zone_type in ['Bearish OB','Bullish OB'] :
-                                OB.delete(id)
-                            elif zone_type in ['Buy-Side Liq','Sell-Side Liq']:
-                                LIQ.delete(id)
-                input_set = list(datagen.extract_input_data(use_zones))
-                signal = signal_gen.generate(input_set)
-            else:
-                self.logger.info('Zones are not touched yet')
-                signal = 'None'
+            reaction_data = reactor.get_last_candle_reaction(zones,candle)
+            nearbyzone = NearbyZones()
+            use_zones = []
+            datacleaner = DataCleaner(self.timeframes)
+            model_handler = ModelHandler(model_type='xgb')
+            model_handler.load()
+            signal_gen = SignalGenerator(model_handler,datacleaner,self.ignore_cols)
+            for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
+                curr_timestamp = pd.to_datetime(zone['timestamp'])
+                if curr_timestamp == reaction_data['touch_time']:
+                    zone['candle_volume'] = candle['volume']
+                    zone['candle_open'] = candle['open']
+                    zone['candle_close'] = candle['close']
+                    zone['candle_ema20'] = candle['ema20']
+                    zone['candle_ema50'] = candle['ema50']
+                    zone['candle_rsi'] = candle['rsi']
+                    zone['candle_atr'] = candle['atr']
+                    zone['touch_type'] = reaction_data['touch_type']
+                    zone['touch_from'] = reaction_data['touch_from']
+                    zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)
+                    use_zones.append(zone)
+                    id = zone.get('id',None)
+                    if id is not None:
+                        zone_type = zone.get('zone_type',None)
+                        if zone_type in ['Bearish FVG','Bullish FVG'] : 
+                            FVG.delete(id)
+                        elif zone_type in ['Bearish OB','Bullish OB'] :
+                            OB.delete(id)
+                        elif zone_type in ['Buy-Side Liq','Sell-Side Liq']:
+                            LIQ.delete(id)
+            input_set = list(datagen.extract_input_data(use_zones))
+            signal = signal_gen.generate(input_set)
             if signal != 'None' and signal is not None:
                 data = {k:v for k,v in signal.items() if k != "meta"}
                 Cache._client.publish("signals_channel", json.dumps(data))
