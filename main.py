@@ -14,16 +14,11 @@ from Database.DataModels.Subscribers import Subscribers
 from Database.Cache import Cache
 
 @mu.log_memory
-def initialState():
+def initialState(symbol):
     print('Running Model Training')
-    DB.init_logger("initialdb.log")
     try:
-        FVG.initiate()
-        OB.initiate()
-        LIQ.initiate()
-        Signals.initiate()
-        Subscribers.initiate()
-        test = SignalService(timeframes=['1h','4h','1D'])
+        initiate_database()
+        test = SignalService(symbol=symbol,timeframes=['1h','4h','1D'])
         total = test.data_extraction()
         test.training_process(total)
     except CantFetchCandleData as e:
@@ -36,6 +31,18 @@ def initialState():
         print(f'{e}')
         raise e
         
+@mu.log_memory
+def initiate_database():
+    try:
+        DB.init_logger("initialdb.log")
+        FVG.initiate()
+        OB.initiate()
+        LIQ.initiate()
+        Signals.initiate()
+        Subscribers.initiate()
+    except Exception as e:
+        print(f'{str(e)}')
+        raise e
 
 @mu.log_memory
 def backtest():
@@ -70,7 +77,9 @@ if __name__ == "__main__" :
     args = parser.parse_args()
     process = {
         '*' : run_all_process,
-        'train' : initialState,
+        'update-database' : initiate_database,
+        'initiate-btc' : lambda : initialState("BTCUSDT"),
+        'initiate-bnb' : lambda : initialState("BNBUSDT"),
         'backtest' : backtest
     }
     process[args.option]()

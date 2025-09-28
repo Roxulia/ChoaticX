@@ -6,8 +6,9 @@ import decimal
 import numpy as np
 from Data.Paths import Paths
 class ATHHandler():
-    def __init__(self,candles=[]):
+    def __init__(self,symbol = "BTCUSDT",candles=[]):
         self.candles = candles
+        self.symbol = symbol
         self.Paths = Paths()
 
     def default_json_serializer(self,obj):
@@ -63,10 +64,10 @@ class ATHHandler():
         return ath
     
     def getATHFromStorage(self):
-        if not os.path.exists(self.Paths.ath_data):
+        if not os.path.exists(f"{self.Paths.ath_data}/{self.symbol}.json"):
             return None
 
-        with open(self.Paths.ath_data, "r") as f:
+        with open(f"{self.Paths.ath_data}/{self.symbol}.json", "r") as f:
             try:
                 return json.load(f)
             except json.JSONDecodeError:
@@ -91,7 +92,7 @@ class ATHHandler():
 
     def store(self,data):
         try:
-            with open(self.Paths.ath_data, 'w') as f:
+            with open(f"{self.Paths.ath_data}/{self.symbol}.json", 'w') as f:
                 json.dump(data, f, indent=4,default=self.default_json_serializer)
             return True
         except:

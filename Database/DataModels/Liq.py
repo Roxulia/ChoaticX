@@ -4,6 +4,7 @@ class LIQ(BaseModel):
     table = 'liq_zones'
     columns = {
         'id' : 'BIGINT AUTO_INCREMENT PRIMARY KEY',
+        'symbol' : 'VARCHAR(10)',
         'zone_type' : 'VARCHAR(30)',
         'timestamp' : 'TIMESTAMP UNIQUE',
         'time_frame' : 'VARCHAR(5)',

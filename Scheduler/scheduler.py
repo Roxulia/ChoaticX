@@ -6,7 +6,7 @@ import queue,threading,asyncio
 class SchedulerManager:
     def __init__(self,service : SignalService,api : BinanceAPI):
         self.scheduler = BackgroundScheduler()
-        self.service = service
+        self.btcservice = SignalService(symbol="BTCUSDT",threshold=300)
         self.binance_api = api
         # PriorityQueue: lower number = higher priority
         self.task_queue = queue.PriorityQueue()
@@ -23,12 +23,12 @@ class SchedulerManager:
     def start(self):
         # Plan B example:
         # 1. Update zones every 3 hours
-        self.scheduler.add_job(lambda: self.task_queue.put((1, self.service.update_untouched_zones())),
+        self.scheduler.add_job(lambda: self.task_queue.put((1, self.btcservice.update_untouched_zones())),
             'interval',
             hours=24,
             id="update_zones")
         
-        self.scheduler.add_job(lambda : self.task_queue.put((2,self.service.update_running_signals())),'interval',hours=24,id = "update_signals")
+        self.scheduler.add_job(lambda : self.task_queue.put((2,self.btcservice.update_running_signals())),'interval',hours=24,id = "update_signals")
 
         self.scheduler.start()
 
@@ -57,13 +57,13 @@ class SchedulerManager:
             try:
                 interval = kline.get("i")  # e.g. "1h" or "4h"
                 if interval == "1h":
-                    self.task_queue.put((1, self.service.update_running_signals()))
-                    self.task_queue.put((2,self.service.update_pending_signals(300)))
-                    self.task_queue.put((3, self.service.get_current_signals))
+                    self.task_queue.put((1, self.btcservice.update_running_signals()))
+                    self.task_queue.put((2,self.btcservice.update_pending_signals(300)))
+                    self.task_queue.put((3, self.btcservice.get_current_signals))
                     print("📡 1h closed → triggered signals")
 
                 elif interval == "4h":
-                    self.task_queue.put((1, self.service.update_untouched_zones()))
+                    self.task_queue.put((1, self.btcservice.update_untouched_zones()))
                     print("📡 4h closed → triggered zones")
             except Exception as e:
                 print(f'{str(e)}')

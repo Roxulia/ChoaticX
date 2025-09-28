@@ -5,6 +5,7 @@ class OB(BaseModel):
     columns = {
         'id' : 'BIGINT AUTO_INCREMENT PRIMARY KEY',
         'timestamp' : 'TIMESTAMP UNIQUE',
+        'symbol' : 'VARCHAR(10)',
         'zone_type':'VARCHAR(30)',
         'time_frame':'VARCHAR(5)',
         'zone_high':'FLOAT',

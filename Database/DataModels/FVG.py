@@ -4,6 +4,7 @@ class FVG(BaseModel):
     table = 'fvg_zones'
     columns = {
         'id' : 'BIGINT AUTO_INCREMENT PRIMARY KEY',
+        'symbol' : 'VARCHAR(10)',
         'timestamp' : 'TIMESTAMP UNIQUE',
         'zone_type':'VARCHAR(30)',
         'time_frame':'VARCHAR(5)',

@@ -14,7 +14,7 @@ class TelegramBot:
     def __init__(self, service : SignalService):
         load_dotenv()
         self.TELEGRAM_TOKEN = os.getenv("BOT_API")
-        self.service = service
+        self.btcservice = SignalService("BTCUSDT",300)
         self.app = Application.builder().token(self.TELEGRAM_TOKEN).post_init(self.post_init).build()
         self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
         self.pubsub = self.redis.pubsub()
@@ -58,7 +58,7 @@ class TelegramBot:
 
     async def get_zones(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
-            zones = self.service.get_untouched_zones()
+            zones = self.btcservice.get_untouched_zones(limit= 5)
             sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
             msg = "Recent Zones\n"
             for zz in sorted_zones:
@@ -72,7 +72,7 @@ class TelegramBot:
 
     async def get_running_signals(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
-            signals = self.service.get_running_signals()
+            signals = self.btcservice.get_running_signals()
             msg = "Recent Running Signals\n"
             for s in signals:
                 msg = msg +  f"Signal Side: {s['position']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']}\n"

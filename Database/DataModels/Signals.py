@@ -8,6 +8,7 @@ class Signals(BaseModel):
     table = 'signals'
     columns = {
         'id' : 'BIGINT AUTO_INCREMENT PRIMARY KEY',
+        'symbol' : 'VARCHAR(10)',
         'position' : 'VARCHAR(20) NOT NULL',
         'entry_price' : 'FLOAT NOT NULL',
         'tp' : 'FLOAT NOT NULL',
@@ -38,31 +39,31 @@ class Signals(BaseModel):
     
     @classmethod
     @islimitExist
-    def getPendingSignals(cls,limit):
+    def getPendingSignals(cls,limit,symbol):
         
-        sql = f"SELECT * FROM {cls.table} WHERE result = 'PENDING' ORDER BY timestamp {limit}"
-        result = DB.execute(sql,fetchall= True)
+        sql = f"SELECT * FROM {cls.table} WHERE result = 'PENDING' and symbol = %s ORDER BY timestamp {limit}"
+        result = DB.execute(sql,[symbol],fetchall= True)
         return result
     
     @classmethod
     @islimitExist
-    def getRunningSignals(cls,limit):
-        sql = f"SELECT * FROM {cls.table} WHERE result = 'RUNNING' ORDER BY timestamp {limit}"
-        result = DB.execute(sql,fetchall= True)
+    def getRunningSignals(cls,limit,symbol):
+        sql = f"SELECT * FROM {cls.table} WHERE result = 'RUNNING' and symbol = %s ORDER BY timestamp {limit}"
+        result = DB.execute(sql,[symbol],fetchall= True)
         return result
     
     @classmethod
     @islimitExist
-    def getWonSignals(cls,limit):
-        sql = f"SELECT * FROM {cls.table} WHERE result = 'WIN' ORDER BY timestamp {limit}"
-        result = DB.execute(sql,fetchall= True)
+    def getWonSignals(cls,limit,symbol):
+        sql = f"SELECT * FROM {cls.table} WHERE result = 'WIN' and symbol = %s ORDER BY timestamp {limit}"
+        result = DB.execute(sql,[symbol],fetchall= True)
         return result
     
     @classmethod
     @islimitExist
-    def getLostSignals(cls,limit):
-        sql = f"SELECT * FROM {cls.table} WHERE result = 'LOSE' ORDER BY timestamp {limit}"
-        result = DB.execute(sql,fetchall= True)
+    def getLostSignals(cls,limit,symbol):
+        sql = f"SELECT * FROM {cls.table} WHERE result = 'LOSE' and symbol = %s ORDER BY timestamp {limit}"
+        result = DB.execute(sql,[symbol],fetchall= True)
         return result
     
 
