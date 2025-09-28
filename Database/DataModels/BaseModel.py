@@ -37,12 +37,12 @@ class BaseModel:
                 DB._logger.info(f"➕ Added column `{col_name}` {col_type} to `{cls.table}`")
 
         for col_name, col_type in cls.columns.items():
-        if col_name in existing_cols and existing_cols[col_name].lower() != col_type.lower():
-            alter_sql = f"ALTER TABLE {cls.table} MODIFY COLUMN {col_name} {col_type}"
-            DB.execute(alter_sql, commit=True)
-            DB._logger.info(
-                f"🔄 Updated column `{col_name}` type from {existing_cols[col_name]} to {col_type} in `{cls.table}`"
-            )
+            if col_name in existing_cols and existing_cols[col_name].lower() != col_type.lower():
+                alter_sql = f"ALTER TABLE {cls.table} MODIFY COLUMN {col_name} {col_type}"
+                DB.execute(alter_sql, commit=True)
+                DB._logger.info(
+                    f"🔄 Updated column `{col_name}` type from {existing_cols[col_name]} to {col_type} in `{cls.table}`"
+                )
 
 
     @classmethod
