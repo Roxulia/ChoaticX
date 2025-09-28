@@ -86,14 +86,24 @@ class SignalGenerator:
             }
 
     
-    def get_running_signals(self):
+    def get_running_signals(self,limit = 0):
         try:
-            signals = Signals.getPendingSignals(5)
+            signals = Signals.getRunningSignals(limit)
             if signals:
                 return signals
             else:
                 raise EmptySignalException
         except Exception as e:
+            raise e
+        
+    def get_pending_signals(self,limit = 0):
+        try:
+            signals = Signals.getPendingSignals(limit)
+            if signals:
+                return signals
+            else:
+                raise EmptySignalException
+        except Exception as e :
             raise e
         
     def updateSignalStatus(self,id,status):

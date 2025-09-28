@@ -1,6 +1,9 @@
 from .BaseModel import BaseModel 
 from ..DB import MySQLDB as DB
 from ..Cache import Cache
+from functools import wraps
+
+
 class Signals(BaseModel):
     table = 'signals'
     columns = {
@@ -9,19 +12,59 @@ class Signals(BaseModel):
         'entry_price' : 'FLOAT NOT NULL',
         'tp' : 'FLOAT NOT NULL',
         'sl' : "FLOAT NOT NULL",
-        'result' : "ENUM('PENDING','WIN','LOSE') DEFAULT 'PENDING'",
+        'result' : "ENUM('PENDING','WIN','LOSE','RUNNING') DEFAULT 'PENDING'",
         'timestamp' : "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
     }
 
+    def islimitExist(func):
+        @wraps(func)
+        def wrapper(cls, limit=0, *args, **kwargs):
+            # build cache key with table + function name + limit
+            cache_key = f"{cls.table}:{func.__name__}:{limit or 'ALL'}"
+            cached = Cache.get(cache_key)
+            if cached is not None:
+                return cached
+
+            # Prepare LIMIT clause if needed
+            limit_clause = f"LIMIT {limit}" if limit else ""
+
+            # Run the original function
+            result = func(cls, limit_clause, *args, **kwargs)
+
+            # Store in cache (default 60s, tweak if needed)
+            Cache.set(cache_key, result, 60)
+            return result
+        return wrapper
+    
     @classmethod
+    @islimitExist
     def getPendingSignals(cls,limit):
-        raw_key = f"{cls.table}:result:PENDING:{limit}"
-        cached = Cache.get(raw_key)
-        if cached is not None:
-            return cached
-        sql = f"SELECT * FROM {cls.table} WHERE result = 'PENDING' ORDER BY timestamp LIMIT {limit}"
+        
+        sql = f"SELECT * FROM {cls.table} WHERE result = 'PENDING' ORDER BY timestamp {limit}"
         result = DB.execute(sql,fetchall= True)
-        Cache.set(raw_key,result,60)
         return result
+    
+    @classmethod
+    @islimitExist
+    def getRunningSignals(cls,limit):
+        sql = f"SELECT * FROM {cls.table} WHERE result = 'RUNNING' ORDER BY timestamp {limit}"
+        result = DB.execute(sql,fetchall= True)
+        return result
+    
+    @classmethod
+    @islimitExist
+    def getWonSignals(cls,limit):
+        sql = f"SELECT * FROM {cls.table} WHERE result = 'WIN' ORDER BY timestamp {limit}"
+        result = DB.execute(sql,fetchall= True)
+        return result
+    
+    @classmethod
+    @islimitExist
+    def getLostSignals(cls,limit):
+        sql = f"SELECT * FROM {cls.table} WHERE result = 'LOSE' ORDER BY timestamp {limit}"
+        result = DB.execute(sql,fetchall= True)
+        return result
+    
+
     
     

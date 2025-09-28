@@ -58,7 +58,8 @@ class SchedulerManager:
                 interval = kline.get("i")  # e.g. "1h" or "4h"
                 if interval == "1h":
                     self.task_queue.put((1, self.service.update_running_signals()))
-                    self.task_queue.put((2, self.service.get_current_signals))
+                    self.task_queue.put((2,self.service.update_pending_signals(300)))
+                    self.task_queue.put((3, self.service.get_current_signals))
                     print("📡 1h closed → triggered signals")
 
                 elif interval == "4h":

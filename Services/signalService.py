@@ -282,13 +282,13 @@ class SignalService:
     def get_running_signals(self):
         signal_gen = SignalGenerator()
         try:
-            signals = signal_gen.get_running_signals()
+            signals = signal_gen.get_running_signals(5)
             return signals
         except Exception as e:
             raise e
         
     def update_running_signals(self):
-        self.logger.info("Updating Signals")
+        self.logger.info("Updating Running Signals")
         try:
             signal_gen = SignalGenerator()
             signals = signal_gen.get_running_signals()
@@ -311,6 +311,31 @@ class SignalService:
                         continue
                 else:
                     continue
+        except Exception as e:
+            self.logger.error(f'{str(e)}')
+
+    def update_pending_signals(self,threshold):
+        self.logger.info("Updating Pending Signals")
+        try:
+            signal_gen = SignalGenerator()
+            signals = signal_gen.get_pending_signals()
+            candle = self.api.get_latest_candle()
+            for s in signals:
+                signal_position = s['position']
+                diff = abs(s['sl'] - candle['close'])
+                if diff > threshold:
+                    if signal_position == 'Long' : 
+                        if s['sl'] < candle['close'] < s['entry_price']:
+                            signal_gen.updateSignalStatus(s['id'],"RUNNING")
+                        else:
+                            continue
+                    elif signal_position == 'Short':
+                        if s['sl'] > candle['close'] > s['entry_price']:
+                            signal_gen.updateSignalStatus(s['id'],"RUNNING")
+                        else:
+                            continue
+                    else:
+                        continue
         except Exception as e:
             self.logger.error(f'{str(e)}')
 
