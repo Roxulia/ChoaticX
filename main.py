@@ -34,7 +34,7 @@ def initialState(symbol,threshold):
 @mu.log_memory
 def initiate_database():
     try:
-        DB.init_logger("initialdb.log")
+        
         FVG.initiate()
         OB.initiate()
         LIQ.initiate()
@@ -86,6 +86,7 @@ def run_all_process():
 
 if __name__ == "__main__" :
     Cache.init()
+    DB.init_logger("initialdb.log")
     pd.set_option('future.no_silent_downcasting', True)
     parser = argparse.ArgumentParser(description="run training program")
     parser.add_argument("option",help="'*' to do all process\n'train' to Train Model\n'backtest' to Test the Model",default='*')
