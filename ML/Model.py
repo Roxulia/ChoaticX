@@ -75,14 +75,26 @@ class ModelHandler:
             self.model.fit(X_batch, y_batch)
 
         elif self.model_type == 'xgb':
-            if iteration == 0:
-                self.model.set_params(n_estimators=self.n_estimators_step)
-                self.model.fit(X_batch, y_batch, xgb_model=None)
-            else:
-                prev_booster = self.model.get_booster()
-                new_estimators = self.model.n_estimators + self.n_estimators_step
-                self.model.set_params(n_estimators=new_estimators)
-                self.model.fit(X_batch, y_batch, xgb_model=prev_booster)
+                if not hasattr(self, "is_initialized"):
+                    self.is_initialized = False
+
+                if len(np.unique(y_batch)) < 2:
+                    print(f"Skipping batch {iteration} because it only contains one class: {np.unique(y_batch)}")
+                    return
+
+                if not self.is_initialized:
+                    # First valid batch → initialize model
+                    self.model.set_params(n_estimators=self.n_estimators_step)
+                    self.model.fit(X_batch, y_batch, xgb_model=None)
+                    self.is_initialized = True
+                    print(f"Model initialized at batch {iteration}")
+                else:
+                    # Continue training
+                    prev_booster = self.model.get_booster()
+                    new_estimators = self.model.n_estimators + self.n_estimators_step
+                    self.model.set_params(n_estimators=new_estimators)
+                    self.model.fit(X_batch, y_batch, xgb_model=prev_booster)
+                    print(f"Trained on batch {iteration}")
 
     def data_generator(self):
         """
