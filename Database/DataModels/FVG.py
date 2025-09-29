@@ -5,7 +5,7 @@ class FVG(BaseModel):
     columns = {
         'id' : 'BIGINT AUTO_INCREMENT PRIMARY KEY',
         'symbol' : 'VARCHAR(10)',
-        'timestamp' : 'TIMESTAMP UNIQUE',
+        'timestamp' : 'TIMESTAMP',
         'zone_type':'VARCHAR(30)',
         'time_frame':'VARCHAR(5)',
         'zone_high':'FLOAT',
