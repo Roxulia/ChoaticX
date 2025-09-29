@@ -27,15 +27,15 @@ class SchedulerManager:
         self.scheduler.add_job(lambda: self.task_queue.put((1, self.btcservice.update_untouched_zones())),
             'interval',
             hours=24,
-            id="update_zones")
+            id="update_btc_zones")
         
-        self.scheduler.add_job(lambda : self.task_queue.put((2,self.btcservice.update_running_signals())),'interval',hours=24,id = "update_signals")
+        self.scheduler.add_job(lambda : self.task_queue.put((2,self.btcservice.update_running_signals())),'interval',hours=24,id = "update_btc_signals")
         self.scheduler.add_job(lambda: self.task_queue.put((1, self.bnbservice.update_untouched_zones())),
             'interval',
             hours=24,
-            id="update_zones")
+            id="update_bnb_zones")
         
-        self.scheduler.add_job(lambda : self.task_queue.put((2,self.bnbservice.update_running_signals())),'interval',hours=24,id = "update_signals")
+        self.scheduler.add_job(lambda : self.task_queue.put((2,self.bnbservice.update_running_signals())),'interval',hours=24,id = "update_bnb_signals")
         self.scheduler.start()
 
     def _worker(self):
