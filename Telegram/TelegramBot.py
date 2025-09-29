@@ -75,7 +75,7 @@ class TelegramBot:
             signals = self.btcservice.get_running_signals()
             msg = "Recent Running Signals\n"
             for s in signals:
-                msg = msg +  f"Signal Side: {s['position']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']}\n"
+                msg = msg +  f"Signal Side: {s['position']} | Symbol: {s['symbol']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']}\n"
             await update.message.reply_text(msg)
         except EmptySignalException as e:
             await update.message.reply_text(str(e))
@@ -91,11 +91,11 @@ class TelegramBot:
         text = (
         f"📢 New Signal! Side: {signal['position']} | Token: {signal['symbol']} "
         f"| Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
-    )
-
-        subscribers = Subscribers.getActiveSubscribers()
-        for s in subscribers:
-            await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+        )
+        if signal['symbol'] == "BTCUSDT":
+            subscribers = Subscribers.getActiveSubscribers()
+            for s in subscribers:
+                await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
 
     async def listener(self):
         def blocking():
