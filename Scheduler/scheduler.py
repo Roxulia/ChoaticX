@@ -65,20 +65,20 @@ class SchedulerManager:
                 symbol = kline.get("s")
                 if interval == "1h":
                     if symbol == "BTCUSDT":
-                        self.task_queue.put((1, self.btcservice.update_running_signals()))
-                        self.task_queue.put((2,self.btcservice.update_pending_signals()))
+                        self.task_queue.put((1, self.btcservice.update_running_signals))
+                        self.task_queue.put((2,self.btcservice.update_pending_signals))
                         self.task_queue.put((3, self.btcservice.get_current_signals))
                         print("📡 1h BTC closed → triggered signals")
                     elif symbol == "BNBUSDT":
-                        self.task_queue.put((1, self.bnbservice.update_running_signals()))
-                        self.task_queue.put((2,self.bnbservice.update_pending_signals()))
+                        self.task_queue.put((1, self.bnbservice.update_running_signals))
+                        self.task_queue.put((2,self.bnbservice.update_pending_signals))
                         self.task_queue.put((3, self.bnbservice.get_current_signals))
                         print("📡 1h BNB closed → triggered signals")
                 elif interval == "4h":
                     if symbol == "BTCUSDT":
-                        self.task_queue.put((1, self.btcservice.update_untouched_zones()))
+                        self.task_queue.put((1, self.btcservice.update_untouched_zones))
                     elif symbol == "BNBUSDT":
-                        self.task_queue.put((1, self.bnbservice.update_untouched_zones()))
+                        self.task_queue.put((1, self.bnbservice.update_untouched_zones))
                     print("📡 4h closed → triggered zones")
             except Exception as e:
                 print(f'{str(e)}')
