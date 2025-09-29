@@ -45,6 +45,22 @@ def initiate_database():
         raise e
 
 @mu.log_memory
+def train_model(symbol,threshold):
+    try:
+        test = SignalService(symbol=symbol,threshold=threshold,timeframes=['1h','4h','1D'])
+        total = test.data_extraction()
+        test.training_process(total)
+    except CantFetchCandleData as e:
+        print(f'{e}')
+        raise FailInitialState
+    except TrainingFail as e:
+        print(f'{e}')
+        raise FailInitialState
+    except Exception as e:
+        print(f'{e}')
+        raise e
+
+@mu.log_memory
 def backtest():
     backtest = BackTestHandler(time_frames = ['1h','4h','1D'],lookback = '1 years')
     if backtest.warm_up():
@@ -80,6 +96,8 @@ if __name__ == "__main__" :
         'update-database' : initiate_database,
         'initiate-btc' : lambda : initialState("BTCUSDT",300),
         'initiate-bnb' : lambda : initialState("BNBUSDT",3),
+        'train-btc' : lambda : train_model("BTCUSDT",300),
+        'train-bnb' : lambda : train_model("BNBUSDT",3),
         'backtest' : backtest
     }
     process[args.option]()
