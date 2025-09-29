@@ -1,7 +1,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from Services.signalService import SignalService
 from Data.binanceAPI import BinanceAPI
-import queue,threading,asyncio
+import queue,threading,asyncio,itertools
 
 class SchedulerManager:
     def __init__(self, service: SignalService, api: BinanceAPI):
