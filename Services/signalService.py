@@ -92,7 +92,7 @@ class SignalService:
         zones = confluentfinder.getConfluents()
         athHandler = ATHHandler(self.symbol,self.based_candles)
         athHandler.updateATH()
-        nearByZones = NearbyZones(zones,self.based_candles)
+        nearByZones = NearbyZones(zones,self.based_candles,threshold=self.threshold)
         zones = nearByZones.getNearbyZone()
         reactor = ZoneReactor()
         zones = reactor.perform_reaction_check(zones,self.based_candles)
@@ -119,7 +119,7 @@ class SignalService:
             reactor = ZoneReactor()
             datagen = DatasetGenerator(self.symbol)
             reaction_data = reactor.get_last_candle_reaction(zones,candle)
-            nearbyzone = NearbyZones()
+            nearbyzone = NearbyZones(threshold=self.threshold)
             use_zones = []
             datacleaner = DataCleaner(symbol=self.symbol,timeframes=self.timeframes)
             model_handler = ModelHandler(symbol=self.symbol,model_type='xgb')
