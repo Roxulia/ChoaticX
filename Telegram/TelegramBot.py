@@ -89,7 +89,7 @@ class TelegramBot:
             print("Invalid signal format:", signal)
             return
         text = (
-        f"📢 New Signal! Side: {signal['position']} "
+        f"📢 New Signal! Side: {signal['position']} | Token: {signal['symbol']} "
         f"| Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
     )
 

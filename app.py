@@ -27,7 +27,7 @@ def listen_signals():
             data = json.loads(message['data'])
             socketio.emit("new_signal", data, broadcast=True)
 #threading.Thread(target=listen_signals, daemon=True).start()
-service = SignalService()
+service = SignalService(symbol="BTCUSDT",threshold=300)
 signal_api = SignalAPI(service=service,limiter=limiter)
 app.register_blueprint(signal_api.blueprint, url_prefix="/api")
 
