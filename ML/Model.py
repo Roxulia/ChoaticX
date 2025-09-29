@@ -12,13 +12,14 @@ import os
 from Data.Paths import Paths
 
 class ModelHandler:
-    def __init__(self,timeframes = ['1h','4h','1D'],total_line=1000,chunk = 1000,model_type='rf', n_estimators_step=10):
+    def __init__(self,symbol = "BTCUSDT",timeframes = ['1h','4h','1D'],total_line=1000,chunk = 1000,model_type='rf', n_estimators_step=10):
         """
         model_type: 'rf' (RandomForest), 'sgd' (SGDClassifier), or 'xgb' (XGBoost)
         """
         self.model_type = model_type
+        self.symbol = symbol
         self.Paths = Paths()
-        filename = "_".join(timeframes)
+        filename = f"{symbol}"+"_".join(timeframes)
         self.model_path = f'{self.Paths.model_root}/Model_{filename}_.pkl'
         self.target_col = 'target'
         self.chunk = chunk
@@ -74,14 +75,26 @@ class ModelHandler:
             self.model.fit(X_batch, y_batch)
 
         elif self.model_type == 'xgb':
-            if iteration == 0:
-                self.model.set_params(n_estimators=self.n_estimators_step)
-                self.model.fit(X_batch, y_batch, xgb_model=None)
-            else:
-                prev_booster = self.model.get_booster()
-                new_estimators = self.model.n_estimators + self.n_estimators_step
-                self.model.set_params(n_estimators=new_estimators)
-                self.model.fit(X_batch, y_batch, xgb_model=prev_booster)
+                if not hasattr(self, "is_initialized"):
+                    self.is_initialized = False
+
+                if len(np.unique(y_batch)) < 2:
+                    print(f"Skipping batch {iteration} because it only contains one class: {np.unique(y_batch)}")
+                    return
+
+                if not self.is_initialized:
+                    # First valid batch → initialize model
+                    self.model.set_params(n_estimators=self.n_estimators_step)
+                    self.model.fit(X_batch, y_batch, xgb_model=None)
+                    self.is_initialized = True
+                    print(f"Model initialized at batch {iteration}")
+                else:
+                    # Continue training
+                    prev_booster = self.model.get_booster()
+                    new_estimators = self.model.n_estimators + self.n_estimators_step
+                    self.model.set_params(n_estimators=new_estimators)
+                    self.model.fit(X_batch, y_batch, xgb_model=prev_booster)
+                    print(f"Trained on batch {iteration}")
 
     def data_generator(self):
         """
@@ -97,7 +110,7 @@ class ModelHandler:
             X (ndarray): Features batch.
             y (ndarray): Target batch.
         """
-        for chunk in pd.read_csv(self.Paths.train_data, chunksize=self.chunk):
+        for chunk in pd.read_csv(f'{self.Paths.train_data}/{self.symbol}_data.csv', chunksize=self.chunk):
             X = chunk.drop(columns = [self.target_col]).values
             y = chunk[self.target_col].values
             yield X, y
@@ -108,7 +121,7 @@ class ModelHandler:
         joblib.dump(self.model, self.model_path)
 
     def test_result(self):
-        test = pd.read_csv(self.Paths.test_data)
+        test = pd.read_csv(f'{self.Paths.test_data}/{self.symbol}_data.csv')
         X = test.drop(columns=[self.target_col])
         y = test[self.target_col]
         y_pred = self.predict(X)

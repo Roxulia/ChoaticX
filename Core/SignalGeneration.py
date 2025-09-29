@@ -29,7 +29,7 @@ class SignalGenerator:
 
             # Take the first row only
             row = zones.iloc[0].copy()
-
+            symbol = row['symbol']
             if row["target"] == 0:  # Short
                 position = "Short"
                 if row["touch_from"] == "Above":  # touched from above
@@ -63,6 +63,7 @@ class SignalGenerator:
 
         signal = {
             'position' : position,
+            'symbol' : symbol,
             'entry_price' : entry,
             'tp' : tp,
             'sl' : sl,
@@ -78,6 +79,7 @@ class SignalGenerator:
         finally:
             return {
                 "position": position,
+                "symbol" : symbol,
                 "entry_price": entry,
                 "tp": tp,
                 "sl": sl,
@@ -86,9 +88,9 @@ class SignalGenerator:
             }
 
     
-    def get_running_signals(self,limit = 0):
+    def get_running_signals(self,limit = 0,symbol = "BTCUSDT"):
         try:
-            signals = Signals.getRunningSignals(limit)
+            signals = Signals.getRunningSignals(limit,symbol)
             if signals:
                 return signals
             else:
@@ -96,9 +98,9 @@ class SignalGenerator:
         except Exception as e:
             raise e
         
-    def get_pending_signals(self,limit = 0):
+    def get_pending_signals(self,limit = 0,symbol = "BTCUSDT"):
         try:
-            signals = Signals.getPendingSignals(limit)
+            signals = Signals.getPendingSignals(limit,symbol)
             if signals:
                 return signals
             else:

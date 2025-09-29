@@ -1,10 +1,21 @@
 from ..DB import MySQLDB as DB
 from ..Cache import Cache
+from functools import wraps
 
 class BaseModel:
     table :str = None  # to override in subclasses
     columns : dict = None
 
+    def islimitExist(func):
+        @wraps(func)
+        def wrapper(cls, limit=0, *args, **kwargs):
+            # Prepare LIMIT clause if needed
+            limit_clause = f"LIMIT {limit}" if limit else ""
+            # Run the original function
+            result = func(cls, limit_clause, *args, **kwargs)
+            return result
+        return wrapper
+    
     @classmethod
     def initiate(cls):
         if not cls.table or not cls.columns:
@@ -37,7 +48,7 @@ class BaseModel:
                 DB._logger.info(f"➕ Added column `{col_name}` {col_type} to `{cls.table}`")
 
         for col_name, col_type in cls.columns.items():
-            if col_name in existing_cols and existing_cols[col_name].lower() != col_type.lower():
+            if col_name in existing_cols and existing_cols[col_name].lower() != col_type.lower() and col_name != "id":
                 alter_sql = f"ALTER TABLE {cls.table} MODIFY COLUMN {col_name} {col_type}"
                 DB.execute(alter_sql, commit=True)
                 DB._logger.info(
@@ -92,13 +103,14 @@ class BaseModel:
         print(f"🗑 Deleted from {cls.table} id={record_id}")
 
     @classmethod
-    def getRecentData(cls,limit,key):
-        raw_key = f"{cls.table}:find:{key}:{limit}:ORDER"
+    @islimitExist
+    def getRecentData(cls,limit,key,symbol):
+        raw_key = f"{cls.table}:find:{key}:{symbol}:{limit}:ORDER"
         cached = Cache.get(raw_key)
         if cached is not None:
             return cached
-        sql = f"SELECT * FROM {cls.table} ORDER BY {key} DESC LIMIT {limit}"
-        result = DB.execute(sql,fetchall= True)
+        sql = f"SELECT * FROM {cls.table} WHERE symbol = %s ORDER BY {key} DESC {limit}"
+        result = DB.execute(sql,[symbol],fetchall= True)
         Cache.set(raw_key,result,60)
         return result
     
@@ -109,6 +121,28 @@ class BaseModel:
         if cached is not None:
             return cached
         sql = f"SELECT * FROM {cls.table} WHERE timestamp = %s"
-        result =  DB.execute(sql,[timestamp],fetchone=True)
+        result =  DB.execute(sql,[timestamp],fetchall=True)
+        Cache.set(raw_key,result)
+        return result
+    
+    @classmethod
+    def GetBySymbol(cls,symbol):
+        raw_key = f"{cls.table}:find:symbol:{symbol}"
+        cached = Cache.get(raw_key)
+        if cached is not None:
+            return cached
+        sql = f"SELECT * FROM {cls.table} WHERE symbol = %s"
+        result =  DB.execute(sql,[symbol],fetchall=True)
+        Cache.set(raw_key,result)
+        return result
+    
+    @classmethod
+    def GetBySymbolTimeStamp(cls,timestamp,symbol):
+        raw_key = f"{cls.table}:find:timestamp:{timestamp}:symbol:{symbol}"
+        cached = Cache.get(raw_key)
+        if cached is not None:
+            return cached
+        sql = f"SELECT * FROM {cls.table} WHERE timestamp = %s and symbol = %s"
+        result =  DB.execute(sql,[timestamp,symbol],fetchone=True)
         Cache.set(raw_key,result)
         return result

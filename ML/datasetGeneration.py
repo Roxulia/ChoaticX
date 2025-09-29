@@ -12,8 +12,9 @@ from Database.Cache import Cache
 from Utility.UtilityClass import UtilityFunctions as utility
 
 class DatasetGenerator:
-    def __init__(self,timeframes = ['1h','4h','1D']):
+    def __init__(self,symbol = "BTCUSDT",timeframes = ['1h','4h','1D']):
         self.Paths = Paths()
+        self.symbol = symbol
         self.dataset = []
         self.total_line = 0
         self.timeframes = timeframes
@@ -336,7 +337,8 @@ class DatasetGenerator:
                 if zone_type in ['Bearish FVG','Bullish FVG'] : 
                     fvg_columns = [k for k,v in FVG.columns.items()]
                     sql_data = {k:v for k,v in sql_data.items() if k in fvg_columns}
-                    existed_zone = FVG.GetByTimeStamp(sql_data['timestamp'])
+                    sql_data['symbol'] = self.symbol
+                    existed_zone = FVG.GetBySymbolTimeStamp(sql_data['timestamp'],self.symbol)
                     if existed_zone:
                         FVG.update(existed_zone['id'],sql_data)
                     else:
@@ -344,7 +346,8 @@ class DatasetGenerator:
                 elif zone_type in ['Bearish OB','Bullish OB'] :
                     ob_columns = [k for k,v in OB.columns.items()]
                     sql_data = {k:v for k,v in sql_data.items() if k in ob_columns}
-                    existed_zone = OB.GetByTimeStamp(sql_data['timestamp'])
+                    sql_data['symbol'] = self.symbol
+                    existed_zone = OB.GetBySymbolTimeStamp(sql_data['timestamp'],self.symbol)
                     if existed_zone:
                         OB.update(existed_zone['id'],sql_data)
                     else:
@@ -352,7 +355,8 @@ class DatasetGenerator:
                 elif zone_type in ['Buy-Side Liq','Sell-Side Liq']:
                     liq_columns = [k for k,v in LIQ.columns.items()]
                     sql_data = {k:v for k,v in sql_data.items() if k in liq_columns}
-                    existed_zone = LIQ.GetByTimeStamp(sql_data['timestamp'])
+                    sql_data['symbol'] = self.symbol
+                    existed_zone = LIQ.GetBySymbolTimeStamp(sql_data['timestamp'],self.symbol)
                     if existed_zone:
                         LIQ.update(existed_zone['id'],sql_data)
                     else:
@@ -376,14 +380,14 @@ class DatasetGenerator:
                     features = self.extract_features_and_labels(row)
                     to_write = self.extract_nearby_zones_confluent_tf(features)
                     if dataset_start:
-                        with open(self.Paths.raw_data, "w") as f:
+                        with open(f"{self.Paths.raw_data}/{self.symbol}_raw.jsonl", "w") as f:
                             
                             f.write(json.dumps(to_write , default=utility.default_json_serializer) + "\n")
                             for k,v in to_write.items():
                                 columns.add(k)
                         dataset_start = False
                     else:
-                        with open(self.Paths.raw_data, "a") as f:
+                        with open(f"{self.Paths.raw_data}/{self.symbol}_raw.jsonl", "a") as f:
                             f.write(json.dumps(to_write , default=utility.default_json_serializer) + "\n")
                             for k,v in to_write.items():
                                 columns.add(k)
@@ -393,7 +397,8 @@ class DatasetGenerator:
                     if zone_type in ['Bearish FVG','Bullish FVG'] : 
                         fvg_columns = [k for k,v in FVG.columns.items()]
                         sql_data = {k:v for k,v in sql_data.items() if k in fvg_columns}
-                        existed_zone = FVG.GetByTimeStamp(sql_data['timestamp'])
+                        sql_data['symbol'] = self.symbol
+                        existed_zone = FVG.GetBySymbolTimeStamp(sql_data['timestamp'],self.symbol)
                         if existed_zone:
                             FVG.update(existed_zone['id'],sql_data)
                         else:
@@ -401,7 +406,8 @@ class DatasetGenerator:
                     elif zone_type in ['Bearish OB','Bullish OB'] :
                         ob_columns = [k for k,v in OB.columns.items()]
                         sql_data = {k:v for k,v in sql_data.items() if k in ob_columns}
-                        existed_zone = OB.GetByTimeStamp(sql_data['timestamp'])
+                        sql_data['symbol'] = self.symbol
+                        existed_zone = OB.GetBySymbolTimeStamp(sql_data['timestamp'],self.symbol)
                         if existed_zone:
                             OB.update(existed_zone['id'],sql_data)
                         else:
@@ -409,7 +415,8 @@ class DatasetGenerator:
                     elif zone_type in ['Buy-Side Liq','Sell-Side Liq']:
                         liq_columns = [k for k,v in LIQ.columns.items()]
                         sql_data = {k:v for k,v in sql_data.items() if k in liq_columns}
-                        existed_zone = LIQ.GetByTimeStamp(sql_data['timestamp'])
+                        sql_data['symbol'] = self.symbol
+                        existed_zone = LIQ.GetBySymbolTimeStamp(sql_data['timestamp'],self.symbol)
                         if existed_zone:
                             LIQ.update(existed_zone['id'],sql_data)
                         else:
@@ -438,7 +445,7 @@ class DatasetGenerator:
 
     def store_column_list(self,columns : list):
         filename = "_".join(self.timeframes)
-        path = f'{self.Paths.columns_list}/{filename}.json'
+        path = f'{self.Paths.columns_list}/{self.symbol}_{filename}.json'
         with open(path,'w') as f :
             json.dump(columns,f)
 

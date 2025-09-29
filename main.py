@@ -14,16 +14,11 @@ from Database.DataModels.Subscribers import Subscribers
 from Database.Cache import Cache
 
 @mu.log_memory
-def initialState():
+def initialState(symbol,threshold):
     print('Running Model Training')
-    DB.init_logger("initialdb.log")
     try:
-        FVG.initiate()
-        OB.initiate()
-        LIQ.initiate()
-        Signals.initiate()
-        Subscribers.initiate()
-        test = SignalService(timeframes=['1h','4h','1D'])
+        initiate_database()
+        test = SignalService(symbol=symbol,threshold=threshold,timeframes=['1h','4h','1D'])
         total = test.data_extraction()
         test.training_process(total)
     except CantFetchCandleData as e:
@@ -36,6 +31,34 @@ def initialState():
         print(f'{e}')
         raise e
         
+@mu.log_memory
+def initiate_database():
+    try:
+        
+        FVG.initiate()
+        OB.initiate()
+        LIQ.initiate()
+        Signals.initiate()
+        Subscribers.initiate()
+    except Exception as e:
+        print(f'{str(e)}')
+        raise e
+
+@mu.log_memory
+def train_model(symbol,threshold):
+    try:
+        test = SignalService(symbol=symbol,threshold=threshold,timeframes=['1h','4h','1D'])
+        total = test.data_extraction()
+        test.training_process(total)
+    except CantFetchCandleData as e:
+        print(f'{e}')
+        raise FailInitialState
+    except TrainingFail as e:
+        print(f'{e}')
+        raise FailInitialState
+    except Exception as e:
+        print(f'{e}')
+        raise e
 
 @mu.log_memory
 def backtest():
@@ -63,6 +86,7 @@ def run_all_process():
 
 if __name__ == "__main__" :
     Cache.init()
+    DB.init_logger("initialdb.log")
     pd.set_option('future.no_silent_downcasting', True)
     parser = argparse.ArgumentParser(description="run training program")
     parser.add_argument("option",help="'*' to do all process\n'train' to Train Model\n'backtest' to Test the Model",default='*')
@@ -70,7 +94,11 @@ if __name__ == "__main__" :
     args = parser.parse_args()
     process = {
         '*' : run_all_process,
-        'train' : initialState,
+        'update-database' : initiate_database,
+        'initiate-btc' : lambda : initialState("BTCUSDT",300),
+        'initiate-bnb' : lambda : initialState("BNBUSDT",3),
+        'train-btc' : lambda : train_model("BTCUSDT",300),
+        'train-bnb' : lambda : train_model("BNBUSDT",3),
         'backtest' : backtest
     }
     process[args.option]()

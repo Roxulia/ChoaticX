@@ -6,7 +6,8 @@ import queue,threading,asyncio
 class SchedulerManager:
     def __init__(self,service : SignalService,api : BinanceAPI):
         self.scheduler = BackgroundScheduler()
-        self.service = service
+        self.btcservice = SignalService(symbol="BTCUSDT",threshold=300)
+        self.bnbservice = SignalService(symbol="BNBUSDT",threshold=3)
         self.binance_api = api
         # PriorityQueue: lower number = higher priority
         self.task_queue = queue.PriorityQueue()
@@ -23,13 +24,18 @@ class SchedulerManager:
     def start(self):
         # Plan B example:
         # 1. Update zones every 3 hours
-        self.scheduler.add_job(lambda: self.task_queue.put((1, self.service.update_untouched_zones())),
+        self.scheduler.add_job(lambda: self.task_queue.put((1, self.btcservice.update_untouched_zones())),
             'interval',
             hours=24,
             id="update_zones")
         
-        self.scheduler.add_job(lambda : self.task_queue.put((2,self.service.update_running_signals())),'interval',hours=24,id = "update_signals")
-
+        self.scheduler.add_job(lambda : self.task_queue.put((2,self.btcservice.update_running_signals())),'interval',hours=24,id = "update_signals")
+        self.scheduler.add_job(lambda: self.task_queue.put((1, self.bnbservice.update_untouched_zones())),
+            'interval',
+            hours=24,
+            id="update_zones")
+        
+        self.scheduler.add_job(lambda : self.task_queue.put((2,self.bnbservice.update_running_signals())),'interval',hours=24,id = "update_signals")
         self.scheduler.start()
 
     def _worker(self):
@@ -56,19 +62,28 @@ class SchedulerManager:
         async def on_kline_close(kline):
             try:
                 interval = kline.get("i")  # e.g. "1h" or "4h"
+                symbol = kline.get("s")
                 if interval == "1h":
-                    self.task_queue.put((1, self.service.update_running_signals()))
-                    self.task_queue.put((2,self.service.update_pending_signals(300)))
-                    self.task_queue.put((3, self.service.get_current_signals))
-                    print("📡 1h closed → triggered signals")
-
+                    if symbol == "BTCUSDT":
+                        self.task_queue.put((1, self.btcservice.update_running_signals()))
+                        self.task_queue.put((2,self.btcservice.update_pending_signals()))
+                        self.task_queue.put((3, self.btcservice.get_current_signals))
+                        print("📡 1h BTC closed → triggered signals")
+                    elif symbol == "BNBUSDT":
+                        self.task_queue.put((1, self.bnbservice.update_running_signals()))
+                        self.task_queue.put((2,self.bnbservice.update_pending_signals()))
+                        self.task_queue.put((3, self.bnbservice.get_current_signals))
+                        print("📡 1h BNB closed → triggered signals")
                 elif interval == "4h":
-                    self.task_queue.put((1, self.service.update_untouched_zones()))
+                    if symbol == "BTCUSDT":
+                        self.task_queue.put((1, self.btcservice.update_untouched_zones()))
+                    elif symbol == "BNBUSDT":
+                        self.task_queue.put((1, self.bnbservice.update_untouched_zones()))
                     print("📡 4h closed → triggered zones")
             except Exception as e:
                 print(f'{str(e)}')
         # listen to both 1h + 4h
         try:
-            await self.binance_api.listen_kline(["BTCUSDT"], ["1h", "4h"], on_kline_close)
+            await self.binance_api.listen_kline(["BTCUSDT","BNBUSDT"], ["1h", "4h"], on_kline_close)
         except Exception as e:
             print(f'{str(e)}')

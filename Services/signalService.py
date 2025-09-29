@@ -30,9 +30,11 @@ import numpy as np
 import datetime,decimal
 
 class SignalService:
-    def __init__(self,timeframes = ['1h','4h','1D'],ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high','candle_open','candle_close','candle_high','candle_low']):
+    def __init__(self,symbol = "BTCUSDT",threshold = 300,timeframes = ['1h','4h','1D'],ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high','candle_open','candle_close','candle_high','candle_low']):
         
         self.api = BinanceAPI()
+        self.symbol = symbol
+        self.threshold = threshold
         self.Paths = Paths()
         self.timeframes = timeframes
         self.ignore_cols = ignore_cols
@@ -44,7 +46,7 @@ class SignalService:
     def initiate_logging(self):
         load_dotenv()
         # File handler
-        file_handler = logging.FileHandler(os.path.join(os.getenv(key='LOG_PATH'), "signal_service.log"))
+        file_handler = logging.FileHandler(os.path.join(os.getenv(key='LOG_PATH'), f"signal_service_{self.symbol}.log"))
         file_handler.setLevel(logging.DEBUG)
 
         # Console handler (optional)
@@ -67,13 +69,13 @@ class SignalService:
 
     def get_zones(self,interval,lookback):
         try:
-            df = self.api.get_ohlcv(interval=interval,lookback=lookback)
+            df = self.api.get_ohlcv(symbol=self.symbol,interval=interval,lookback=lookback)
         except CantFetchCandleData as e:
             raise CantFetchCandleData
         if interval ==  self.timeframes[0]:
             self.based_candles = df
         detector = ZoneDetector(df)
-        zones = detector.get_zones()
+        zones = detector.get_zones(threshold=self.threshold)
         return zones
 
     @mu.log_memory
@@ -88,18 +90,18 @@ class SignalService:
                 raise CantFetchCandleData
         confluentfinder = ConfluentsFinder(t_zones)
         zones = confluentfinder.getConfluents()
-        athHandler = ATHHandler(self.based_candles)
+        athHandler = ATHHandler(self.symbol,self.based_candles)
         athHandler.updateATH()
-        nearByZones = NearbyZones(zones,self.based_candles)
+        nearByZones = NearbyZones(zones,self.based_candles,threshold=self.threshold)
         zones = nearByZones.getNearbyZone()
         reactor = ZoneReactor()
         zones = reactor.perform_reaction_check(zones,self.based_candles)
         zones = sorted(zones,key=lambda x : x.get("timestamp",None))
         return zones
 
-    def get_untouched_zones(self):
+    def get_untouched_zones(self,limit=0):
         try:
-            zones = FVG.getRecentData(key="timestamp",limit=5) + OB.getRecentData(key="timestamp",limit=5) + LIQ.getRecentData(key="timestamp",limit=5)
+            zones = FVG.getRecentData(symbol=self.symbol,key="timestamp",limit=limit) + OB.getRecentData(symbol=self.symbol,key="timestamp",limit=limit) + LIQ.getRecentData(symbol=self.symbol,key="timestamp",limit=limit)
             if zones:
                 return zones
             else:
@@ -110,17 +112,17 @@ class SignalService:
     @mu.log_memory
     def get_current_signals(self):
         try:
-            candle = self.api.get_latest_candle()
+            candle = self.api.get_latest_candle(symbol=self.symbol)
             zones = self.get_untouched_zones()
-            athHandler = ATHHandler()
+            athHandler = ATHHandler(self.symbol)
             ATH = athHandler.getATHFromStorage()
             reactor = ZoneReactor()
-            datagen = DatasetGenerator()
+            datagen = DatasetGenerator(self.symbol)
             reaction_data = reactor.get_last_candle_reaction(zones,candle)
-            nearbyzone = NearbyZones()
+            nearbyzone = NearbyZones(threshold=self.threshold)
             use_zones = []
-            datacleaner = DataCleaner(self.timeframes)
-            model_handler = ModelHandler(model_type='xgb')
+            datacleaner = DataCleaner(symbol=self.symbol,timeframes=self.timeframes)
+            model_handler = ModelHandler(symbol=self.symbol,model_type='xgb')
             model_handler.load()
             signal_gen = SignalGenerator(model_handler,datacleaner,self.ignore_cols)
             for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
@@ -154,7 +156,7 @@ class SignalService:
             if signal != 'None' and signal is not None:
                 data = {k:v for k,v in signal.items() if k != "meta"}
                 Cache._client.publish("signals_channel", json.dumps(data))
-                self.logger.info(f"new signal generated : {signal['position']},{signal['tp']},{signal['sl']},{signal['entry']}")
+                self.logger.info(f"new signal generated : {signal['symbol']},{signal['position']},{signal['tp']},{signal['sl']},{signal['entry']}")
             return signal
         except Exception as e:
             self.logger.error(f'{str(e)}')
@@ -282,7 +284,7 @@ class SignalService:
     def get_running_signals(self):
         signal_gen = SignalGenerator()
         try:
-            signals = signal_gen.get_running_signals(5)
+            signals = signal_gen.get_running_signals(5,symbol=self.symbol)
             return signals
         except Exception as e:
             raise e
@@ -291,8 +293,8 @@ class SignalService:
         self.logger.info("Updating Running Signals")
         try:
             signal_gen = SignalGenerator()
-            signals = signal_gen.get_running_signals()
-            candle = self.api.get_latest_candle()
+            signals = signal_gen.get_running_signals(symbol=self.symbol)
+            candle = self.api.get_latest_candle(self.symbol)
             for s in signals:
                 signal_position = s['position']
                 if signal_position == 'Long' : 
@@ -314,16 +316,16 @@ class SignalService:
         except Exception as e:
             self.logger.error(f'{str(e)}')
 
-    def update_pending_signals(self,threshold):
+    def update_pending_signals(self):
         self.logger.info("Updating Pending Signals")
         try:
             signal_gen = SignalGenerator()
-            signals = signal_gen.get_pending_signals()
-            candle = self.api.get_latest_candle()
+            signals = signal_gen.get_pending_signals(symbol=self.symbol)
+            candle = self.api.get_latest_candle(self.symbol)
             for s in signals:
                 signal_position = s['position']
                 diff = abs(s['sl'] - candle['close'])
-                if diff > threshold:
+                if diff > self.threshold:
                     if signal_position == 'Long' : 
                         if s['sl'] < candle['close'] < s['entry_price']:
                             signal_gen.updateSignalStatus(s['id'],"RUNNING")
@@ -350,7 +352,7 @@ class SignalService:
                     continue
                 else:
                     temp_df.append(row)
-            datagen = DatasetGenerator()
+            datagen = DatasetGenerator(symbol=self.symbol)
             datagen.store_untouch_zones(temp_df)
         except CantFetchCandleData as e:
             self.logger.exception(f'{(e)}')
@@ -363,20 +365,20 @@ class SignalService:
             df = self.get_latest_zones('3 years')
         except CantFetchCandleData:
             raise CantFetchCandleData
-        datagen = DatasetGenerator(self.timeframes)
+        datagen = DatasetGenerator(self.symbol,self.timeframes)
         datagen.get_dataset_list(df)
         return datagen.total_line
     
     def clean_dataset(self,total):
-        datacleaner = DataCleaner(timeframes=self.timeframes,batch_size=1000,total_line=total)
+        datacleaner = DataCleaner(symbol = self.symbol,timeframes=self.timeframes,batch_size=1000,total_line=total)
         return datacleaner.perform_clean(self.ignore_cols)
         
     def train_model(self,total):
-        model_trainer = ModelHandler(timeframes=self.timeframes,model_type='xgb',total_line=total)
+        model_trainer = ModelHandler(symbol=self.symbol,timeframes=self.timeframes,model_type='xgb',total_line=total)
         model_trainer.train()
 
     def test_model(self):
-        model_trainer = ModelHandler(model_type='xgb',timeframes=self.timeframes)
+        model_trainer = ModelHandler(symbol=self.symbol,model_type='xgb',timeframes=self.timeframes)
         model_trainer.load()
         model_trainer.test_result()
 
