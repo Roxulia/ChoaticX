@@ -8,7 +8,10 @@ class Subscribers(BaseModel):
         "chat_id": "BIGINT NOT NULL UNIQUE",
         "username": "VARCHAR(255)",
         "is_active": "BOOLEAN DEFAULT TRUE",
+        "is_admin" : "BOOLEAN DEFAULT FALSE",
         "tier" : "BIGINT DEFAULT 1",
+        "capital" : "BIGINT DEFAULT 1000",
+        "risk_size" : "FLOAT DEFAULT 0.01",
         "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
         "updated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
     }
@@ -30,7 +33,18 @@ class Subscribers(BaseModel):
         cached = Cache.get(raw_key)
         if cached is not None:
             return cached
-        sql = f"SELECT * FROM {cls.table} WHERE is_active = True"
+        sql = f"SELECT * FROM {cls.table} WHERE is_active = True OR is_admin = True"
         result =  DB.execute(sql,fetchall=True)
+        Cache.set(raw_key,result)
+        return result
+    
+    @classmethod
+    def getActiveSubscriberWithTier(cls,tier:int):
+        raw_key = f"{cls.table}:find:is_active:True:tier:{tier}"
+        cached = Cache.get(raw_key)
+        if cached is not None:
+            return cached
+        sql = f"SELECT * FROM {cls.table} WHERE (is_active = True and tier = %s) OR is_admin = True "
+        result = DB.execute(sql,[tier],fetchall=True)
         Cache.set(raw_key,result)
         return result
