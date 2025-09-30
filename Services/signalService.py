@@ -142,6 +142,11 @@ class SignalService:
                     zone['touch_from'] = reaction_data['touch_from']
                     zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)
                     use_zones.append(zone)
+                    
+            input_set = list(datagen.extract_input_data(use_zones))
+            signal = signal_gen.generate(input_set)
+            if signal != 'None' and signal is not None:
+                for zone in use_zones:
                     id = zone.get('id',None)
                     if id is not None:
                         zone_type = zone.get('zone_type',None)
@@ -151,12 +156,9 @@ class SignalService:
                             OB.delete(id)
                         elif zone_type in ['Buy-Side Liq','Sell-Side Liq']:
                             LIQ.delete(id)
-            input_set = list(datagen.extract_input_data(use_zones))
-            signal = signal_gen.generate(input_set)
-            if signal != 'None' and signal is not None:
                 data = {k:v for k,v in signal.items() if k != "meta"}
                 Cache._client.publish("signals_channel", json.dumps(data))
-                self.logger.info(f"new signal generated : {signal['symbol']},{signal['position']},{signal['tp']},{signal['sl']},{signal['entry']}")
+                self.logger.info(f"new signal generated : {signal['symbol']},{signal['position']},{signal['tp']},{signal['sl']},{signal['entry_price']}")
             return signal
         except Exception as e:
             self.logger.error(f'{str(e)}')
