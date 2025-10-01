@@ -30,5 +30,4 @@ class BtcScheduler(BaseScheduler):
         elif interval == "4h" and symbol == "BTCUSDT":
             self._put_task(1, self.service.update_untouched_zones)
             print("📡 4h BTC closed → triggered zones")
-        else:
-            print(f"{self.name}-testing")
+        

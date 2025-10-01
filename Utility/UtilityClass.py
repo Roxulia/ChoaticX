@@ -97,6 +97,8 @@ class UtilityFunctions():
             return str(value)  # store as JSON/text
         elif pd.isna(value):
             return None
+        elif value == "nan" :
+            return None
         else:
             return value
     

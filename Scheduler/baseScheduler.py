@@ -80,7 +80,7 @@ class BaseScheduler():
                 self.logger.error(f"[{self.name}-Listener] Error: {e}")
 
         try:
-            await self.api.listen_kline([self.service.symbol], ["1m","1h", "4h"], on_kline_close)
+            await self.api.listen_kline([self.service.symbol], ["1h", "4h"], on_kline_close)
         except Exception as e:
             self.logger.error(f"[{self.name}-Listener] Fatal error: {e}")
 

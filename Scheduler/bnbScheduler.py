@@ -29,6 +29,3 @@ class BnbScheduler(BaseScheduler):
         elif interval == "4h" and symbol == "BNBUSDT":
             self._put_task(1, self.service.update_untouched_zones)
             self.logger.info("📡 4h BNB closed → triggered zones")
-
-        else:
-            print(f"{self.name}-testing")
