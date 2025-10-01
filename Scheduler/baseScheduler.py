@@ -20,9 +20,6 @@ class BaseScheduler():
         worker = threading.Thread(target=self._worker, daemon=True)
         worker.start()
 
-        # Start Binance listener
-        listener = threading.Thread(target=self._start_binance_listener, daemon=True)
-        listener.start()
 
     def initiate_logging(self):
         load_dotenv()
