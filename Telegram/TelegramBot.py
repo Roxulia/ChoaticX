@@ -165,7 +165,7 @@ class TelegramBot:
     def run(self):
         # Register bot handlers
         capital_update_handler = ConversationHandler(
-        entry_points=[CommandHandler("update-capital", self.update_subscriber_capital)],
+        entry_points=[CommandHandler("update_capital", self.update_subscriber_capital)],
         states={
             self.CAPITAL_UPDATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.set_capital)],
         },
