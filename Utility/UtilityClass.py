@@ -83,7 +83,11 @@ class UtilityFunctions():
     @staticmethod
     def to_sql_friendly(value):
         """Convert numpy / python objects into SQL-friendly types."""
-        if isinstance(value, (int, np.int32, np.int64)):
+        if pd.isna(value):
+            return None
+        elif value == "nan" :
+            return None
+        elif isinstance(value, (int, np.int32, np.int64)):
             return int(value)
         elif isinstance(value, (float, np.float32, np.float64)):
             return float(value)
@@ -95,10 +99,6 @@ class UtilityFunctions():
             return value  # already fine
         elif isinstance(value, (list, dict)):
             return str(value)  # store as JSON/text
-        elif pd.isna(value):
-            return None
-        elif value == "nan" :
-            return None
         else:
             return value
     
