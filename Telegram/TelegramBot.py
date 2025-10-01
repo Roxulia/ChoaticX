@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import *
 import os
 from dotenv import load_dotenv
 from Exceptions.ServiceExceptions import *
@@ -9,10 +9,12 @@ import asyncio
 import logging
 from logging.handlers import RotatingFileHandler
 from Database.DataModels.Subscribers import Subscribers
+from Backtest.Portfolio import *
 
 class TelegramBot:
     def __init__(self, service : SignalService):
         load_dotenv()
+        self.CAPITAL_UPDATE = 1
         self.TELEGRAM_TOKEN = os.getenv("BOT_API")
         self.btcservice = SignalService("BTCUSDT",300)
         self.app = Application.builder().token(self.TELEGRAM_TOKEN).post_init(self.post_init).build()
@@ -82,6 +84,45 @@ class TelegramBot:
         except Exception as e:
             await update.message.reply_text(f"Error: {str(e)}")
 
+    async def update_subscriber_capital(self,update:Update,context:ContextTypes.DEFAULT_TYPE):
+        try:
+            user_id = update.effective_user.id
+            user = Subscribers.getByChatID(user_id)
+            if user['tier'] > 1 or user['is_admin'] :
+                await update.message.reply_text("Please enter your new capital size in USDT or 'cancel' to cancel updating")
+                return self.CAPITAL_UPDATE
+            else:
+                await update.message.reply_text(f"❌ Your Account Tier Too Low to Update Capital")
+                return ConversationHandler.END
+        except Exception as e:
+            await update.message.reply_text("Error Occured")
+
+    async def set_capital(self,update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            capital = float(update.message.text)
+            if capital <= 0:
+                await update.message.reply_text("Capital must be greater than 0. Try again:")
+                return self.CAPITAL_UPDATE
+
+            # Example: update in DB
+            user_id = update.effective_user.id
+            user = Subscribers.getByChatID(user_id)
+            if user['tier'] > 1 or user['is_admin'] :
+                Subscribers.update(user['id'],{"capital":capital})
+                await update.message.reply_text(f"✅ Your capital has been updated to {capital} USDT.")
+            else:
+                await update.message.reply_text(f"❌ Your Account Tier Too Low to Update Capital")
+            
+            return ConversationHandler.END
+
+        except ValueError:
+            await update.message.reply_text("❌ Please enter a valid number:")
+            return self.CAPITAL_UPDATE
+
+    async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Capital update canceled.")
+        return ConversationHandler.END
+
     # ---------------- Broadcast ----------------
     async def broadcast_signals(self, signal):
         """This is called by the service when a new signal is generated."""
@@ -95,7 +136,20 @@ class TelegramBot:
         if signal['symbol'] == "BTCUSDT":
             subscribers = Subscribers.getActiveSubscribers()
             for s in subscribers:
-                await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+                if s['is_admin'] == True or s['tier'] > 1:
+                    porfolio = Portfolio(starting_balance= s['capital'])
+                    lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
+                    temp_text = text + f"| Lot Size: {lot_size}"
+                    await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
+                else:
+                    await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+        elif signal['symbol'] == "BNBUSDT" : 
+            subscribers = Subscribers.getActiveSubscriberWithTier(2)
+            for s in subscribers:
+                porfolio = Portfolio(starting_balance= s['capital'])
+                lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
+                temp_text = text + f"| Lot Size: {lot_size}"
+                await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
 
     async def listener(self):
         def blocking():
@@ -110,10 +164,18 @@ class TelegramBot:
 
     def run(self):
         # Register bot handlers
+        capital_update_handler = ConversationHandler(
+        entry_points=[CommandHandler("update-capital", self.update_subscriber_capital)],
+        states={
+            self.CAPITAL_UPDATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.set_capital)],
+        },
+        fallbacks=[CommandHandler("cancel", self.cancel)],
+        )
         self.app.add_handler(CommandHandler("start", self.start))
         self.app.add_handler(CommandHandler("subscribe", self.subscribe))
         self.app.add_handler(CommandHandler("unsubscribe", self.unsubscribe))
         self.app.add_handler(CommandHandler("zones", self.get_zones))
         self.app.add_handler(CommandHandler("signals", self.get_running_signals))
+        self.app.add_handler(capital_update_handler)
         self.app.run_polling()
 
