@@ -4,7 +4,7 @@ from Data.binanceAPI import BinanceAPI
 import queue,threading,asyncio,itertools
 
 class SchedulerManager:
-    def __init__(self, service: SignalService, api: BinanceAPI):
+    def __init__(self, api: BinanceAPI):
         self.scheduler = BackgroundScheduler()
         self.btcservice = SignalService(symbol="BTCUSDT", threshold=300)
         self.bnbservice = SignalService(symbol="BNBUSDT", threshold=3)
