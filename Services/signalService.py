@@ -112,6 +112,7 @@ class SignalService:
     @mu.log_memory
     def get_current_signals(self):
         try:
+            self.logger.info(f"{self.symbol} : getting current signal")
             candle = self.api.get_latest_candle(symbol=self.symbol)
             zones = self.get_untouched_zones()
             athHandler = ATHHandler(self.symbol)
@@ -161,7 +162,7 @@ class SignalService:
                 self.logger.info(f"new signal generated : {signal['symbol']},{signal['position']},{signal['tp']},{signal['sl']},{signal['entry_price']}")
             return signal
         except Exception as e:
-            self.logger.error(f'{str(e)}')
+            self.logger.error(f'Error:Getting New Signal:{self.symbol}:{str(e)}')
     
     def get_signals_with_input(self,data):
         if not data:
@@ -292,7 +293,7 @@ class SignalService:
             raise e
         
     def update_running_signals(self):
-        self.logger.info("Updating Running Signals")
+        self.logger.info(f"{self.symbol}:Updating Running Signals")
         try:
             signal_gen = SignalGenerator()
             signals = signal_gen.get_running_signals(symbol=self.symbol)
@@ -316,10 +317,10 @@ class SignalService:
                 else:
                     continue
         except Exception as e:
-            self.logger.error(f'{str(e)}')
+            self.logger.error(f'Error:Updating Runnning Signals : {self.symbol}:{str(e)}')
 
     def update_pending_signals(self):
-        self.logger.info("Updating Pending Signals")
+        self.logger.info(f"{self.symbol}:Updating Pending Signals")
         try:
             signal_gen = SignalGenerator()
             signals = signal_gen.get_pending_signals(symbol=self.symbol)
@@ -341,10 +342,11 @@ class SignalService:
                     else:
                         continue
         except Exception as e:
-            self.logger.error(f'{str(e)}')
+            self.logger.error(f'Error:Updating Pending Signals:{self.symbol}:{str(e)}')
 
     def update_untouched_zones(self):
         try:
+            self.logger.info(f"{self.symbol}:Updating Untouch Zones")
             df_from_candle = self.get_latest_zones('6 months')
             temp_df = []
             for i,row in enumerate(df_from_candle):
@@ -357,9 +359,9 @@ class SignalService:
             datagen = DatasetGenerator(symbol=self.symbol)
             datagen.store_untouch_zones(temp_df)
         except CantFetchCandleData as e:
-            self.logger.exception(f'{(e)}')
+            self.logger.exception(f'Error : Updating Untouch Zones{self.symbol}:{(e)}')
         except Exception as e:
-            self.logger.exception(f'{(e)}')
+            self.logger.exception(f'Error : Updating Untouch Zones{self.symbol}:{(e)}')
         
 
     def get_dataset(self):
