@@ -14,6 +14,27 @@ from Database.DataModels.Subscribers import Subscribers
 from Database.Cache import Cache
 
 @mu.log_memory
+def initiateAll():
+    print("Initiating All Model and System")
+    try:
+        initiate_database()
+        service1 = SignalService(symbol="BTCUSDT",threshold=300,timeframes=['1h','4h','1D'])
+        service2 = SignalService(symbol="BNBUSDT",threshold=3,timeframes=['1h','4h','1D'])
+        total1 = service1.data_extraction()
+        service1.training_process(total1)
+        total1 = service2.data_extraction()
+        service2.training_process(total1)
+    except CantFetchCandleData as e:
+        print(f'{e}')
+        raise FailInitialState
+    except TrainingFail as e:
+        print(f'{e}')
+        raise FailInitialState
+    except Exception as e:
+        print(f'{e}')
+        raise e
+
+@mu.log_memory
 def initialState(symbol,threshold):
     print('Running Model Training')
     try:
@@ -99,8 +120,10 @@ if __name__ == "__main__" :
         'initiate-bnb' : lambda : initialState("BNBUSDT",3),
         'train-btc' : lambda : train_model("BTCUSDT",300),
         'train-bnb' : lambda : train_model("BNBUSDT",3),
-        'backtest' : backtest
+        'backtest' : backtest,
+        'initiate-system' : initiateAll,
     }
     process[args.option]()
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")
+
