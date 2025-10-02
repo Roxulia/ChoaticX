@@ -12,7 +12,9 @@ Cache.init()
 if __name__ == "__main__":
     DB.init_logger("schedule_runner_db.log")
     api = BinanceAPI()
-    bnbscheduler = BnbScheduler(api)
+    scheduler = SchedulerManager(api = api)
+    scheduler.start()
+    """bnbscheduler = BnbScheduler(api)
     btcscheduler = BtcScheduler(api)
     bnbscheduler.start()
     btcscheduler.start()
@@ -32,8 +34,9 @@ if __name__ == "__main__":
             asyncio.create_task(dispatch_kline(kline))
 
         # subscribe to both symbols/timeframes in one listener
-        await api.listen_kline(["BTCUSDT", "BNBUSDT"], ["1h", "4h"], on_kline_close)
+        await api.listen_kline(["BTCUSDT", "BNBUSDT"], ["1h", "4h"], on_kline_close)"""
     try:
-        asyncio.run(listen_and_dispatch())
+        #asyncio.run(listen_and_dispatch())
+        time.sleep(3600)
     except (KeyboardInterrupt, SystemExit):
         print("Scheduler stopped.")
