@@ -57,7 +57,7 @@ class TelegramBot:
                                 parse_mode="Markdown"
                             )
                             return
-                    return await func(self,update, context,user, *args, **kwargs)
+                    return await func(update, context,user, *args, **kwargs)
                 except EmptyTelegramMessage as e:
                     print(f'{str(e)}')
                     return
