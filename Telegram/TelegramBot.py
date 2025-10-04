@@ -291,9 +291,6 @@ class TelegramBot:
         # Call the function dynamically
         func = getattr(self, action, None)
         if func:
-            # Trick: inject a fake `update.message` so functions work like commands
-            # Replace query.message with update.message for reuse
-            update.message = query.message  
             await func(update, context)
         else:
             await query.edit_message_text("⚠️ Handler not implemented yet.")
