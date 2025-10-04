@@ -36,25 +36,31 @@ class TelegramBot:
         def decorator(func):
             @wraps(func)
             async def wrapper(self,update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
-                user_id = update.effective_user.id
-                user = Subscribers.getByChatID(user_id)
-                if not for_starter:
-                    
-                    if not user:
-                        await update.message.reply_text("❌ You are not registered.")
-                        return
+                try:
+                    message = self.get_message(update)
+                    user_id = update.effective_user.id
+                    user = Subscribers.getByChatID(user_id)
 
-                    if admin_only and not user['is_admin']:
-                        await update.message.reply_text("🚫 Admins only.")
-                        return
+                    if not for_starter:
+                        
+                        if not user:
+                            await message.reply_text("❌ You are not registered.")
+                            return
 
-                    if not user['is_admin'] and user['tier'] < min_tier:
-                        await update.message.reply_text(
-                            f"⚠️ This command requires *Tier {min_tier}* or higher. Please upgrade your subscription.",
-                            parse_mode="Markdown"
-                        )
-                        return
-                return await func(self,update, context,user, *args, **kwargs)
+                        if admin_only and not user['is_admin']:
+                            await message.reply_text("🚫 Admins only.")
+                            return
+
+                        if not user['is_admin'] and user['tier'] < min_tier:
+                            await message.reply_text(
+                                f"⚠️ This command requires *Tier {min_tier}* or higher. Please upgrade your subscription.",
+                                parse_mode="Markdown"
+                            )
+                            return
+                    return await func(self,update, context,user, *args, **kwargs)
+                except EmptyTelegramMessage as e:
+                    print(f'{str(e)}')
+                    return
             return wrapper
         return decorator
     
@@ -64,57 +70,65 @@ class TelegramBot:
         
     # ---------------- Handlers ----------------
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        keyboard = [
-            [InlineKeyboardButton("📊 View BTCUSDT Zones", callback_data="btc_zones")],
-            [InlineKeyboardButton("📈 View BTCUSDT Signals", callback_data="btc_signals")],
-            [InlineKeyboardButton("🔔 Subscribe for Signals", callback_data="subscribe")],
-            [InlineKeyboardButton("ℹ️ Help", callback_data="help")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        try:
+            message = self.get_message(update)
+            keyboard = [
+                [InlineKeyboardButton("📊 View BTCUSDT Zones", callback_data="btc_zones")],
+                [InlineKeyboardButton("📈 View BTCUSDT Signals", callback_data="btc_signals")],
+                [InlineKeyboardButton("🔔 Subscribe for Signals", callback_data="subscribe")],
+                [InlineKeyboardButton("ℹ️ Help", callback_data="help")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
 
-        welcome_text = (
-            "👋 *Welcome to ChaoticX Bot!*\n\n"
-            "I’m your trading assistant for detecting smart money concepts 📈.\n\n"
-            "✨ What I can do for you:\n"
-            "• `/btc_zones` → Show latest zone formations (FVGs, OBs, Liquidity)\n"
-            "• `/btc_signals` → Show latest BTC signal informations\n"
-            "• `/subscribe` → Get real-time signals when new setups appear\n"
-            "• `/help` → Learn how to use me\n\n"
-            "⚡ Let’s start trading smarter!"
-        )
+            welcome_text = (
+                "👋 *Welcome to ChaoticX Bot!*\n\n"
+                "I’m your trading assistant for detecting smart money concepts 📈.\n\n"
+                "✨ What I can do for you:\n"
+                "• `/btc_zones` → Show latest zone formations (FVGs, OBs, Liquidity)\n"
+                "• `/btc_signals` → Show latest BTC signal informations\n"
+                "• `/subscribe` → Get real-time signals when new setups appear\n"
+                "• `/help` → Learn how to use me\n\n"
+                "⚡ Let’s start trading smarter!"
+            )
 
-        await update.message.reply_text(
-            welcome_text,
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
+            await message.reply_text(
+                welcome_text,
+                reply_markup=reply_markup,
+                parse_mode="Markdown"
+            )
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
 
     @restricted(for_starter=True)  # all registered users can use help
     async def help(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user):
-        keyboard = [
-            [InlineKeyboardButton("📊 BTCUSDT Zones", callback_data="btc_zones")],
-            [InlineKeyboardButton("🔔 Subscribe", callback_data="subscribe")],
-            
-        ]
-        if user is not None and (user['tier']>1 or user['is_admin']):
-            keyboard.append([InlineKeyboardButton("💰 Update Capital", callback_data="update_capital")])
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        if user is None:
-            tier = 0
-        else:
-            tier = user['tier']
-        help_text = (
-            "🤖 *ChaoticX Bot Help*\n\n"
-            "Here’s what I can do for you:\n\n"
-            "• `/btc_zones` → Show the latest zone formations (FVGs, OBs, Liquidity).\n"
-            "• `/subscribe` → Subscribe to real-time signals when setups appear and increase ur tier to 1.\n"
-            "• `/update_capital` → Update your portfolio capital size.\n"
-            "• `/cancel` → Cancel an ongoing action (like capital update).\n\n"
-            "⚡ *Your Tier:* {tier}\n"
-            "Use the buttons below for quick access 👇"
-        ).format(tier=tier)
+        try:
+            message = self.get_message(update)
+            keyboard = [
+                [InlineKeyboardButton("📊 BTCUSDT Zones", callback_data="btc_zones")],
+                [InlineKeyboardButton("🔔 Subscribe", callback_data="subscribe")],
+                
+            ]
+            if user is not None and (user['tier']>1 or user['is_admin']):
+                keyboard.append([InlineKeyboardButton("💰 Update Capital", callback_data="update_capital")])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            if user is None:
+                tier = 0
+            else:
+                tier = user['tier']
+            help_text = (
+                "🤖 *ChaoticX Bot Help*\n\n"
+                "Here’s what I can do for you:\n\n"
+                "• `/btc_zones` → Show the latest zone formations (FVGs, OBs, Liquidity).\n"
+                "• `/subscribe` → Subscribe to real-time signals when setups appear and increase ur tier to 1.\n"
+                "• `/update_capital` → Update your portfolio capital size.\n"
+                "• `/cancel` → Cancel an ongoing action (like capital update).\n\n"
+                "⚡ *Your Tier:* {tier}\n"
+                "Use the buttons below for quick access 👇"
+            ).format(tier=tier)
 
-        await update.message.reply_text(help_text, reply_markup=reply_markup, parse_mode="Markdown")
+            await message.reply_text(help_text, reply_markup=reply_markup, parse_mode="Markdown")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
 
     async def subscribe(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
@@ -135,18 +149,22 @@ class TelegramBot:
         
 
     async def unsubscribe(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        chat_id = update.effective_chat.id
         try:
-            existed = Subscribers.getByChatID(chat_id)
-            if existed:
-                Subscribers.update(existed['id'],{"is_active":False})
-                await update.message.reply_text("❌ Unsubscribed.")
-            else:
-                Subscribers.create({"chat_id":chat_id,"is_active":False})
-                await update.message.reply_text("U Haven't Subcribed to this Channel")
-        except Exception as e:
-            print("Error in Database")
-            await update.message.reply_text("Unknown Error Occur !! Pls Contact Us for Support")
+            message = self.get_message(update)
+            chat_id = update.effective_chat.id
+            try:
+                existed = Subscribers.getByChatID(chat_id)
+                if existed:
+                    Subscribers.update(existed['id'],{"is_active":False})
+                    await message.reply_text("❌ Unsubscribed.")
+                else:
+                    Subscribers.create({"chat_id":chat_id,"is_active":False})
+                    await message.reply_text("U Haven't Subcribed to this Channel")
+            except Exception as e:
+                print("Error in Database")
+                await message.reply_text("Unknown Error Occur !! Pls Contact Us for Support")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
 
     @restricted(for_starter=True)
     async def get_btc_zones(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
