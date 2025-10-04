@@ -87,8 +87,10 @@ class TelegramBot:
         keyboard = [
             [InlineKeyboardButton("📊 BTCUSDT Zones", callback_data="btc_zones")],
             [InlineKeyboardButton("🔔 Subscribe", callback_data="subscribe")],
-            [InlineKeyboardButton("💰 Update Capital", callback_data="update_capital")] if user is not None and (user['tier']>1 or user['is_admin']) else None,
+            
         ]
+        if user is not None and (user['tier']>1 or user['is_admin']):
+            keyboard.append([InlineKeyboardButton("💰 Update Capital", callback_data="update_capital")])
         reply_markup = InlineKeyboardMarkup(keyboard)
         if user is None:
             tier = 0
@@ -136,7 +138,7 @@ class TelegramBot:
             await update.message.reply_text("Unknown Error Occur !! Pls Contact Us for Support")
 
     @restricted(for_starter=True)
-    async def get_btc_zones(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def get_btc_zones(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
         try:
             zones = self.btcservice.get_untouched_zones(limit= 5)
             sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
@@ -170,7 +172,7 @@ class TelegramBot:
             await update.message.reply_text(f"Error: {str(e)}")
 
     @restricted(min_tier=2)
-    async def get_bnb_zones(self,update:Update,context:ContextTypes.DEFAULT_TYPE):
+    async def get_bnb_zones(self,update:Update,context:ContextTypes.DEFAULT_TYPE,user):
         try:
             zones = self.bnbservice.get_untouched_zones(limit= 5)
             sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
@@ -200,7 +202,7 @@ class TelegramBot:
             await update.message.reply_text(f"Error: {str(e)}")
 
     @restricted(min_tier=2)  # only Tier ≥2 or admins
-    async def update_subscriber_capital(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def update_subscriber_capital(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
         try:
             await update.message.reply_text(
                 "💰 Please enter your new capital size in *USDT* or type 'cancel' to stop:",
@@ -212,16 +214,13 @@ class TelegramBot:
             return ConversationHandler.END
 
     @restricted(min_tier=2)  # only Tier ≥2 or admins
-    async def set_capital(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def set_capital(self, update: Update, context: ContextTypes.DEFAULT_TYP,user):
         try:
             capital = float(update.message.text)
             if capital <= 0:
                 await update.message.reply_text("⚠️ Capital must be greater than 0. Try again:")
                 return self.CAPITAL_UPDATE
 
-            # ✅ Update in DB
-            user_id = update.effective_user.id
-            user = Subscribers.getByChatID(user_id)
             Subscribers.update(user['id'], {"capital": capital})
 
             await update.message.reply_text(f"✅ Your capital has been updated to *{capital} USDT*.", parse_mode="Markdown")
