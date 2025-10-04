@@ -214,7 +214,7 @@ class TelegramBot:
             return ConversationHandler.END
 
     @restricted(min_tier=2)  # only Tier ≥2 or admins
-    async def set_capital(self, update: Update, context: ContextTypes.DEFAULT_TYP,user):
+    async def set_capital(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
         try:
             capital = float(update.message.text)
             if capital <= 0:
