@@ -28,7 +28,8 @@ class TelegramBot:
             "btc_zones" : "get_btc_zones",
             "subscribe" : "subscribe",
             "help" : "help",
-            "btc_signals" : "get_given_btc_signals"
+            "btc_signals" : "get_given_btc_signals",
+            "update_capital" : "update_subscriber_capital"
         }
         
     def restricted(min_tier=1, admin_only=False,for_starter = False):
@@ -116,17 +117,21 @@ class TelegramBot:
         await update.message.reply_text(help_text, reply_markup=reply_markup, parse_mode="Markdown")
 
     async def subscribe(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        chat_id = update.effective_chat.id
         try:
-            existed = Subscribers.getByChatID(chat_id)
-            if existed:
-                Subscribers.update(existed['id'],{"is_active":True})
-            else:
-                Subscribers.create({"chat_id":chat_id})
-            await update.message.reply_text("✅ Subscribed for auto broadcasts!")
-        except Exception as e:
-            print("Error in Database")
-            await update.message.reply_text("Unknown Error Occur !! Pls Contact Us for Support")
+            message = self.get_message(update)
+            chat_id = update.effective_chat.id
+            try:
+                existed = Subscribers.getByChatID(chat_id)
+                if existed:
+                    Subscribers.update(existed['id'],{"is_active":True})
+                else:
+                    Subscribers.create({"chat_id":chat_id})
+                await message.reply_text("✅ Subscribed for auto broadcasts!")
+            except Exception as e:
+                print("Error in Database")
+                await message.reply_text("Unknown Error Occur !! Pls Contact Us for Support")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
         
 
     async def unsubscribe(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -146,98 +151,128 @@ class TelegramBot:
     @restricted(for_starter=True)
     async def get_btc_zones(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
         try:
-            zones = self.btcservice.get_untouched_zones(limit= 5)
-            sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
-            msg = "Recent BTC Zones\n"
-            for zz in sorted_zones:
-                msg = msg +  f"Zone Type : {zz['zone_type']},Zone High: {zz['zone_high']}, Low: {zz['zone_low']}, Time: {zz['timestamp']}\n"
-            
-            await update.message.reply_text(msg)
-        except NoUntouchedZone as e:
-            await update.message.reply_text(str(e))
-        except Exception as e:
-            await update.message.reply_text(f"Error: {str(e)}")
+            message = self.get_message(update)
+            try:
+                zones = self.btcservice.get_untouched_zones(limit= 5)
+                sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
+                msg = "Recent BTC Zones\n"
+                for zz in sorted_zones:
+                    msg = msg +  f"Zone Type : {zz['zone_type']},Zone High: {zz['zone_high']}, Low: {zz['zone_low']}, Time: {zz['timestamp']}\n"
+                
+                await message.reply_text(msg)
+            except NoUntouchedZone as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
 
     @restricted(for_starter=True)
     async def get_given_btc_signals(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
         try:
-            signals = self.btcservice.get_given_signals()
-            msg = "Recent BTCUSDT Signals\n"
-            if user is not None and (user['tier'] > 1 or user['is_admin']):
-                for s in signals:
-                    porfolio = Portfolio(starting_balance= user['capital'])
-                    lot_size = porfolio.risk_position_size(s['entry_price'],s['sl'],s['risk_size'])
-                    msg = msg +  f"Signal Side: {s['position']} | Symbol: {s['symbol']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']} | Lot Size: {lot_size}\n"
-            else:
-                for s in signals:
-                    msg = msg +  f"Signal Side: {s['position']} | Symbol: {s['symbol']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']}\n"
-            await update.message.reply_text(msg)
-        except EmptySignalException as e:
-            await update.message.reply_text(str(e))
-        except Exception as e:
-            await update.message.reply_text(f"Error: {str(e)}")
+            message = self.get_message(update)
+            try:
+                signals = self.btcservice.get_given_signals()
+                msg = "Recent BTCUSDT Signals\n"
+                if user is not None and (user['tier'] > 1 or user['is_admin']):
+                    for s in signals:
+                        porfolio = Portfolio(starting_balance= user['capital'])
+                        lot_size = porfolio.risk_position_size(s['entry_price'],s['sl'],s['risk_size'])
+                        msg = msg +  f"Signal Side: {s['position']} | Symbol: {s['symbol']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']} | Lot Size: {lot_size}\n"
+                else:
+                    for s in signals:
+                        msg = msg +  f"Signal Side: {s['position']} | Symbol: {s['symbol']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']}\n"
+                await message.reply_text(msg)
+            except EmptySignalException as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
 
     @restricted(min_tier=2)
     async def get_bnb_zones(self,update:Update,context:ContextTypes.DEFAULT_TYPE,user):
         try:
-            zones = self.bnbservice.get_untouched_zones(limit= 5)
-            sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
-            msg = "Recent BNBUSDT Zones\n"
-            for zz in sorted_zones:
-                msg = msg +  f"Zone Type : {zz['zone_type']},Zone High: {zz['zone_high']}, Low: {zz['zone_low']}, Time: {zz['timestamp']}\n"
-            
-            await update.message.reply_text(msg)
-        except NoUntouchedZone as e:
-            await update.message.reply_text(str(e))
-        except Exception as e:
-            await update.message.reply_text(f"Error: {str(e)}")
+            message = self.get_message(update)
+            try:
+                zones = self.bnbservice.get_untouched_zones(limit= 5)
+                sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
+                msg = "Recent BNBUSDT Zones\n"
+                for zz in sorted_zones:
+                    msg = msg +  f"Zone Type : {zz['zone_type']},Zone High: {zz['zone_high']}, Low: {zz['zone_low']}, Time: {zz['timestamp']}\n"
+                
+                await message.reply_text(msg)
+            except NoUntouchedZone as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
 
     @restricted(min_tier=2)
     async def get_given_bnb_signals(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
         try:
-            signals = self.bnbservice.get_given_signals()
-            msg = "Recent BNBUSDT Signals\n"
-            for s in signals:
-                porfolio = Portfolio(starting_balance= user['capital'])
-                lot_size = porfolio.risk_position_size(s['entry_price'],s['sl'],s['risk_size'])
-                msg = msg +  f"Signal Side: {s['position']} | Symbol: {s['symbol']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']} | Lot Size: {lot_size}\n"
-            await update.message.reply_text(msg)
-        except EmptySignalException as e:
-            await update.message.reply_text(str(e))
-        except Exception as e:
-            await update.message.reply_text(f"Error: {str(e)}")
+            message = self.get_message(update)
+            try:
+                signals = self.bnbservice.get_given_signals()
+                msg = "Recent BNBUSDT Signals\n"
+                for s in signals:
+                    porfolio = Portfolio(starting_balance= user['capital'])
+                    lot_size = porfolio.risk_position_size(s['entry_price'],s['sl'],s['risk_size'])
+                    msg = msg +  f"Signal Side: {s['position']} | Symbol: {s['symbol']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']} | Lot Size: {lot_size}\n"
+                await message.reply_text(msg)
+            except EmptySignalException as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
 
     @restricted(min_tier=2)  # only Tier ≥2 or admins
     async def update_subscriber_capital(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
         try:
-            await update.message.reply_text(
-                "💰 Please enter your new capital size in *USDT* or type 'cancel' to stop:",
-                parse_mode="Markdown"
-            )
-            return self.CAPITAL_UPDATE
-        except Exception as e:
-            await update.message.reply_text("⚠️ An error occurred while starting update.")
+            message = self.get_message(update)
+            try:
+                await message.reply_text(
+                    "💰 Please enter your new capital size in *USDT* or type 'cancel' to stop:",
+                    parse_mode="Markdown"
+                )
+                return self.CAPITAL_UPDATE
+            except Exception as e:
+                await message.reply_text("⚠️ An error occurred while starting update.")
+                return ConversationHandler.END
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
             return ConversationHandler.END
 
     @restricted(min_tier=2)  # only Tier ≥2 or admins
     async def set_capital(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
         try:
-            capital = float(update.message.text)
-            if capital <= 0:
-                await update.message.reply_text("⚠️ Capital must be greater than 0. Try again:")
+            message = self.get_message(update)
+            try:
+                capital = float(message.text)
+                if capital <= 0:
+                    await message.reply_text("⚠️ Capital must be greater than 0. Try again:")
+                    return self.CAPITAL_UPDATE
+
+                Subscribers.update(user['id'], {"capital": capital})
+
+                await message.reply_text(f"✅ Your capital has been updated to *{capital} USDT*.", parse_mode="Markdown")
+                return ConversationHandler.END
+
+            except ValueError:
+                await message.reply_text("❌ Please enter a valid number:")
                 return self.CAPITAL_UPDATE
-
-            Subscribers.update(user['id'], {"capital": capital})
-
-            await update.message.reply_text(f"✅ Your capital has been updated to *{capital} USDT*.", parse_mode="Markdown")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
             return ConversationHandler.END
 
-        except ValueError:
-            await update.message.reply_text("❌ Please enter a valid number:")
-            return self.CAPITAL_UPDATE
-
     async def cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        await update.message.reply_text("❌ Capital update canceled.")
+        try:
+            message = self.get_message(update)
+            await message.reply_text("❌ Capital update canceled.")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
         return ConversationHandler.END
     
 
@@ -288,13 +323,33 @@ class TelegramBot:
             await query.edit_message_text("❌ Unknown action.")
             return
 
-        # Call the function dynamically
         func = getattr(self, action, None)
-        if func:
-            await func(update, context)
-        else:
+        if func is None:
             await query.edit_message_text("⚠️ Handler not implemented yet.")
+            return
 
+        if action == "update_subscriber_capital" : 
+            state = await self.update_subscriber_capital(update, context, user)
+            return state   
+        # ✅ Try calling function normally (decorator handles user check)
+        try:
+            return await func(update, context)
+        except TypeError as e:
+            # If function explicitly expects user, resolve it manually
+            if "missing 1 required positional argument: 'user'" in str(e):
+                user_id = update.effective_user.id
+                user = Subscribers.getByChatID(user_id)
+                return await func(update, context, user)
+            else:
+                raise e
+
+    def get_message(self,update: Update):
+        if update.message:
+            return update.message
+        elif update.callback_query:
+            return update.callback_query.message
+        else:
+            raise EmptyTelegramMessage
 
     def run(self):
         # Register bot handlers
