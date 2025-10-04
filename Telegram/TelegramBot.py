@@ -17,7 +17,7 @@ class TelegramBot:
     def __init__(self, service : SignalService):
         load_dotenv()
         self.CAPITAL_UPDATE = 1
-        self.TELEGRAM_TOKEN = os.getenv("TEST_BOT_API")
+        self.TELEGRAM_TOKEN = os.getenv("BOT_API")
         self.btcservice = SignalService("BTCUSDT",300)
         self.bnbservice = SignalService("BNBUSDT",threshold=3)
         self.app = Application.builder().token(self.TELEGRAM_TOKEN).post_init(self.post_init).build()
