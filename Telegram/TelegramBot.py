@@ -327,7 +327,8 @@ class TelegramBot:
         if func is None:
             await query.edit_message_text("⚠️ Handler not implemented yet.")
             return
-
+        user_id = update.effective_user.id
+        user = Subscribers.getByChatID(user_id)
         if action == "update_subscriber_capital" : 
             state = await self.update_subscriber_capital(update, context, user)
             return state   
@@ -337,8 +338,7 @@ class TelegramBot:
         except TypeError as e:
             # If function explicitly expects user, resolve it manually
             if "missing 1 required positional argument: 'user'" in str(e):
-                user_id = update.effective_user.id
-                user = Subscribers.getByChatID(user_id)
+                
                 return await func(update, context, user)
             else:
                 raise e
