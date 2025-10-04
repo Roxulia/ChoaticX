@@ -24,6 +24,12 @@ class TelegramBot:
         self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
         self.pubsub = self.redis.pubsub()
         self.pubsub.subscribe("signals_channel")
+        self.CALLBACK_MAP = {
+            "btc_zones" : "get_btc_zones",
+            "subscribe" : "subscribe",
+            "help" : "help",
+            "btc_signals" : "get_given_btc_signals"
+        }
         
     def restricted(min_tier=1, admin_only=False,for_starter = False):
         def decorator(func):
@@ -273,6 +279,25 @@ class TelegramBot:
             data = await asyncio.to_thread(blocking)
             await self.broadcast_signals(data)
 
+    async def button_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        await query.answer()
+
+        action = self.CALLBACK_MAP.get(query.data)
+        if not action:
+            await query.edit_message_text("❌ Unknown action.")
+            return
+
+        # Call the function dynamically
+        func = getattr(self, action, None)
+        if func:
+            # Trick: inject a fake `update.message` so functions work like commands
+            # Replace query.message with update.message for reuse
+            update.message = query.message  
+            await func(update, context)
+        else:
+            await query.edit_message_text("⚠️ Handler not implemented yet.")
+
 
     def run(self):
         # Register bot handlers
@@ -292,5 +317,6 @@ class TelegramBot:
         self.app.add_handler(CommandHandler("bnb_signals", self.get_given_bnb_signals))
         self.app.add_handler(CommandHandler("help", self.help))
         self.app.add_handler(capital_update_handler)
+        self.app.add_handler(CallbackQueryHandler(self.button_handler))
         self.app.run_polling()
 
