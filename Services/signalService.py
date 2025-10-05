@@ -79,7 +79,7 @@ class SignalService:
         return zones
 
     @mu.log_memory
-    def get_latest_zones(self,lookback='1 years'):
+    def get_latest_zones(self,lookback='1 years',initial_state = False):
         t_zones = []
         for tf in self.timeframes:
             try:
@@ -90,8 +90,9 @@ class SignalService:
                 raise CantFetchCandleData
         confluentfinder = ConfluentsFinder(t_zones)
         zones = confluentfinder.getConfluents()
-        athHandler = ATHHandler(self.symbol,self.based_candles)
-        athHandler.updateATH()
+        if initial_state:
+            athHandler = ATHHandler(self.symbol,self.based_candles)
+            athHandler.updateATH()
         nearByZones = NearbyZones(zones,self.based_candles,threshold=self.threshold)
         zones = nearByZones.getNearbyZone()
         reactor = ZoneReactor()
@@ -108,6 +109,21 @@ class SignalService:
                 raise NoUntouchedZone
         except Exception as e:
             raise e
+    
+    @mu.log_memory
+    def update_ATHzone(self):
+        try:
+            candle = self.api.get_latest_candle(symbol=self.symbol)
+            ATH = ATHHandler(self.symbol).getATHFromStorage()
+            if ATH['zone_high'] < candle['high']:
+                candle_data = self.api.get_ohlcv(symbol=self.symbol,interval= '1h' , lookback= '7 days')
+                athHandler = ATHHandler(symbol=self.symbol,candles=candle_data)
+                new_ATH = athHandler.getATHFromCandles()
+                athHandler.store(new_ATH)
+                Cache._client.publish("ath_channel",json.dumps(new_ATH))
+                self.logger.info(f"New ATH FORMED in {self.symbol} with price {new_ATH['zone_high']}")
+        except Exception as e:
+            self.logger.error(f"Error Occured in Updating ATH : {str(e)}")
 
     @mu.log_memory
     def get_current_signals(self):
@@ -366,7 +382,7 @@ class SignalService:
 
     def get_dataset(self):
         try:
-            df = self.get_latest_zones('3 years')
+            df = self.get_latest_zones('3 years',initial_state=True)
         except CantFetchCandleData:
             raise CantFetchCandleData
         datagen = DatasetGenerator(self.symbol,self.timeframes)

@@ -77,15 +77,17 @@ class SchedulerManager:
 
                 if interval == "1h":
                     if symbol == "BTCUSDT":
-                        self._put_task(1, self.btcservice.update_running_signals)
-                        self._put_task(2, self.btcservice.update_pending_signals)
-                        self._put_task(3, self.btcservice.get_current_signals)
+                        self._put_task(1,self.btcservice.update_ATHzone)
+                        self._put_task(2, self.btcservice.update_running_signals)
+                        self._put_task(3, self.btcservice.update_pending_signals)
+                        self._put_task(4, self.btcservice.get_current_signals)
                         print("📡 1h BTC closed → triggered signals")
 
                     elif symbol == "BNBUSDT":
-                        self._put_task(1, self.bnbservice.update_running_signals)
-                        self._put_task(2, self.bnbservice.update_pending_signals)
-                        self._put_task(3, self.bnbservice.get_current_signals)
+                        self._put_task(1,self.bnbservice.update_ATHzone)
+                        self._put_task(2, self.bnbservice.update_running_signals)
+                        self._put_task(3, self.bnbservice.update_pending_signals)
+                        self._put_task(4, self.bnbservice.get_current_signals)
                         print("📡 1h BNB closed → triggered signals")
 
                 elif interval == "4h":

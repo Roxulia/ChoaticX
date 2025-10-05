@@ -24,6 +24,7 @@ class TelegramBot:
         self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
         self.pubsub = self.redis.pubsub()
         self.pubsub.subscribe("signals_channel")
+        self.pubsub.subscribe("ath_channel")
         self.CALLBACK_MAP = {
             "btc_zones" : "get_btc_zones",
             "subscribe" : "subscribe",
@@ -322,15 +323,38 @@ class TelegramBot:
                 temp_text = text + f"| Lot Size: {lot_size}"
                 await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
 
+    async def broadcast_ath(self,data):
+        if not isinstance(data, dict):
+            print("Invalid signal format:", data)
+            return
+        text = (
+        f"📢 New ATH! in Token: {data['symbol']} "
+        f"with Price {data['zone_high']}"
+        )
+        if data['symbol'] == "BTCUSDT":
+            subscribers = Subscribers.getActiveSubscribers()
+            for s in subscribers:
+                    await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+        elif data['symbol'] == "BNBUSDT" :
+            subscribers = Subscribers.getActiveSubscriberWithTier(2)
+            for s in subscribers:
+                await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+
     async def listener(self):
         def blocking():
             for message in self.pubsub.listen():
                 if message["type"] == "message":
-                    return json.loads(message["data"])
+                    data = json.loads(message["data"])
+                    channel = message["channel"].decode()  # convert from bytes to str
+                    return channel, data  # return both channel and message data
 
         while True:
-            data = await asyncio.to_thread(blocking)
-            await self.broadcast_signals(data)
+            channel, data = await asyncio.to_thread(blocking)
+
+            if channel == "signals_channel":
+                await self.broadcast_signals(data)
+            elif channel == "ath_channel":
+                await self.broadcast_ath(data)
 
     async def button_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
