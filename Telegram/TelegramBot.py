@@ -352,12 +352,12 @@ class TelegramBot:
             return state   
         # ✅ Try calling function normally (decorator handles user check)
         try:
-            return await func(update, context)
+            return await func(self,update, context)
         except TypeError as e:
             # If function explicitly expects user, resolve it manually
             if "missing 1 required positional argument: 'user'" in str(e):
                 
-                return await func(update, context, user)
+                return await func(self,update, context, user)
             else:
                 raise e
 
