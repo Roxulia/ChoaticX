@@ -35,9 +35,9 @@ class TelegramBot:
     def restricted(min_tier=1, admin_only=False,for_starter = False):
         def decorator(func):
             @wraps(func)
-            async def wrapper(self,update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
+            async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
                 try:
-                    message = self.get_message(update)
+                    message = TelegramBot.get_message(update)
                     user_id = update.effective_user.id
                     user = Subscribers.getByChatID(user_id)
 
