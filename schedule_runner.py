@@ -37,6 +37,7 @@ if __name__ == "__main__":
         await api.listen_kline(["BTCUSDT", "BNBUSDT"], ["1h", "4h"], on_kline_close)"""
     try:
         #asyncio.run(listen_and_dispatch())
-        time.sleep(3600)
+        while True:
+            time.sleep(3600)
     except (KeyboardInterrupt, SystemExit):
         print("Scheduler stopped.")
