@@ -19,9 +19,9 @@ class Signals(BaseModel):
 
     def islimitExist(func):
         @wraps(func)
-        def wrapper(cls, limit=0, *args, **kwargs):
+        def wrapper(cls, limit=0,symbol, *args, **kwargs):
             # build cache key with table + function name + limit
-            cache_key = f"{cls.table}:{func.__name__}:{limit or 'ALL'}"
+            cache_key = f"{cls.table}:{func.__name__}:{limit or 'ALL'}:symbol:{symbol}"
             cached = Cache.get(cache_key)
             if cached is not None:
                 return cached
