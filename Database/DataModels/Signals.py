@@ -19,9 +19,9 @@ class Signals(BaseModel):
 
     def islimitExist(func):
         @wraps(func)
-        def wrapper(cls, limit=0, *args, **kwargs):
+        def wrapper(cls, limit=0,symbol = "BTCUSDT", *args, **kwargs):
             # build cache key with table + function name + limit
-            cache_key = f"{cls.table}:{func.__name__}:{limit or 'ALL'}"
+            cache_key = f"{cls.table}:{func.__name__}:{limit or 'ALL'}:symbol:{symbol}"
             cached = Cache.get(cache_key)
             if cached is not None:
                 return cached
@@ -30,7 +30,7 @@ class Signals(BaseModel):
             limit_clause = f"LIMIT {limit}" if limit else ""
 
             # Run the original function
-            result = func(cls, limit_clause, *args, **kwargs)
+            result = func(cls, limit_clause,symbol, *args, **kwargs)
 
             # Store in cache (default 60s, tweak if needed)
             Cache.set(cache_key, result, 60)
