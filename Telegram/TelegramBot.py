@@ -31,18 +31,18 @@ class TelegramBot:
             "btc_signals" : "get_given_btc_signals",
             "update_capital" : "update_subscriber_capital"
         }
-        
+
     def restricted(min_tier=1, admin_only=False,for_starter = False):
         def decorator(func):
             @wraps(func)
-            async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
+            async def wrapper(self,update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
                 try:
-                    message = TelegramBot.get_message(update)
+                    message = self.get_message(update)
                     user_id = update.effective_user.id
                     user = Subscribers.getByChatID(user_id)
 
                     if not for_starter:
-                        
+
                         if not user:
                             await message.reply_text("❌ You are not registered.")
                             return
@@ -57,17 +57,17 @@ class TelegramBot:
                                 parse_mode="Markdown"
                             )
                             return
-                    return await func(update, context,user, *args, **kwargs)
+                    return await func(self,update, context,user, *args, **kwargs)
                 except EmptyTelegramMessage as e:
                     print(f'{str(e)}')
                     return
             return wrapper
         return decorator
-    
+
     async def post_init(self, app: Application):
         # Start Redis listener as background task once loop is running
         app.create_task(self.listener())
-        
+
     # ---------------- Handlers ----------------
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
@@ -106,7 +106,7 @@ class TelegramBot:
             keyboard = [
                 [InlineKeyboardButton("📊 BTCUSDT Zones", callback_data="btc_zones")],
                 [InlineKeyboardButton("🔔 Subscribe", callback_data="subscribe")],
-                
+
             ]
             if user is not None and (user['tier']>1 or user['is_admin']):
                 keyboard.append([InlineKeyboardButton("💰 Update Capital", callback_data="update_capital")])
@@ -146,7 +146,7 @@ class TelegramBot:
                 await message.reply_text("Unknown Error Occur !! Pls Contact Us for Support")
         except EmptyTelegramMessage as e:
             print(f'{str(e)}')
-        
+
 
     async def unsubscribe(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
@@ -176,7 +176,7 @@ class TelegramBot:
                 msg = "Recent BTC Zones\n"
                 for zz in sorted_zones:
                     msg = msg +  f"Zone Type : {zz['zone_type']},Zone High: {zz['zone_high']}, Low: {zz['zone_low']}, Time: {zz['timestamp']}\n"
-                
+
                 await message.reply_text(msg)
             except NoUntouchedZone as e:
                 await message.reply_text(str(e))
@@ -218,7 +218,7 @@ class TelegramBot:
                 msg = "Recent BNBUSDT Zones\n"
                 for zz in sorted_zones:
                     msg = msg +  f"Zone Type : {zz['zone_type']},Zone High: {zz['zone_high']}, Low: {zz['zone_low']}, Time: {zz['timestamp']}\n"
-                
+
                 await message.reply_text(msg)
             except NoUntouchedZone as e:
                 await message.reply_text(str(e))
@@ -292,7 +292,7 @@ class TelegramBot:
         except EmptyTelegramMessage as e:
             print(f'{str(e)}')
         return ConversationHandler.END
-    
+
 
     # ---------------- Broadcast ----------------
     async def broadcast_signals(self, signal):
@@ -314,7 +314,7 @@ class TelegramBot:
                     await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
                 else:
                     await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
-        elif signal['symbol'] == "BNBUSDT" : 
+        elif signal['symbol'] == "BNBUSDT" :
             subscribers = Subscribers.getActiveSubscriberWithTier(2)
             for s in subscribers:
                 porfolio = Portfolio(starting_balance= s['capital'])
@@ -347,16 +347,16 @@ class TelegramBot:
             return
         user_id = update.effective_user.id
         user = Subscribers.getByChatID(user_id)
-        if action == "update_subscriber_capital" : 
-            state = await self.update_subscriber_capital(update, context, user)
-            return state   
+        if action == "update_subscriber_capital" :
+            await query.answer()
+            return
         # ✅ Try calling function normally (decorator handles user check)
         try:
             return await func(update, context)
         except TypeError as e:
             # If function explicitly expects user, resolve it manually
             if "missing 1 required positional argument: 'user'" in str(e):
-                
+
                 return await func(update, context, user)
             else:
                 raise e
@@ -372,11 +372,12 @@ class TelegramBot:
     def run(self):
         # Register bot handlers
         capital_update_handler = ConversationHandler(
-        entry_points=[CommandHandler("update_capital", self.update_subscriber_capital)],
+        entry_points=[CommandHandler("update_capital", self.update_subscriber_capital),
+                CallbackQueryHandler(self.update_subscriber_capital, pattern="^update_capital$")],
         states={
             self.CAPITAL_UPDATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.set_capital)],
         },
-        fallbacks=[CommandHandler("cancel", self.cancel)],
+        fallbacks=[CommandHandler("cancel", self.cancel)],per_chat =  True
         )
         self.app.add_handler(CommandHandler("start", self.start))
         self.app.add_handler(CommandHandler("subscribe", self.subscribe))
@@ -389,4 +390,3 @@ class TelegramBot:
         self.app.add_handler(capital_update_handler)
         self.app.add_handler(CallbackQueryHandler(self.button_handler))
         self.app.run_polling()
-
