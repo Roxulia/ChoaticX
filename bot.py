@@ -9,9 +9,5 @@ if __name__ == "__main__":
     service = SignalService()
     bot = TelegramBot(service)
     bot.run()
-    try:
-        time.sleep(3600)
-    except (KeyboardInterrupt, SystemExit):
-        print("Scheduler stopped.")
     
     
