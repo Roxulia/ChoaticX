@@ -30,7 +30,7 @@ class Signals(BaseModel):
             limit_clause = f"LIMIT {limit}" if limit else ""
 
             # Run the original function
-            result = func(cls, limit_clause, *args, **kwargs)
+            result = func(cls, limit_clause,symbol, *args, **kwargs)
 
             # Store in cache (default 60s, tweak if needed)
             Cache.set(cache_key, result, 60)
