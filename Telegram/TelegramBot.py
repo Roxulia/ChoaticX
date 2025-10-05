@@ -195,7 +195,7 @@ class TelegramBot:
                 if user is not None and (user['tier'] > 1 or user['is_admin']):
                     for s in signals:
                         porfolio = Portfolio(starting_balance= user['capital'])
-                        lot_size = porfolio.risk_position_size(s['entry_price'],s['sl'],s['risk_size'])
+                        lot_size = porfolio.risk_position_size(s['entry_price'],s['sl'],user['risk_size'])
                         msg = msg +  f"Signal Side: {s['position']} | Symbol: {s['symbol']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']} | Lot Size: {lot_size}\n"
                 else:
                     for s in signals:
@@ -236,7 +236,7 @@ class TelegramBot:
                 msg = "Recent BNBUSDT Signals\n"
                 for s in signals:
                     porfolio = Portfolio(starting_balance= user['capital'])
-                    lot_size = porfolio.risk_position_size(s['entry_price'],s['sl'],s['risk_size'])
+                    lot_size = porfolio.risk_position_size(s['entry_price'],s['sl'],user['risk_size'])
                     msg = msg +  f"Signal Side: {s['position']} | Symbol: {s['symbol']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']} | Lot Size: {lot_size}\n"
                 await message.reply_text(msg)
             except EmptySignalException as e:
