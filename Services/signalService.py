@@ -284,10 +284,10 @@ class SignalService:
         signal = signal_gen.generate(use_zones)
         return signal
     
-    def get_running_signals(self):
+    def get_given_signals(self):
         signal_gen = SignalGenerator()
         try:
-            signals = signal_gen.get_running_signals(5,symbol=self.symbol)
+            signals = signal_gen.get_given_signals(symbol=self.symbol)
             return signals
         except Exception as e:
             raise e

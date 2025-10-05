@@ -45,3 +45,7 @@ class NotEnoughRR(Exception):
 class CandleNotTouch(Exception):
     def __init__(self):
         super().__init__("Candle Does Not Touch")
+
+class EmptyTelegramMessage(Exception):
+    def __init__(self, *args):
+        super().__init__("Empty Message Object")

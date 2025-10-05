@@ -118,3 +118,13 @@ class SignalGenerator:
         except Exception as e:
 
             raise e 
+        
+    def get_given_signals(self,symbol="BTCUSDT"):
+        try:
+            signals = Signals.getGivenSignals(limit=5,symbol=symbol)
+            if signals:
+                return signals
+            else:
+                raise EmptySignalException
+        except Exception as e:
+            raise e

@@ -66,6 +66,13 @@ class Signals(BaseModel):
         result = DB.execute(sql,[symbol],fetchall= True)
         return result
     
+    @classmethod
+    @islimitExist
+    def getGivenSignals(cls,limit,symbol):
+        sql = f"SELECT * FROM {cls.table} WHERE (result = 'RUNNING' or result = 'PENDING') and symbol = %s ORDER BY timestamp {limit}"
+        result = DB.execute(sql,[symbol],fetchall= True)
+        return result
+    
 
     
     
