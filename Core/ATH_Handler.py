@@ -46,16 +46,16 @@ class ATHHandler():
 
         # Build ATH zone dict
         ath = {
-            'zone_high': ATH_zone['high'],
-            'zone_low': ATH_zone['low'],
-            'ema 20': ATH_zone['ema20'],
-            'ema 50': ATH_zone['ema50'],
-            'rsi': ATH_zone['rsi'],
-            'atr': ATH_zone['atr'],
-            'volume_on_creation': ATH_zone['volume'],
-            'avg_volume_past_5': avg_volume_past_5[index],
-            'prev_volatility_5': prev_volatility_5[index],
-            'momentum_5': momentum_5.iloc[index],
+            'zone_high': float(ATH_zone['high']),
+            'zone_low': float(ATH_zone['low']),
+            'ema 20': float(ATH_zone['ema20']),
+            'ema 50': float(ATH_zone['ema50']),
+            'rsi': float(ATH_zone['rsi']),
+            'atr': float(ATH_zone['atr']),
+            'volume_on_creation': float(ATH_zone['volume']),
+            'avg_volume_past_5': float(avg_volume_past_5[index]),
+            'prev_volatility_5': float(prev_volatility_5[index]),
+            'momentum_5': float(momentum_5.iloc[index]),
             'zone_type': 'ATH',
             'index': index,
             'timestamp' : ATH_zone['timestamp']

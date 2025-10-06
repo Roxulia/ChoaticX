@@ -75,10 +75,10 @@ class SchedulerManager:
                 interval = kline.get("i")
                 symbol = kline.get("s")
                 candle = {
-                    "open" : float(kline['k']['o']),
-                    "close" : float(kline['k']['c']),
-                    "high" : float(kline['k']['h']),
-                    "low" : float(kline['k']['l']),
+                    "open" : float(kline['o']),
+                    "close" : float(kline['c']),
+                    "high" : float(kline['h']),
+                    "low" : float(kline['l']),
                 }
                 if interval == "15m":
                     if symbol == "BTCUSDT":
