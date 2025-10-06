@@ -113,13 +113,14 @@ class SignalService:
     @mu.log_memory
     def update_ATHzone(self,candle):
         try:
+            self.logger.info("Performing ATH update")
             ATH = ATHHandler(self.symbol).getATHFromStorage()
             if ATH['zone_high'] < candle['high']:
                 candle_data = self.api.get_ohlcv(symbol=self.symbol,interval= '1h' , lookback= '7 days')
                 athHandler = ATHHandler(symbol=self.symbol,candles=candle_data)
                 new_ATH = athHandler.getATHFromCandles()
                 athHandler.store(new_ATH)
-                Cache._client.publish("ath_channel",json.dumps(new_ATH))
+                Cache._client.publish("ath_channel",json.dumps(new_ATH,default=utility.default_json_serializer))
                 self.logger.info(f"New ATH FORMED in {self.symbol} with price {new_ATH['zone_high']}")
         except Exception as e:
             self.logger.error(f"Error Occured in Updating ATH : {str(e)}")
