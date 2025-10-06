@@ -111,9 +111,8 @@ class SignalService:
             raise e
     
     @mu.log_memory
-    def update_ATHzone(self):
+    def update_ATHzone(self,candle):
         try:
-            candle = self.api.get_latest_candle(symbol=self.symbol)
             ATH = ATHHandler(self.symbol).getATHFromStorage()
             if ATH['zone_high'] < candle['high']:
                 candle_data = self.api.get_ohlcv(symbol=self.symbol,interval= '1h' , lookback= '7 days')
@@ -308,12 +307,11 @@ class SignalService:
         except Exception as e:
             raise e
         
-    def update_running_signals(self):
+    def update_running_signals(self,candle):
         self.logger.info(f"{self.symbol}:Updating Running Signals")
         try:
             signal_gen = SignalGenerator()
             signals = signal_gen.get_running_signals(symbol=self.symbol)
-            candle = self.api.get_latest_candle(self.symbol)
             for s in signals:
                 signal_position = s['position']
                 if signal_position == 'Long' : 
@@ -335,23 +333,24 @@ class SignalService:
         except Exception as e:
             self.logger.error(f'Error:Updating Runnning Signals : {self.symbol}:{str(e)}')
 
-    def update_pending_signals(self):
+    def update_pending_signals(self,candle):
         self.logger.info(f"{self.symbol}:Updating Pending Signals")
         try:
             signal_gen = SignalGenerator()
             signals = signal_gen.get_pending_signals(symbol=self.symbol)
-            candle = self.api.get_latest_candle(self.symbol)
             for s in signals:
                 signal_position = s['position']
-                diff = abs(s['sl'] - candle['close'])
-                if diff > self.threshold:
-                    if signal_position == 'Long' : 
-                        if s['sl'] < candle['close'] < s['entry_price']:
+                if signal_position == 'Long' : 
+                    diff = abs(s['sl'] - candle['low'])
+                    if diff > self.threshold:
+                        if s['sl'] < candle['low'] < s['entry_price']:
                             signal_gen.updateSignalStatus(s['id'],"RUNNING")
                         else:
                             continue
-                    elif signal_position == 'Short':
-                        if s['sl'] > candle['close'] > s['entry_price']:
+                elif signal_position == 'Short':
+                    diff = abs(s['sl'] - candle['high'])
+                    if diff>self.threshold:
+                        if s['sl'] > candle['high'] > s['entry_price']:
                             signal_gen.updateSignalStatus(s['id'],"RUNNING")
                         else:
                             continue
