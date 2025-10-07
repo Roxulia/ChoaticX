@@ -7,7 +7,7 @@ from Exceptions.ServiceExceptions import *
 from Services.signalService import SignalService
 import redis,json,threading
 import asyncio
-import logging
+import logging,traceback
 from logging.handlers import RotatingFileHandler
 from Database.DataModels.Subscribers import Subscribers
 from Backtest.Portfolio import *
@@ -341,21 +341,58 @@ class TelegramBot:
                 await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
 
     async def listener(self):
-        def blocking():
-            for message in self.pubsub.listen():
-                if message["type"] == "message":
-                    data = json.loads(message["data"])
-                    channel = message["channel"].decode()  # convert from bytes to str
-                    return channel, data  # return both channel and message data
+        async def run_listener():
+            def blocking():
+                try:
+                    for message in self.pubsub.listen():
+                        if message["type"] == "message":
+                            data = json.loads(message["data"])
+                            channel = message["channel"].decode()
+                            return channel, data
+                except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
+                    print("⚠️ Redis connection lost inside blocking loop.")
+                    raise  # raise to trigger reconnect in outer loop
 
+            while True:
+                channel, data = await asyncio.to_thread(blocking)
+                if not channel or not data:
+                    continue
+
+                try:
+                    if channel == "signals_channel":
+                        await self.broadcast_signals(data)
+                    elif channel == "ath_channel":
+                        await self.broadcast_ath(data)
+                except Exception as inner_e:
+                    print(f"❌ Error processing message from {channel}: {inner_e}")
+                    traceback.print_exc()
+
+        # Main supervisor loop — keeps listener alive even after errors
         while True:
-            channel, data = await asyncio.to_thread(blocking)
-
-            if channel == "signals_channel":
-                await self.broadcast_signals(data)
-            elif channel == "ath_channel":
-                await self.broadcast_ath(data)
-
+            try:
+                print("🚀 Starting Redis listener...")
+                await run_listener()
+            except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
+                print("🔌 Redis disconnected. Attempting to reconnect in 5s...")
+                await asyncio.sleep(5)
+                try:
+                    # Recreate Redis connection
+                    self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
+                    self.pubsub = self.redis.pubsub()
+                    self.pubsub.subscribe("signals_channel", "ath_channel")
+                    print("✅ Reconnected to Redis.")
+                except Exception as reconnect_err:
+                    print(f"❗ Failed to reconnect to Redis: {reconnect_err}")
+                    await asyncio.sleep(10)
+            except asyncio.CancelledError:
+                print("🛑 Listener task cancelled — shutting down cleanly.")
+                break
+            except Exception as e:
+                print(f"⚠️ Listener crashed: {e}")
+                traceback.print_exc()
+                print("🔁 Restarting listener in 5 seconds...")
+                await asyncio.sleep(5)
+                
     async def button_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         await query.answer()

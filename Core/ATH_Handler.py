@@ -46,6 +46,7 @@ class ATHHandler():
 
         # Build ATH zone dict
         ath = {
+            'symbol' : self.symbol,
             'zone_high': float(ATH_zone['high']),
             'zone_low': float(ATH_zone['low']),
             'ema 20': float(ATH_zone['ema20']),
