@@ -174,7 +174,7 @@ class SignalService:
                         elif zone_type in ['Buy-Side Liq','Sell-Side Liq']:
                             LIQ.delete(id)
                 data = {k:v for k,v in signal.items() if k != "meta"}
-                Cache._client.publish("signals_channel", json.dumps(data))
+                Cache._client.publish("signals_channel", json.dumps(data,default=utility.default_json_serializer))
                 self.logger.info(f"new signal generated : {signal['symbol']},{signal['position']},{signal['tp']},{signal['sl']},{signal['entry_price']}")
             return signal
         except Exception as e:
