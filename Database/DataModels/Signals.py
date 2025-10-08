@@ -41,35 +41,35 @@ class Signals(BaseModel):
     @islimitExist
     def getPendingSignals(cls,limit,symbol):
         
-        sql = f"SELECT * FROM {cls.table} WHERE result = 'PENDING' and symbol = %s ORDER BY timestamp {limit}"
+        sql = f"SELECT * FROM {cls.table} WHERE result = 'PENDING' and symbol = %s ORDER BY timestamp DESC {limit}"
         result = DB.execute(sql,[symbol],fetchall= True)
         return result
     
     @classmethod
     @islimitExist
     def getRunningSignals(cls,limit,symbol):
-        sql = f"SELECT * FROM {cls.table} WHERE result = 'RUNNING' and symbol = %s ORDER BY timestamp {limit}"
+        sql = f"SELECT * FROM {cls.table} WHERE result = 'RUNNING' and symbol = %s ORDER BY timestamp DESC {limit}"
         result = DB.execute(sql,[symbol],fetchall= True)
         return result
     
     @classmethod
     @islimitExist
     def getWonSignals(cls,limit,symbol):
-        sql = f"SELECT * FROM {cls.table} WHERE result = 'WIN' and symbol = %s ORDER BY timestamp {limit}"
+        sql = f"SELECT * FROM {cls.table} WHERE result = 'WIN' and symbol = %s ORDER BY timestamp DESC {limit}"
         result = DB.execute(sql,[symbol],fetchall= True)
         return result
     
     @classmethod
     @islimitExist
     def getLostSignals(cls,limit,symbol):
-        sql = f"SELECT * FROM {cls.table} WHERE result = 'LOSE' and symbol = %s ORDER BY timestamp {limit}"
+        sql = f"SELECT * FROM {cls.table} WHERE result = 'LOSE' and symbol = %s ORDER BY timestamp DESC {limit}"
         result = DB.execute(sql,[symbol],fetchall= True)
         return result
     
     @classmethod
     @islimitExist
     def getGivenSignals(cls,limit,symbol):
-        sql = f"SELECT * FROM {cls.table} WHERE (result = 'RUNNING' or result = 'PENDING') and symbol = %s ORDER BY timestamp {limit}"
+        sql = f"SELECT * FROM {cls.table} WHERE (result = 'RUNNING' or result = 'PENDING') and symbol = %s ORDER BY timestamp DESC {limit}"
         result = DB.execute(sql,[symbol],fetchall= True)
         return result
     
