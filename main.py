@@ -20,10 +20,13 @@ def initiateAll():
         initiate_database()
         service1 = SignalService(symbol="BTCUSDT",threshold=300,timeframes=['1h','4h','1D'])
         service2 = SignalService(symbol="BNBUSDT",threshold=3,timeframes=['1h','4h','1D'])
+        service3 = SignalService(symbol="PAXGUSDT",threshold=10,timeframes=['1h','4h','1D'])
         total1 = service1.data_extraction()
         service1.training_process(total1)
         total1 = service2.data_extraction()
         service2.training_process(total1)
+        total1 = service3.data_extraction()
+        service3.training_process(total1)
     except CantFetchCandleData as e:
         print(f'{e}')
         raise FailInitialState
@@ -118,12 +121,15 @@ if __name__ == "__main__" :
         'update-database' : initiate_database,
         'initiate-btc' : lambda : initialState("BTCUSDT",300),
         'initiate-bnb' : lambda : initialState("BNBUSDT",3),
+        'initiate-paxg' : lambda : initialState("PAXGUSDT",10),
         'train-btc' : lambda : train_model("BTCUSDT",300),
         'train-bnb' : lambda : train_model("BNBUSDT",3),
+        'train-paxg' : lambda : train_model("PAXGUSDT",10),
         'backtest' : backtest,
         'initiate-system' : initiateAll,
     }
     process[args.option]()
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")
+
 
