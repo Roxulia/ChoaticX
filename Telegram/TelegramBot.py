@@ -206,7 +206,7 @@ class TelegramBot:
             message = self.get_message(update)
             try:
                 signals = self.btcservice.get_given_signals()
-                msg = f"📊 *Recent BNBUSDT Signals*\n\n"
+                msg = f"📊 *Recent BTCUSDT Signals*\n\n"
                 if user is not None and (user['tier'] > 1 or user['is_admin']):
                     for i,s in enumerate(signals,start=1):
                         porfolio = Portfolio(starting_balance= user['capital'])
