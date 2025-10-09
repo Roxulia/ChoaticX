@@ -175,11 +175,24 @@ class TelegramBot:
             try:
                 zones = self.btcservice.get_untouched_zones(limit= 5)
                 sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
-                msg = "Recent BTC Zones\n"
-                for zz in sorted_zones:
-                    msg = msg +  f"Zone Type : {zz['zone_type']},Zone High: {zz['zone_high']}, Low: {zz['zone_low']}, Time: {zz['timestamp']}\n"
+                msg = f"📊 *Recent BTCUSDT Zones*\n\n"
+                for i, zz in enumerate(sorted_zones, start=1):
+                    zone_type = zz["zone_type"]
+                    zone_high = zz["zone_high"]
+                    zone_low = zz["zone_low"]
+                    zone_time = zz["timestamp"]
 
-                await message.reply_text(msg)
+                    emoji = "🟩" if ("Bullish" in zone_type or "Buy-Side" in zone_type) else "🟥" if ("Bearish" in zone_type or "Sell-Side" in zone_type) else "⚪"
+
+                    msg += (
+                        f"{emoji} *Zone {i}*\n"
+                        f"• *Type:* {zone_type}\n"
+                        f"• *High:* `{zone_high}`\n"
+                        f"• *Low:* `{zone_low}`\n"
+                        f"• *Time:* `{zone_time}`\n\n"
+                    )
+
+                await message.reply_text(msg, parse_mode="MarkdownV2")
             except NoUntouchedZone as e:
                 await message.reply_text(str(e))
             except Exception as e:
@@ -193,16 +206,41 @@ class TelegramBot:
             message = self.get_message(update)
             try:
                 signals = self.btcservice.get_given_signals()
-                msg = "Recent BTCUSDT Signals\n"
+                msg = f"📊 *Recent BNBUSDT Signals*\n\n"
                 if user is not None and (user['tier'] > 1 or user['is_admin']):
-                    for s in signals:
+                    for i,s in enumerate(signals,start=1):
                         porfolio = Portfolio(starting_balance= user['capital'])
                         lot_size = porfolio.risk_position_size(s['entry_price'],s['sl'],user['risk_size'])
-                        msg = msg +  f"Signal Side: {s['position']} | Symbol: {s['symbol']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']} | Lot Size: {lot_size}\n"
+                        side = s["position"].upper()
+                        emoji = "🟩" if side == "LONG" else "🟥"
+                        rr_ratio = round(abs((s["tp"] - s["entry_price"]) / (s["entry_price"] - s["sl"])), 2) if s["entry_price"] != s["sl"] else "N/A"
+
+                        msg += (
+                            f"{emoji} *Signal {i}*\n"
+                            f"• *Side:* {side}\n"
+                            f"• *Symbol:* `{s['symbol']}`\n"
+                            f"• *Entry:* `{s['entry_price']}`\n"
+                            f"• *TP:* `{s['tp']}`\n"
+                            f"• *SL:* `{s['sl']}`\n"
+                            f"• *Lot Size:* `{lot_size}`\n"
+                            f"• *R/R Ratio:* `{rr_ratio}`\n\n"
+                        )
                 else:
-                    for s in signals:
-                        msg = msg +  f"Signal Side: {s['position']} | Symbol: {s['symbol']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']}\n"
-                await message.reply_text(msg)
+                    for i,s in enumerate(signals,start=1):
+                        side = s["position"].upper()
+                        emoji = "🟩" if side == "LONG" else "🟥"
+                        rr_ratio = round(abs((s["tp"] - s["entry_price"]) / (s["entry_price"] - s["sl"])), 2) if s["entry_price"] != s["sl"] else "N/A"
+
+                        msg += (
+                            f"{emoji} *Signal {i}*\n"
+                            f"• *Side:* {side}\n"
+                            f"• *Symbol:* `{s['symbol']}`\n"
+                            f"• *Entry:* `{s['entry_price']}`\n"
+                            f"• *TP:* `{s['tp']}`\n"
+                            f"• *SL:* `{s['sl']}`\n"
+                            f"• *R/R Ratio:* `{rr_ratio}`\n\n"
+                        )
+                await message.reply_text(msg,parse_mode="MarkdownV2")
             except EmptySignalException as e:
                 await message.reply_text(str(e))
             except Exception as e:
@@ -217,11 +255,24 @@ class TelegramBot:
             try:
                 zones = self.bnbservice.get_untouched_zones(limit= 5)
                 sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
-                msg = "Recent BNBUSDT Zones\n"
-                for zz in sorted_zones:
-                    msg = msg +  f"Zone Type : {zz['zone_type']},Zone High: {zz['zone_high']}, Low: {zz['zone_low']}, Time: {zz['timestamp']}\n"
+                msg = f"📊 *Recent BNBUSDT Zones*\n\n"
+                for i, zz in enumerate(sorted_zones, start=1):
+                    zone_type = zz["zone_type"]
+                    zone_high = zz["zone_high"]
+                    zone_low = zz["zone_low"]
+                    zone_time = zz["timestamp"]
 
-                await message.reply_text(msg)
+                    emoji = "🟩" if ("Bullish" in zone_type or "Buy-Side" in zone_type) else "🟥" if ("Bearish" in zone_type or "Sell-Side" in zone_type) else "⚪"
+
+                    msg += (
+                        f"{emoji} *Zone {i}*\n"
+                        f"• *Type:* {zone_type}\n"
+                        f"• *High:* `{zone_high}`\n"
+                        f"• *Low:* `{zone_low}`\n"
+                        f"• *Time:* `{zone_time}`\n\n"
+                    )
+
+                await message.reply_text(msg, parse_mode="MarkdownV2")
             except NoUntouchedZone as e:
                 await message.reply_text(str(e))
             except Exception as e:
@@ -235,12 +286,28 @@ class TelegramBot:
             message = self.get_message(update)
             try:
                 signals = self.bnbservice.get_given_signals()
-                msg = "Recent BNBUSDT Signals\n"
-                for s in signals:
-                    porfolio = Portfolio(starting_balance= user['capital'])
-                    lot_size = porfolio.risk_position_size(s['entry_price'],s['sl'],user['risk_size'])
-                    msg = msg +  f"Signal Side: {s['position']} | Symbol: {s['symbol']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']} | Lot Size: {lot_size}\n"
-                await message.reply_text(msg)
+                msg = f"📊 *Recent BNBUSDT Signals*\n\n"
+
+                for i, s in enumerate(signals, start=1):
+                    portfolio = Portfolio(starting_balance=user["capital"])
+                    lot_size = portfolio.risk_position_size(s["entry_price"], s["sl"], user["risk_size"])
+
+                    side = s["position"].upper()
+                    emoji = "🟩" if side == "LONG" else "🟥"
+                    rr_ratio = round(abs((s["tp"] - s["entry_price"]) / (s["entry_price"] - s["sl"])), 2) if s["entry_price"] != s["sl"] else "N/A"
+
+                    msg += (
+                        f"{emoji} *Signal {i}*\n"
+                        f"• *Side:* {side}\n"
+                        f"• *Symbol:* `{s['symbol']}`\n"
+                        f"• *Entry:* `{s['entry_price']}`\n"
+                        f"• *TP:* `{s['tp']}`\n"
+                        f"• *SL:* `{s['sl']}`\n"
+                        f"• *Lot Size:* `{lot_size}`\n"
+                        f"• *R/R Ratio:* `{rr_ratio}`\n\n"
+                    )
+
+                await message.reply_text(msg, parse_mode="MarkdownV2")
             except EmptySignalException as e:
                 await message.reply_text(str(e))
             except Exception as e:
@@ -255,11 +322,24 @@ class TelegramBot:
             try:
                 zones = self.paxgservice.get_untouched_zones(limit= 5)
                 sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
-                msg = "Recent PAXGUSDT Zones\n"
-                for zz in sorted_zones:
-                    msg = msg +  f"Zone Type : {zz['zone_type']},Zone High: {zz['zone_high']}, Low: {zz['zone_low']}, Time: {zz['timestamp']}\n"
+                msg = f"📊 *Recent PAXGUSDT Zones*\n\n"
+                for i, zz in enumerate(sorted_zones, start=1):
+                    zone_type = zz["zone_type"]
+                    zone_high = zz["zone_high"]
+                    zone_low = zz["zone_low"]
+                    zone_time = zz["timestamp"]
 
-                await message.reply_text(msg)
+                    emoji = "🟩" if ("Bullish" in zone_type or "Buy-Side" in zone_type) else "🟥" if ("Bearish" in zone_type or "Sell-Side" in zone_type) else "⚪"
+
+                    msg += (
+                        f"{emoji} *Zone {i}*\n"
+                        f"• *Type:* {zone_type}\n"
+                        f"• *High:* `{zone_high}`\n"
+                        f"• *Low:* `{zone_low}`\n"
+                        f"• *Time:* `{zone_time}`\n\n"
+                    )
+
+                await message.reply_text(msg, parse_mode="MarkdownV2")
             except NoUntouchedZone as e:
                 await message.reply_text(str(e))
             except Exception as e:
@@ -273,12 +353,28 @@ class TelegramBot:
             message = self.get_message(update)
             try:
                 signals = self.paxgservice.get_given_signals()
-                msg = "Recent PAXGUSDT Signals\n"
-                for s in signals:
-                    porfolio = Portfolio(starting_balance= user['capital'])
-                    lot_size = porfolio.risk_position_size(s['entry_price'],s['sl'],user['risk_size'])
-                    msg = msg +  f"Signal Side: {s['position']} | Symbol: {s['symbol']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']} | Lot Size: {lot_size}\n"
-                await message.reply_text(msg)
+                msg = f"📊 *Recent PAXGUSDT Signals*\n\n"
+
+                for i, s in enumerate(signals, start=1):
+                    portfolio = Portfolio(starting_balance=user["capital"])
+                    lot_size = portfolio.risk_position_size(s["entry_price"], s["sl"], user["risk_size"])
+
+                    side = s["position"].upper()
+                    emoji = "🟩" if side == "LONG" else "🟥"
+                    rr_ratio = round(abs((s["tp"] - s["entry_price"]) / (s["entry_price"] - s["sl"])), 2) if s["entry_price"] != s["sl"] else "N/A"
+
+                    msg += (
+                        f"{emoji} *Signal {i}*\n"
+                        f"• *Side:* {side}\n"
+                        f"• *Symbol:* `{s['symbol']}`\n"
+                        f"• *Entry:* `{s['entry_price']}`\n"
+                        f"• *TP:* `{s['tp']}`\n"
+                        f"• *SL:* `{s['sl']}`\n"
+                        f"• *Lot Size:* `{lot_size}`\n"
+                        f"• *R/R Ratio:* `{rr_ratio}`\n\n"
+                    )
+
+                await message.reply_text(msg, parse_mode="MarkdownV2")
             except EmptySignalException as e:
                 await message.reply_text(str(e))
             except Exception as e:
