@@ -20,6 +20,7 @@ class TelegramBot:
         self.TELEGRAM_TOKEN = os.getenv("BOT_API")
         self.btcservice = SignalService("BTCUSDT",300)
         self.bnbservice = SignalService("BNBUSDT",threshold=3)
+        self.paxgservice = SignalService("PAXGUSDT",10)
         self.app = Application.builder().token(self.TELEGRAM_TOKEN).post_init(self.post_init).build()
         self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
         self.pubsub = self.redis.pubsub()
@@ -247,6 +248,44 @@ class TelegramBot:
         except EmptyTelegramMessage as e:
             print(f'{str(e)}')
 
+    @restricted(min_tier=3)
+    async def get_paxg_zones(self,update:Update,context:ContextTypes.DEFAULT_TYPE,user):
+        try:
+            message = self.get_message(update)
+            try:
+                zones = self.paxgservice.get_untouched_zones(limit= 5)
+                sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
+                msg = "Recent PAXGUSDT Zones\n"
+                for zz in sorted_zones:
+                    msg = msg +  f"Zone Type : {zz['zone_type']},Zone High: {zz['zone_high']}, Low: {zz['zone_low']}, Time: {zz['timestamp']}\n"
+
+                await message.reply_text(msg)
+            except NoUntouchedZone as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
+
+    @restricted(min_tier=3)
+    async def get_given_paxg_signals(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
+        try:
+            message = self.get_message(update)
+            try:
+                signals = self.paxgservice.get_given_signals()
+                msg = "Recent PAXGUSDT Signals\n"
+                for s in signals:
+                    porfolio = Portfolio(starting_balance= user['capital'])
+                    lot_size = porfolio.risk_position_size(s['entry_price'],s['sl'],user['risk_size'])
+                    msg = msg +  f"Signal Side: {s['position']} | Symbol: {s['symbol']} | Entry: {s['entry_price']} | TP: {s['tp']} | SL: {s['sl']} | Lot Size: {lot_size}\n"
+                await message.reply_text(msg)
+            except EmptySignalException as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
+
     @restricted(min_tier=2)  # only Tier ≥2 or admins
     async def update_subscriber_capital(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
         try:
@@ -322,6 +361,13 @@ class TelegramBot:
                 lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
                 temp_text = text + f"| Lot Size: {lot_size}"
                 await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
+        elif signal['symbol'] == "PAXGUSDT" :
+            subscribers = Subscribers.getActiveSubscriberWithTier(3)
+            for s in subscribers:
+                porfolio = Portfolio(starting_balance= s['capital'])
+                lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
+                temp_text = text + f"| Lot Size: {lot_size}"
+                await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
 
     async def broadcast_ath(self,data):
         if not isinstance(data, dict):
@@ -337,6 +383,10 @@ class TelegramBot:
                     await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
         elif data['symbol'] == "BNBUSDT" :
             subscribers = Subscribers.getActiveSubscriberWithTier(2)
+            for s in subscribers:
+                await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+        elif data['symbol'] == "PAXGUSDT" :
+            subscribers = Subscribers.getActiveSubscriberWithTier(3)
             for s in subscribers:
                 await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
 
@@ -447,6 +497,8 @@ class TelegramBot:
         self.app.add_handler(CommandHandler("btc_signals", self.get_given_btc_signals))
         self.app.add_handler(CommandHandler("bnb_zones", self.get_bnb_zones))
         self.app.add_handler(CommandHandler("bnb_signals", self.get_given_bnb_signals))
+        self.app.add_handler(CommandHandler("paxg_zones", self.get_paxg_zones))
+        self.app.add_handler(CommandHandler("paxg_signals", self.get_given_paxg_signals))
         self.app.add_handler(CommandHandler("help", self.help))
         self.app.add_handler(capital_update_handler)
         self.app.add_handler(CallbackQueryHandler(self.button_handler))

@@ -8,6 +8,7 @@ class SchedulerManager:
         self.scheduler = BackgroundScheduler()
         self.btcservice = SignalService(symbol="BTCUSDT", threshold=300)
         self.bnbservice = SignalService(symbol="BNBUSDT", threshold=3)
+        self.paxgservice = SignalService(symbol="PAXGUSDT",threshold=10)
         self.binance_api = api
 
         # PriorityQueue: (priority, counter, func)
@@ -44,6 +45,15 @@ class SchedulerManager:
         self.scheduler.add_job(
             lambda: self._put_task(2, self.bnbservice.update_running_signals),
             'interval', hours=24, id="update_bnb_signals"
+        )
+
+        self.scheduler.add_job(
+            lambda: self._put_task(1, self.paxgservice.update_untouched_zones),
+            'interval', hours=24, id="update_paxg_zones"
+        )
+        self.scheduler.add_job(
+            lambda: self._put_task(2, self.paxgservice.update_running_signals),
+            'interval', hours=24, id="update_paxg_signals"
         )
         self.scheduler.start()
 
@@ -91,6 +101,11 @@ class SchedulerManager:
                         self._put_task(4,lambda: self.bnbservice.update_pending_signals(candle))
                         print("📡 15min BNB closed → triggered signals update")
 
+                    elif symbol == "PAXGUSDT":
+                        self._put_task(3,lambda: self.paxgservice.update_running_signals(candle))
+                        self._put_task(4,lambda: self.paxgservice.update_pending_signals(candle))
+                        print("📡 15min PAXG closed → triggered signals update")
+
                 elif interval == "1h":
                     if symbol == "BTCUSDT":
                         self._put_task(1,lambda : self.btcservice.update_ATHzone(candle))
@@ -102,11 +117,18 @@ class SchedulerManager:
                         self._put_task(5, self.bnbservice.get_current_signals)
                         print("📡 1h BNB closed → triggered ATH update and signal generation")
 
+                    elif symbol == "PAXGUSDT":
+                        self._put_task(1,lambda : self.paxgservice.update_ATHzone(candle))
+                        self._put_task(5, self.paxgservice.get_current_signals)
+                        print("📡 1h PAXG closed → triggered ATH update and signal generation")
+
                 elif interval == "4h":
                     if symbol == "BTCUSDT":
                         self._put_task(2, self.btcservice.update_untouched_zones)
                     elif symbol == "BNBUSDT":
                         self._put_task(2, self.bnbservice.update_untouched_zones)
+                    elif symbol == "PAXGUSDT":
+                        self._put_task(2, self.paxgservice.update_untouched_zones)
                     print("📡 4h closed → triggered zones")
 
             except Exception as e:
@@ -114,7 +136,7 @@ class SchedulerManager:
 
         try:
             await self.binance_api.listen_kline(
-                ["BTCUSDT", "BNBUSDT"], ["15m","1h", "4h"], on_kline_close
+                ["BTCUSDT", "BNBUSDT","PAXGUSDT"], ["15m","1h", "4h"], on_kline_close
             )
         except Exception as e:
             print(f'{str(e)}')
