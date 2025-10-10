@@ -16,7 +16,7 @@
 *.jsonl
 output.txt
 *.pkl
-
+*.jpg
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
