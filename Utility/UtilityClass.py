@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime,date
 import decimal
+import re
 class UtilityFunctions():
     @staticmethod
     def merge_lists_by_key(old_list, new_list, key="id"):
@@ -112,6 +113,10 @@ class UtilityFunctions():
             return int(obj)
         elif isinstance(obj, (np.floating, np.float64, np.float32)):
             return float(obj)
+
+    @staticmethod
+    def escape_md(text: str) -> str:
+        return re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', str(text))
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
         elif hasattr(obj, '__str__'):
