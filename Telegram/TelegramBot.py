@@ -12,7 +12,7 @@ from logging.handlers import RotatingFileHandler
 from Database.DataModels.Subscribers import Subscribers
 from Backtest.Portfolio import *
 from functools import wraps
-from Utility.UtilityClass import UtilityFunction as utility
+from Utility.UtilityClass import UtilityFunctions as utility
 
 class TelegramBot:
     def __init__(self, service : SignalService):
