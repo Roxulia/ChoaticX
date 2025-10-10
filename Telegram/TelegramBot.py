@@ -12,6 +12,7 @@ from logging.handlers import RotatingFileHandler
 from Database.DataModels.Subscribers import Subscribers
 from Backtest.Portfolio import *
 from functools import wraps
+from Utility.UtilityClass import UtilityFunction as utility
 
 class TelegramBot:
     def __init__(self, service : SignalService):
@@ -186,10 +187,10 @@ class TelegramBot:
 
                     msg += (
                         f"{emoji} *Zone {i}*\n"
-                        f"• *Type:* {zone_type}\n"
-                        f"• *High:* `{zone_high}`\n"
-                        f"• *Low:* `{zone_low}`\n"
-                        f"• *Time:* `{zone_time}`\n\n"
+                        f"• *Type:* {utility.escape_md(zone_type)}\n"
+                        f"• *High:* `{utility.escape_md(zone_high)}`\n"
+                        f"• *Low:* `{utility.escape_md(zone_low)}`\n"
+                        f"• *Time:* `{utility.escape_md(zone_time)}`\n\n"
                     )
 
                 await message.reply_text(msg, parse_mode="MarkdownV2")
@@ -266,10 +267,10 @@ class TelegramBot:
 
                     msg += (
                         f"{emoji} *Zone {i}*\n"
-                        f"• *Type:* {zone_type}\n"
-                        f"• *High:* `{zone_high}`\n"
-                        f"• *Low:* `{zone_low}`\n"
-                        f"• *Time:* `{zone_time}`\n\n"
+                        f"• *Type:* {utility.escape_md(zone_type)}\n"
+                        f"• *High:* `{utility.escape_md(zone_high)}`\n"
+                        f"• *Low:* `{utility.escape_md(zone_low)}`\n"
+                        f"• *Time:* `{utility.escape_md(zone_time)}`\n\n"
                     )
 
                 await message.reply_text(msg, parse_mode="MarkdownV2")
@@ -333,10 +334,10 @@ class TelegramBot:
 
                     msg += (
                         f"{emoji} *Zone {i}*\n"
-                        f"• *Type:* {zone_type}\n"
-                        f"• *High:* `{zone_high}`\n"
-                        f"• *Low:* `{zone_low}`\n"
-                        f"• *Time:* `{zone_time}`\n\n"
+                        f"• *Type:* {utility.escape_md(zone_type)}\n"
+                        f"• *High:* `{utility.escape_md(zone_high)}`\n"
+                        f"• *Low:* `{utility.escape_md(zone_low)}`\n"
+                        f"• *Time:* `{utility.escape_md(zone_time)}`\n\n"
                     )
 
                 await message.reply_text(msg, parse_mode="MarkdownV2")
