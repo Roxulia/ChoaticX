@@ -113,12 +113,12 @@ class UtilityFunctions():
             return int(obj)
         elif isinstance(obj, (np.floating, np.float64, np.float32)):
             return float(obj)
-
-    @staticmethod
-    def escape_md(text: str) -> str:
-        return re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', str(text))
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
         elif hasattr(obj, '__str__'):
             return str(obj)
         raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+    
+    @staticmethod
+    def escape_md(text: str) -> str:
+        return re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', str(text))
