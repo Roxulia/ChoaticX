@@ -27,9 +27,15 @@ def listen_signals():
             data = json.loads(message['data'])
             socketio.emit("new_signal", data, broadcast=True)
 #threading.Thread(target=listen_signals, daemon=True).start()
-service = SignalService(symbol="BTCUSDT",threshold=300)
-signal_api = SignalAPI(service=service,limiter=limiter)
-app.register_blueprint(signal_api.blueprint, url_prefix="/api")
+btcservice = SignalService(symbol="BTCUSDT",threshold=300)
+btc_api = SignalAPI(service=btcservice,limiter=limiter)
+bnbservice = SignalService(symbol="BNBUSDT",threshold=3)
+bnb_api = SignalAPI(service=bnbservice,limiter=limiter)
+paxgservice = SignalService(symbol="PAXGUSDT",threshold=10)
+paxg_api = SignalAPI(service=paxgservice,limiter=limiter)
+app.register_blueprint(btc_api.blueprint, url_prefix="/api/btc")
+app.register_blueprint(bnb_api.blueprint, url_prefix="/api/bnb")
+app.register_blueprint(paxg_api.blueprint, url_prefix="/api/paxg")
 
 if __name__ == "__main__":
     DB.init_logger('api_db.log')
