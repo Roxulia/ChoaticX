@@ -17,6 +17,7 @@ class SignalGenerator:
         self.filter = Filter()
 
     def generate(self, zones: list,backtest = False):
+        self.modelhandler.load()
         if len(zones) == 0:
             raise EmptyDataInput
         try:

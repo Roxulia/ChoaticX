@@ -2,6 +2,7 @@ import time
 import pandas as pd
 import argparse
 from Services.signalService import SignalService
+from Services.predictionService import PredictionService
 from Utility.MemoryUsage import MemoryUsage as mu
 from Backtest.backtest import BackTestHandler
 from Exceptions.ServiceExceptions import *
@@ -13,6 +14,12 @@ from Database.DataModels.Signals import Signals
 from Database.DataModels.Subscribers import Subscribers
 from Database.Cache import Cache
 
+symbols = {
+    "BTCUSDT" : 300,
+    "BNBUSDT" : 3,
+    "PAXGUSDT": 10
+    }
+timeframes = ['15min','1h','4h','1D']
 @mu.log_memory
 def initiateAll():
     print("Initiating All Model and System")
@@ -27,12 +34,25 @@ def initiateAll():
         service2.training_process(total1)
         total1 = service3.data_extraction()
         service3.training_process(total1)
+        initiate_prediction_models()
     except CantFetchCandleData as e:
         print(f'{e}')
         raise FailInitialState
     except TrainingFail as e:
         print(f'{e}')
         raise FailInitialState
+    except Exception as e:
+        print(f'{e}')
+        raise e
+
+@mu.log_memory
+def initiate_prediction_models():
+    print("Initiating Prediction Models")
+    try:
+        for s,threshold in symbols.items():
+            for t in timeframes:
+                predictor = PredictionService(s,[t],threshold)
+                predictor.train_process()
     except Exception as e:
         print(f'{e}')
         raise e
@@ -109,7 +129,7 @@ def run_all_process():
         print("Process Fail")
 
 if __name__ == "__main__" :
-    Cache.init()
+    #Cache.init()
     DB.init_logger("initialdb.log")
     pd.set_option('future.no_silent_downcasting', True)
     parser = argparse.ArgumentParser(description="run training program")
@@ -127,6 +147,7 @@ if __name__ == "__main__" :
         'train-paxg' : lambda : train_model("PAXGUSDT",10),
         'backtest' : backtest,
         'initiate-system' : initiateAll,
+        'initiate-predict' : initiate_prediction_models,
     }
     process[args.option]()
     end = time.perf_counter()

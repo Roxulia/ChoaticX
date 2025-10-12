@@ -1,5 +1,6 @@
 from flask import Flask
 from API.signal_api import SignalAPI
+from API.prediction_api import PredictionAPI
 from Scheduler.scheduler import SchedulerManager
 from Services.signalService import SignalService
 from flask_socketio import SocketIO
@@ -33,9 +34,11 @@ bnbservice = SignalService(symbol="BNBUSDT",threshold=3)
 bnb_api = SignalAPI(service=bnbservice,limiter=limiter)
 paxgservice = SignalService(symbol="PAXGUSDT",threshold=10)
 paxg_api = SignalAPI(service=paxgservice,limiter=limiter)
+predict_api = PredictionAPI(limiter=limiter)
 app.register_blueprint(btc_api.blueprint, url_prefix="/api/btc")
 app.register_blueprint(bnb_api.blueprint, url_prefix="/api/bnb")
 app.register_blueprint(paxg_api.blueprint, url_prefix="/api/paxg")
+app.register_blueprint(predict_api.blueprint,url_prefix='/api')
 
 if __name__ == "__main__":
     DB.init_logger('api_db.log')

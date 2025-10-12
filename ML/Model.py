@@ -21,6 +21,7 @@ class ModelHandler:
         self.Paths = Paths()
         filename = f"{symbol}"+"_".join(timeframes)
         self.model_path = f'{self.Paths.model_root}/Model_{filename}_.pkl'
+        self.datafile = f'{symbol}_'+"_".join(timeframes)+"_data.csv"
         self.target_col = 'target'
         self.chunk = chunk
         self.n_estimators_step = n_estimators_step
@@ -110,7 +111,7 @@ class ModelHandler:
             X (ndarray): Features batch.
             y (ndarray): Target batch.
         """
-        for chunk in pd.read_csv(f'{self.Paths.train_data}/{self.symbol}_data.csv', chunksize=self.chunk):
+        for chunk in pd.read_csv(f'{self.Paths.train_data}/{self.datafile}', chunksize=self.chunk):
             X = chunk.drop(columns = [self.target_col]).values
             y = chunk[self.target_col].values
             yield X, y
@@ -121,7 +122,7 @@ class ModelHandler:
         joblib.dump(self.model, self.model_path)
 
     def test_result(self):
-        test = pd.read_csv(f'{self.Paths.test_data}/{self.symbol}_data.csv')
+        test = pd.read_csv(f'{self.Paths.test_data}/{self.datafile}')
         X = test.drop(columns=[self.target_col])
         y = test[self.target_col]
         y_pred = self.predict(X)
