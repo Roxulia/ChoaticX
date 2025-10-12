@@ -10,6 +10,8 @@ class DataCleaner:
     def __init__(self,symbol = "BTCUSDT",timeframes = ['1h','4h','1D'],total_line=1000,batch_size=1000):
         self.Paths = Paths()
         self.symbol = symbol
+        self.datafile = f'{symbol}_'+"_".join(timeframes)+"_data.csv"
+        self.rawfile = f'{symbol}_' + "_".join(timeframes)+"_raw.jsonl"
         self.total_line = np.ceil(total_line / batch_size)
         self.datasplit =  DataSplit(random_state=42,shuffle=True,train_size=0.6,test_size=0.4)
         self.batch_size = batch_size
@@ -102,7 +104,7 @@ class DataCleaner:
             yield df
     
     def get_data_from_file(self):
-        with open(f"{self.Paths.raw_data}/{self.symbol}_raw.jsonl",'r') as f:
+        with open(f"{self.Paths.raw_data}/{self.rawfile}",'r') as f:
             for line in f:
                 data = json.loads(line)
                 yield data
@@ -114,12 +116,12 @@ class DataCleaner:
         for i,df in tqdm(enumerate(self.to_dataframe(ignore_cols)),desc='Performing Data Cleaning',total=self.total_line,dynamic_ncols=True):
             train,test = self.datasplit.split(df)
             if header:
-                train.to_csv(f"{self.Paths.train_data}/{self.symbol}_data.csv", mode='w', header=True, index=False)
-                test.to_csv(f"{self.Paths.test_data}/{self.symbol}_data.csv",mode='w', header=True, index=False)
+                train.to_csv(f"{self.Paths.train_data}/{self.datafile}", mode='w', header=True, index=False)
+                test.to_csv(f"{self.Paths.test_data}/{self.datafile}",mode='w', header=True, index=False)
                 header = False
             else:
-                train.to_csv(f"{self.Paths.train_data}/{self.symbol}_data.csv", mode='a', header=False, index=False)
-                test.to_csv(f"{self.Paths.test_data}/{self.symbol}_data.csv",mode='a', header=False, index=False)
+                train.to_csv(f"{self.Paths.train_data}/{self.datafile}", mode='a', header=False, index=False)
+                test.to_csv(f"{self.Paths.test_data}/{self.datafile}",mode='a', header=False, index=False)
 
         return int(np.ceil(self.total_line*0.7))
             

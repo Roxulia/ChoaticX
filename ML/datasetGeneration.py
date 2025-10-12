@@ -15,6 +15,7 @@ class DatasetGenerator:
     def __init__(self,symbol = "BTCUSDT",timeframes = ['1h','4h','1D']):
         self.Paths = Paths()
         self.symbol = symbol
+        self.filename = f'{symbol}_' + "_".join(timeframes)+"_raw.jsonl"
         self.dataset = []
         self.total_line = 0
         self.timeframes = timeframes
@@ -366,7 +367,7 @@ class DatasetGenerator:
                 raise e
 
     @mu.log_memory
-    def get_dataset_list(self,zones):
+    def get_dataset_list(self,zones,for_predict=False):
         
         data = self.extract_based_zone_confluent_tf(zones)
         
@@ -380,18 +381,18 @@ class DatasetGenerator:
                     features = self.extract_features_and_labels(row)
                     to_write = self.extract_nearby_zones_confluent_tf(features)
                     if dataset_start:
-                        with open(f"{self.Paths.raw_data}/{self.symbol}_raw.jsonl", "w") as f:
+                        with open(f"{self.Paths.raw_data}/{self.filename}", "w") as f:
                             
                             f.write(json.dumps(to_write , default=utility.default_json_serializer) + "\n")
                             for k,v in to_write.items():
                                 columns.add(k)
                         dataset_start = False
                     else:
-                        with open(f"{self.Paths.raw_data}/{self.symbol}_raw.jsonl", "a") as f:
+                        with open(f"{self.Paths.raw_data}/{self.filename}", "a") as f:
                             f.write(json.dumps(to_write , default=utility.default_json_serializer) + "\n")
                             for k,v in to_write.items():
                                 columns.add(k)
-                else:
+                elif not for_predict:
                     zone_type = row.get('zone_type',None)
                     sql_data = {k: utility.to_sql_friendly(v) for k, v in row.items()}
                     if zone_type in ['Bearish FVG','Bullish FVG'] : 
@@ -421,7 +422,8 @@ class DatasetGenerator:
                             LIQ.update(existed_zone['id'],sql_data)
                         else:
                             LIQ.create(sql_data)
-                    
+                else:
+                    continue
             except TypeError as e:
                 print(f"\n🚨 JSON serialization error at row {i}")
                 for k, v in row.items():
