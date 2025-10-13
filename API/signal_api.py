@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from Services.signalService import SignalService
 from Exceptions.ServiceExceptions import *
 from flask_limiter import Limiter
+import traceback
 
 class SignalAPI:
     def __init__(self,service : SignalService,limiter: Limiter):
@@ -21,6 +22,7 @@ class SignalAPI:
         except NoUntouchedZone as e:
             return jsonify({"error" : f'{e}'}),404
         except Exception as e:
+            traceback.print_exc()
             return jsonify({"error" : f"{e}"}),500
 
     def get_given_signals(self):
@@ -30,8 +32,10 @@ class SignalAPI:
         except EmptySignalException as e:
             return jsonify({"error" : f'{e}'}),404
         except Exception as e:
+            traceback.print_exc()
             return jsonify({"error": f"{e}"}),500
         
         
+
 
 
