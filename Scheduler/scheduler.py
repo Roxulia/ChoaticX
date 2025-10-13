@@ -75,68 +75,73 @@ class SchedulerManager:
         asyncio.run(self._binance_loop())
 
     async def _binance_loop(self):
-        try:
-            await self.binance_api.connect()
-        except Exception as e:
-            print(f'{str(e)}')
-
-        async def on_kline_close(kline):
+        while True:
             try:
-                interval = kline.get("i")
-                symbol = kline.get("s")
-                candle = {
-                    "open" : float(kline['o']),
-                    "close" : float(kline['c']),
-                    "high" : float(kline['h']),
-                    "low" : float(kline['l']),
-                }
-                if interval == "15m":
-                    if symbol == "BTCUSDT":
-                        self._put_task(3,lambda: self.btcservice.update_running_signals(candle))
-                        self._put_task(4,lambda: self.btcservice.update_pending_signals(candle))
-                        print("📡 15min BTC closed → triggered signals update")
-
-                    elif symbol == "BNBUSDT":
-                        self._put_task(3,lambda: self.bnbservice.update_running_signals(candle))
-                        self._put_task(4,lambda: self.bnbservice.update_pending_signals(candle))
-                        print("📡 15min BNB closed → triggered signals update")
-
-                    elif symbol == "PAXGUSDT":
-                        self._put_task(3,lambda: self.paxgservice.update_running_signals(candle))
-                        self._put_task(4,lambda: self.paxgservice.update_pending_signals(candle))
-                        print("📡 15min PAXG closed → triggered signals update")
-
-                elif interval == "1h":
-                    if symbol == "BTCUSDT":
-                        self._put_task(1,lambda : self.btcservice.update_ATHzone(candle))
-                        self._put_task(5, self.btcservice.get_current_signals)
-                        print("📡 1h BTC closed → triggered ATH update and signal generation")
-
-                    elif symbol == "BNBUSDT":
-                        self._put_task(1,lambda : self.bnbservice.update_ATHzone(candle))
-                        self._put_task(5, self.bnbservice.get_current_signals)
-                        print("📡 1h BNB closed → triggered ATH update and signal generation")
-
-                    elif symbol == "PAXGUSDT":
-                        self._put_task(1,lambda : self.paxgservice.update_ATHzone(candle))
-                        self._put_task(5, self.paxgservice.get_current_signals)
-                        print("📡 1h PAXG closed → triggered ATH update and signal generation")
-
-                elif interval == "4h":
-                    if symbol == "BTCUSDT":
-                        self._put_task(2, self.btcservice.update_untouched_zones)
-                    elif symbol == "BNBUSDT":
-                        self._put_task(2, self.bnbservice.update_untouched_zones)
-                    elif symbol == "PAXGUSDT":
-                        self._put_task(2, self.paxgservice.update_untouched_zones)
-                    print("📡 4h closed → triggered zones")
-
+                print("🔌 Connecting to Binance WebSocket...")
+                await self.binance_api.connect()
+    
+                async def on_kline_close(kline):
+                    try:
+                        interval = kline.get("i")
+                        symbol = kline.get("s")
+                        candle = {
+                            "open": float(kline["o"]),
+                            "close": float(kline["c"]),
+                            "high": float(kline["h"]),
+                            "low": float(kline["l"]),
+                        }
+    
+                        # --- your task logic unchanged ---
+                        if interval == "15m":
+                            if symbol == "BTCUSDT":
+                                self._put_task(3, lambda: self.btcservice.update_running_signals(candle))
+                                self._put_task(4, lambda: self.btcservice.update_pending_signals(candle))
+                                print("📡 15min BTC closed → triggered signals update")
+                            elif symbol == "BNBUSDT":
+                                self._put_task(3, lambda: self.bnbservice.update_running_signals(candle))
+                                self._put_task(4, lambda: self.bnbservice.update_pending_signals(candle))
+                                print("📡 15min BNB closed → triggered signals update")
+                            elif symbol == "PAXGUSDT":
+                                self._put_task(3, lambda: self.paxgservice.update_running_signals(candle))
+                                self._put_task(4, lambda: self.paxgservice.update_pending_signals(candle))
+                                print("📡 15min PAXG closed → triggered signals update")
+    
+                        elif interval == "1h":
+                            if symbol == "BTCUSDT":
+                                self._put_task(1, lambda: self.btcservice.update_ATHzone(candle))
+                                self._put_task(5, self.btcservice.get_current_signals)
+                                print("📡 1h BTC closed → triggered ATH update and signal generation")
+                            elif symbol == "BNBUSDT":
+                                self._put_task(1, lambda: self.bnbservice.update_ATHzone(candle))
+                                self._put_task(5, self.bnbservice.get_current_signals)
+                                print("📡 1h BNB closed → triggered ATH update and signal generation")
+                            elif symbol == "PAXGUSDT":
+                                self._put_task(1, lambda: self.paxgservice.update_ATHzone(candle))
+                                self._put_task(5, self.paxgservice.get_current_signals)
+                                print("📡 1h PAXG closed → triggered ATH update and signal generation")
+    
+                        elif interval == "4h":
+                            if symbol == "BTCUSDT":
+                                self._put_task(2, self.btcservice.update_untouched_zones)
+                            elif symbol == "BNBUSDT":
+                                self._put_task(2, self.bnbservice.update_untouched_zones)
+                            elif symbol == "PAXGUSDT":
+                                self._put_task(2, self.paxgservice.update_untouched_zones)
+                            print("📡 4h closed → triggered zones")
+                    except Exception as e:
+                        print(f"❌ Error inside on_kline_close: {e}")
+    
+                await self.binance_api.listen_kline(
+                    ["BTCUSDT", "BNBUSDT", "PAXGUSDT"], ["15m", "1h", "4h"], on_kline_close
+                )
+    
             except Exception as e:
-                print(f'{str(e)}')
-
-        try:
-            await self.binance_api.listen_kline(
-                ["BTCUSDT", "BNBUSDT","PAXGUSDT"], ["15m","1h", "4h"], on_kline_close
-            )
-        except Exception as e:
-            print(f'{str(e)}')
+                if "ConnectionClosedOK" in str(e):
+                    print("⚠️ WebSocket closed normally, reconnecting in 5s...")
+                else:
+                    print(f"❌ Binance listener crashed: {e}")
+                    import traceback; traceback.print_exc()
+    
+                await asyncio.sleep(5)
+                print("🔄 Reconnecting...")
+                continue

@@ -5,7 +5,7 @@ from flask_limiter import Limiter
 
 class SignalAPI:
     def __init__(self,service : SignalService,limiter: Limiter):
-        self.blueprint = Blueprint('signal_api', __name__)
+        self.blueprint = Blueprint(f'{service.symbol}signal_api', __name__)
         self.service = service
         self.limiter = limiter
         self._register_routes()
@@ -33,3 +33,4 @@ class SignalAPI:
             return jsonify({"error": "Unknown Error Occur"}),500
         
         
+
