@@ -21,7 +21,7 @@ class SignalAPI:
         except NoUntouchedZone as e:
             return jsonify({"error" : f'{e}'}),404
         except Exception as e:
-            return jsonify({"error" : "Something went wrong"}),500
+            return jsonify({"error" : f"{e}"}),500
 
     def get_given_signals(self):
         try:
@@ -29,8 +29,9 @@ class SignalAPI:
             return jsonify({"data" :signals}),200
         except EmptySignalException as e:
             return jsonify({"error" : f'{e}'}),404
-        except:
-            return jsonify({"error": "Unknown Error Occur"}),500
+        except Exception as e:
+            return jsonify({"error": f"{e}"}),500
         
         
+
 
