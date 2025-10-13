@@ -15,6 +15,7 @@ class SchedulerManager:
         self.task_queue = queue.PriorityQueue()
         self._counter = itertools.count()
         self.db_lock = threading.Lock()
+        self.runningthread = []
 
         # Start watchdog threads
         self._start_thread(self._worker_watchdog, name="WorkerWatchdog")
@@ -37,6 +38,7 @@ class SchedulerManager:
                     print(f"🔄 Restarting [{name}] in 5s...")
                     time.sleep(5)
         t = threading.Thread(target=wrapper, daemon=True, name=name)
+        self.runningthread.append(t)
         t.start()
 
     # -------------------- Watchdogs --------------------
@@ -192,3 +194,7 @@ class SchedulerManager:
 
         print("🛑 Binance listener exited permanently.")
         Cache._client.publish("service_error",json.dump({'error':'binance socket error'}))
+
+    def stop(self):
+        for t in self.runningthread:
+            t.join()
