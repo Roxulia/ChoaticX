@@ -607,4 +607,11 @@ class TelegramBot:
         self.app.add_handler(CommandHandler("help", self.help))
         self.app.add_handler(capital_update_handler)
         self.app.add_handler(CallbackQueryHandler(self.button_handler))
+        
         self.app.run_polling()
+
+    def startMessage(self):
+        pass
+
+    def stop(self):
+        pass
