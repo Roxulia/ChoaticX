@@ -10,6 +10,8 @@ import redis,json,threading,os
 from Database.DB import MySQLDB as DB
 from Database.Cache import Cache
 
+
+DB.init_logger('api_db.log')
 Cache.init()
 app = Flask(__name__)
 socketio = SocketIO(app,cors_allowed_origins="*")
@@ -41,5 +43,5 @@ app.register_blueprint(paxg_api.blueprint, url_prefix="/api/paxg")
 app.register_blueprint(predict_api.blueprint,url_prefix='/api')
 
 if __name__ == "__main__":
-    DB.init_logger('api_db.log')
+    
     socketio.run(app,host = "0.0.0.0",port = 5000)

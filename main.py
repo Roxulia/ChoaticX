@@ -129,7 +129,7 @@ def run_all_process():
         print("Process Fail")
 
 if __name__ == "__main__" :
-    #Cache.init()
+    Cache.init()
     DB.init_logger("initialdb.log")
     pd.set_option('future.no_silent_downcasting', True)
     parser = argparse.ArgumentParser(description="run training program")
@@ -152,5 +152,6 @@ if __name__ == "__main__" :
     process[args.option]()
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")
+
 
 
