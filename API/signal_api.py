@@ -12,7 +12,7 @@ class SignalAPI:
 
     def _register_routes(self):
         self.blueprint.add_url_rule("/zones", view_func=self.limiter.limit("10 per minute")(self.get_zones), methods=["GET"])
-        self.blueprint.add_url_rule("/signals", view_func=self.limiter.limit("5 per minute")(self.get_running_signals), methods=["GET"])
+        self.blueprint.add_url_rule("/signals", view_func=self.limiter.limit("5 per minute")(self.get_given_signals), methods=["GET"])
         
     def get_zones(self):
         try:
@@ -23,9 +23,9 @@ class SignalAPI:
         except Exception as e:
             return jsonify({"error" : "Something went wrong"}),500
 
-    def get_running_signals(self):
+    def get_given_signals(self):
         try:
-            signals = self.service.get_running_signals()
+            signals = self.service.get_given_signals()
             return jsonify({"data" :signals}),200
         except EmptySignalException as e:
             return jsonify({"error" : f'{e}'}),404
