@@ -27,6 +27,7 @@ class TelegramBot:
         self.pubsub = self.redis.pubsub()
         self.pubsub.subscribe("signals_channel")
         self.pubsub.subscribe("ath_channel")
+        self.pubsub.subscribe("service_error")
         self.CALLBACK_MAP = {
             "btc_zones" : "get_btc_zones",
             "subscribe" : "subscribe",
@@ -487,6 +488,11 @@ class TelegramBot:
             for s in subscribers:
                 await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
 
+    async def broadcast_error(self,data):
+        subscribers = Subscribers.getAdmin()
+        for s in subscribers:
+                await self.app.bot.send_message(chat_id=s['chat_id'], text=f"{data}")
+
     async def listener(self):
         async def run_listener():
             def blocking():
@@ -510,6 +516,8 @@ class TelegramBot:
                         await self.broadcast_signals(data)
                     elif channel == "ath_channel":
                         await self.broadcast_ath(data)
+                    elif channel == "service_error":
+                        await self.broadcast_error(data)
                 except Exception as inner_e:
                     print(f"❌ Error processing message from {channel}: {inner_e}")
                     traceback.print_exc()

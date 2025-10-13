@@ -48,3 +48,15 @@ class Subscribers(BaseModel):
         result = DB.execute(sql,[tier],fetchall=True)
         Cache.set(raw_key,result)
         return result
+    
+    @classmethod
+    def getAdmin(cls):
+        raw_key = f"{cls.table}:find:is_admin:true"
+        cached = Cache.get(raw_key)
+        if cached is not None:
+            return cached
+        sql = f"SELECT * FROM {cls.table} WHERE is_admin = True "
+        result = DB.execute(sql,fetchall=True)
+        Cache.set(raw_key,result)
+        return result
+        
