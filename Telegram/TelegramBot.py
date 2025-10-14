@@ -23,6 +23,7 @@ class TelegramBot:
         self.bnbservice = SignalService("BNBUSDT",threshold=3)
         self.paxgservice = SignalService("PAXGUSDT",10)
         self.app = Application.builder().token(self.TELEGRAM_TOKEN).post_init(self.post_init).build()
+        self.app.post_stop(self.stop)
         self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
         self.pubsub = self.redis.pubsub()
         self.pubsub.subscribe("signals_channel")
@@ -609,7 +610,7 @@ class TelegramBot:
         self.app.add_handler(CommandHandler("help", self.help))
         self.app.add_handler(capital_update_handler)
         self.app.add_handler(CallbackQueryHandler(self.button_handler))
-        self.app.post_stop(self.stop)
+        
         self.app.run_polling()
 
     async def startMessage(self):
