@@ -35,6 +35,8 @@ class TelegramBot:
             "btc_signals" : "get_given_btc_signals",
             "update_capital" : "update_subscriber_capital"
         }
+        self.listener_task = None
+        self.stop_event = asyncio.Event()
 
     def restricted(min_tier=1, admin_only=False,for_starter = False):
         def decorator(func):
@@ -70,7 +72,7 @@ class TelegramBot:
 
     async def post_init(self, app: Application):
         # Start Redis listener as background task once loop is running
-        app.create_task(self.listener())
+        self.listener_task=app.create_task(self.listener())
 
     # ---------------- Handlers ----------------
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -506,7 +508,7 @@ class TelegramBot:
                     print("⚠️ Redis connection lost inside blocking loop.")
                     raise  # raise to trigger reconnect in outer loop
 
-            while True:
+            while not self.stop_event.is_set():
                 channel, data = await asyncio.to_thread(blocking)
                 if not channel or not data:
                     continue
@@ -523,7 +525,7 @@ class TelegramBot:
                     traceback.print_exc()
 
         # Main supervisor loop — keeps listener alive even after errors
-        while True:
+        while not self.stop_event.is_set():
             try:
                 print("🚀 Starting Redis listener...")
                 await run_listener()
@@ -607,11 +609,38 @@ class TelegramBot:
         self.app.add_handler(CommandHandler("help", self.help))
         self.app.add_handler(capital_update_handler)
         self.app.add_handler(CallbackQueryHandler(self.button_handler))
-        
+        self.app.post_stop(self.stop)
         self.app.run_polling()
 
-    def startMessage(self):
-        pass
+    async def startMessage(self):
+        subscribers = Subscribers.getActiveSubscribers()
+        text = (f'✅ We’re back online!'
+                'ChaoticX has completed its latest update — new optimizations, smoother signals, and improved stability are now live.'
 
-    def stop(self):
-        pass
+                '📊 Start receiving signals again and let’s get back to trading smarter!'
+
+                '💥 Welcome back to the chaos!')
+        for s in subscribers:
+            await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+
+    async def stop(self):
+        """Gracefully stop listener and app"""
+        print("⚙️ Stopping TelegramBot tasks...")
+        self.stop_event.set()
+        if self.listener_task:
+            self.listener_task.cancel()
+            subscribers = Subscribers.getActiveSubscribers()
+            text = (f'🚧 ChaoticX is going offline for a quick update!'
+                'We’re upgrading systems and polishing things up to make your trading insights even sharper.'
+                'The bot will be temporarily unavailable during this maintenance period.'
+
+                '⏳ Don’t worry — we’ll be back soon, faster and smarter than ever!'
+
+                '💬 Stay tuned for the comeback notification 👇')
+            for s in subscribers:
+                await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+            try:
+                await self.listener_task
+            except asyncio.CancelledError:
+                pass
+        print("✅ TelegramBot stopped.")
