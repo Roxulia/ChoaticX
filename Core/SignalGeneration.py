@@ -52,8 +52,8 @@ class SignalGenerator:
                     tp = row["above_zone_low"]
                 else:
                     # edge case: price touches demand from above (breakout retest)
-                    entry = row["zone_low"]
-                    sl = row["zone_high"]
+                    entry = row["zone_high"]
+                    sl = row["zone_low"]
                     tp = row["above_zone_low"]
         except Exception as e:
             raise e
@@ -129,3 +129,4 @@ class SignalGenerator:
                 raise EmptySignalException
         except Exception as e:
             raise e
+
