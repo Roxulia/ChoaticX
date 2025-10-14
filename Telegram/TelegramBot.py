@@ -639,7 +639,7 @@ class TelegramBot:
         for s in subscribers:
             await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
 
-    async def stop(self):
+    async def stop(self,app = None):
         """Gracefully stop listener and app"""
         print("⚙️ Stopping TelegramBot tasks...")
         self.stop_event.set()
