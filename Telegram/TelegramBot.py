@@ -659,4 +659,9 @@ class TelegramBot:
                 await self.listener_task
             except asyncio.CancelledError:
                 pass
+        if self.pubsub:
+            try:
+                self.pubsub.close()
+            except Exception:
+                pass
         print("✅ TelegramBot stopped.")
