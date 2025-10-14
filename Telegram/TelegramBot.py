@@ -71,6 +71,7 @@ class TelegramBot:
         return decorator
 
     async def post_init(self, app: Application):
+        await self.startMessage()
         # Start Redis listener as background task once loop is running
         self.listener_task=app.create_task(self.listener())
 
