@@ -93,23 +93,25 @@ class Portfolio:
         self.write_history(trade)
 
     def write_history(self,trade:Trade):
+        meta = trade.meta
         based_zone = {
-            'timestamp' : str(trade.meta['timestamp']),
-            'zone_high' : float(trade.meta['zone_high']),
-            'zone_low' : float(trade.meta['zone_low']),
-            'zone_type' : str(trade.meta['zone_type'])
+            'timestamp' : str(meta.get('timestamp',None)),
+            'zone_high' : float(meta.get('zone_high',0.0)),
+            'zone_low' : float(meta.get('zone_low',0.0)),
+            'zone_type' : str(meta.get('zone_type',None))
         }
         above_zone = {
-            'timestamp' : str(trade.meta['above_timestamp']),
-            'zone_high' : float(trade.meta['above_zone_high']),
-            'zone_low' : float(trade.meta['above_zone_low']),
-            'zone_type' : str(trade.meta['above_zone_type'])
+            'timestamp' : str(meta.get('above_timestamp',None)),
+            'zone_high' : float(meta.get('above_zone_high',0.0)),
+            'zone_low' : float(meta.get('above_zone_low',0.0)),
+            'zone_type' : str(meta.get('above_zone_type',None))
         }
+        
         below_zone = {
-            'timestamp' : str(trade.meta['below_timestamp']),
-            'zone_high' : float(trade.meta['below_zone_high']),
-            'zone_low' : float(trade.meta['below_zone_low']),
-            'zone_type' : str(trade.meta['below_zone_type'])
+            'timestamp' : str(meta.get("below_timestamp",None)),
+            'zone_high' : float(meta.get('below_zone_high',0.0)),
+            'zone_low' : float(meta.get('below_zone_low',0.0)),
+            'zone_type' : str(meta.get('below_zone_type',None))
         }
         record = {
             'entry time' : str(trade.entry_time),
