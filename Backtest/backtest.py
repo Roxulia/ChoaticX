@@ -11,6 +11,7 @@ from ML.dataCleaning import DataCleaner
 from ML.datasetGeneration import DatasetGenerator
 from Data.binanceAPI import BinanceAPI
 from Data.Paths import Paths
+from Data.Columns import IgnoreColumns
 from Utility.UtilityClass import UtilityFunctions as utility
 from .Portfolio import Portfolio,Trade
 import pandas as pd
@@ -24,31 +25,33 @@ import traceback
 
 
 class BackTestHandler:
-    def __init__(self,time_frames = ['1h','4h','1D'],lookback = '1 years',ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high','candle_low','candle_open','candle_high','candle_close']):
+    def __init__(self,symbol,threshold,time_frames = ['1h','4h','1D'],lookback = '1 years'):
         load_dotenv()
         self.api = BinanceAPI()
         self.reaction = ZoneReactor()
         self.ohclv_paths=[]
         self.time_frames = time_frames
-        self.ignore_cols = ignore_cols
+        self.symbol = symbol
+        self.threshold = threshold
+        self.ignore_cols = IgnoreColumns()
         self.lookback = lookback
         self.Paths = Paths()
         self.portfolio = Portfolio()
         self.used_zones = []
 
     @mu.log_memory
-    def run_backtest(self,sl_threshold = 300 ,zone_update_interval=24):
+    def run_backtest(self,zone_update_interval=24):
         print(f'{self.warmup_zones[0]['timestamp']}-{(self.warmup_zones[-1]['timestamp'])}')
         dfs = self.load_OHLCV_for_backtest(inner_func=True)
         based_candles = dfs[0]
 
         # Pre-init heavy objects
-        nearbyzone = NearbyZones()
-        datagen = DatasetGenerator(timeframes=self.time_frames)
-        datacleaner = DataCleaner(timeframes=self.time_frames)
-        modelHandler = ModelHandler()
-        modelHandler.load()
-        signalGen = SignalGenerator(modelHandler,datacleaner,self.ignore_cols)
+        nearbyzone = NearbyZones(threshold=self.threshold)
+        datagen = DatasetGenerator(symbol=self.symbol,timeframes=self.time_frames)
+        datacleaner = DataCleaner(symbol=self.symbol,timeframes=self.time_frames)
+        modelHandler1 = ModelHandler(symbol=self.symbol,timeframes=self.time_frames,model_type='xgb')
+        modelHandler2 = ModelHandler(symbol=self.symbol,timeframes=[self.time_frames[0]],model_type='xgb')
+        signalGen = SignalGenerator([modelHandler1,modelHandler2],datacleaner,[self.ignore_cols.signalGenModelV1,self.ignore_cols.predictionModelV1])
 
         # Pre-convert zone timestamps
         for z in self.warmup_zones:
@@ -66,7 +69,7 @@ class BackTestHandler:
                         if signal is not None:
                             side = signal["side"]
                             diff = abs(signal['sl'] - candle['close'])
-                            if diff > sl_threshold:
+                            if diff > self.threshold:
                                 if side == "Long" and (signal["sl"] < candle["close"] <= signal["entry_price"]):
                                     signal['entry_price'] = candle['close']
                                     self.EnterTrade(signal, candle["timestamp"])
@@ -172,10 +175,10 @@ class BackTestHandler:
             for df in tqdm(dfs, desc="Warming up with OHLCV data",disable= True):
                 data = df.loc[(df['timestamp'] <= timestamp) & (df['timestamp'] >= min_date)]
                 detector = ZoneDetector(data)
-                zones = zones + detector.get_zones(inner_func=True)
-            confluentfinder = ConfluentsFinder(zones)
+                zones = zones + detector.get_zones(inner_func=True,threshold=self.threshold)
+            confluentfinder = ConfluentsFinder(zones,threshold=self.threshold)
             confluent_zones = confluentfinder.getConfluents(inner_func=True)
-            datagen = DatasetGenerator()
+            datagen = DatasetGenerator(symbol=self.symbol,timeframes=self.time_frames)
             temp_zones = list(datagen.extract_input_data(confluent_zones))
             self.warmup_zones =  utility.merge_lists_by_key(self.warmup_zones,temp_zones,"timestamp")
             self.warmup_zones = utility.removeDataFromListByKeyValueList(self.warmup_zones,self.used_zones,'timestamp')
@@ -199,11 +202,11 @@ class BackTestHandler:
             for df in tqdm(warm_up_dfs, desc="Warming up with OHLCV data"):
                 detector = ZoneDetector(df)
                 with mu.disable_memory_logging():
-                    zones = zones + detector.get_zones(inner_func=True)
+                    zones = zones + detector.get_zones(threshold=self.threshold,inner_func=True)
             self.ATH = ATHHandler(warm_up_dfs[0]).getATHFromCandles()
-            confluentfinder = ConfluentsFinder(zones)
+            confluentfinder = ConfluentsFinder(zones,threshold=self.threshold)
             confluent_zones = confluentfinder.getConfluents()
-            datagen = DatasetGenerator()
+            datagen = DatasetGenerator(symbol=self.symbol,timeframes=self.time_frames)
             zones = list(datagen.extract_input_data(confluent_zones))
             zones = sorted(zones,key=lambda x : x.get("timestamp",None))
             self.warmup_zones = zones

@@ -10,28 +10,33 @@ from Exceptions.ServiceExceptions import *
 from Utility.UtilityClass import UtilityFunctions as utility
 
 class SignalGenerator:
-    def __init__(self, modelHandler : ModelHandler = None,datacleaner : DataCleaner = None,ignore_cols = []):
-        self.modelhandler = modelHandler
+    def __init__(self, modelHandlers : list[ModelHandler] = [],datacleaner : DataCleaner = None,ignore_cols = []):
+        if len(modelHandlers) == 0:
+            raise EmptyDataInput
+        self.modelhandlers = modelHandlers
         self.datacleaner = datacleaner
         self.ignore_cols = ignore_cols
         self.filter = Filter()
 
     def generate(self, zones: list,backtest = False):
-        self.modelhandler.load()
+        
         if len(zones) == 0:
             raise EmptyDataInput
         try:
-            temp_zones = zones
-            temp_zones = self.datacleaner.preprocess_input(temp_zones,ignore_cols=self.ignore_cols)
-            zones = pd.DataFrame(zones)
-            # Predict
-            predicted_result = self.modelhandler.predict(temp_zones)
-            zones["target"] = predicted_result
+            predicted_result = []
+            for i,modelhandler in enumerate(self.modelhandlers,start=0):
+                modelhandler.load()
+                temp_zones = zones
+                temp_zones = self.datacleaner.preprocess_input(temp_zones,ignore_cols=self.ignore_cols[i])
+                zones = pd.DataFrame(zones)
+                # Predict
+                predicted_result.append(modelhandler.predict(temp_zones))
+            zones["target"] = sum(predicted_result) / len(predicted_result)
 
             # Take the first row only
             row = zones.iloc[0].copy()
             symbol = row['symbol']
-            if row["target"] == 0:  # Short
+            if row["target"] < 0.5:  # Short
                 position = "Short"
                 if row["touch_from"] == "Above":  # touched from above
                     entry = row["zone_high"]
