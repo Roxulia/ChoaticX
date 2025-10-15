@@ -5,8 +5,9 @@ from Data.indexCalculate import IndexCalculator
 from Utility.MemoryUsage import MemoryUsage as mu
 from tqdm import tqdm
 class ConfluentsFinder():
-    def __init__(self,zones):
+    def __init__(self,zones,threshold):
         self.zones = zones
+        self.threshold = threshold
         self. timeframes = timeFrame()
         self.indexCalculate = IndexCalculator(self.zones)
 
@@ -76,7 +77,9 @@ class ConfluentsFinder():
             confluents = []
             available_zones = [z for z in self.core_zones if ( (z['touch_time'] is not None and z['touch_time'] > m['timestamp'] ) or (z['touch_time'] is None )) ]
             for lz in available_zones:
-                if lz['zone_low'] <= m['zone_high'] and lz['zone_high'] >= m['zone_low']:
+                high = m['zone_high']+self.threshold
+                low = m['zone_high'] - self.threshold
+                if lz['zone_low'] <= high and lz['zone_high'] >= low:
                     confluents.append({
                         'type': lz['zone_type'],
                         'timeframe': lz['time_frame'],
@@ -89,7 +92,9 @@ class ConfluentsFinder():
             confluents = []
             available_zones = [z for z in self.liq_zones if ( (z['swept_time'] is not None and z['swept_time'] > m['timestamp'] ) or (z['swept_time'] is None )) ]
             for lz in available_zones:
-                if lz['zone_low'] <= m['zone_high'] and lz['zone_high'] >= m['zone_low']:
+                high = m['zone_high']+self.threshold
+                low = m['zone_high'] - self.threshold
+                if lz['zone_low'] <= high and lz['zone_high'] >= low:
                     confluents.append({
                         'type': lz['zone_type'],
                         'timeframe': lz['time_frame'],

@@ -10,6 +10,7 @@ from ML.Model import ModelHandler
 from ML.dataCleaning import DataCleaner
 from ML.datasetGeneration import DatasetGenerator
 from Data.binanceAPI import BinanceAPI
+from Data.Columns import IgnoreColumns
 from Utility.UtilityClass import UtilityFunctions as utility
 from Utility.MemoryUsage import MemoryUsage as mu
 from Exceptions.ServiceExceptions import *
@@ -30,14 +31,14 @@ import numpy as np
 import datetime,decimal
 
 class SignalService:
-    def __init__(self,symbol = "BTCUSDT",threshold = 300,timeframes = ['1h','4h','1D'],ignore_cols = ['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high','candle_open','candle_close','candle_high','candle_low']):
+    def __init__(self,symbol = "BTCUSDT",threshold = 300,timeframes = ['1h','4h','1D']):
         
         self.api = BinanceAPI()
         self.symbol = symbol
         self.threshold = threshold
         self.Paths = Paths()
         self.timeframes = timeframes
-        self.ignore_cols = ignore_cols
+        self.ignore_cols = IgnoreColumns()
         self.subscribers = []
         self.logger = logging.getLogger("SignalService")
         self.logger.setLevel(logging.DEBUG)
@@ -139,9 +140,9 @@ class SignalService:
             nearbyzone = NearbyZones(threshold=self.threshold)
             use_zones = []
             datacleaner = DataCleaner(symbol=self.symbol,timeframes=self.timeframes)
-            model_handler = ModelHandler(symbol=self.symbol,model_type='xgb')
-            model_handler.load()
-            signal_gen = SignalGenerator(model_handler,datacleaner,self.ignore_cols)
+            model_handler1 = ModelHandler(symbol=self.symbol,model_type='xgb')
+            model_handler2 = ModelHandler(symbol=self.symbol,timeframes=[self.timeframes[0]],model_type='xgb')
+            signal_gen = SignalGenerator([model_handler1,model_handler2],datacleaner,[self.ignore_cols.signalGenModelV1,self.ignore_cols.predictionModelV1])
             for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
                 curr_timestamp = pd.to_datetime(zone['timestamp'])
                 if curr_timestamp == reaction_data['touch_time']:
