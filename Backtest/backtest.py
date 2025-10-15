@@ -67,7 +67,7 @@ class BackTestHandler:
                         history.append(candle)
                         # Entry handling
                         if signal is not None:
-                            side = signal["side"]
+                            side = signal["position"]
                             diff = abs(signal['sl'] - candle['close'])
                             if diff > self.threshold:
                                 if side == "Long" and (signal["sl"] < candle["close"] <= signal["entry_price"]):
@@ -81,24 +81,28 @@ class BackTestHandler:
                             self.update_zones(dfs, candle["timestamp"])
                         # Generate signal only if touch
                         if len(history) > 1:
-                            touch_type, zone_timestamp = self.reaction.get_last_candle_reaction(self.warmup_zones, candle)
-                            if touch_type is not None:
-                                tempATH = ATHHandler(pd.DataFrame(history)).getATHFromCandles()
+                            try:
+                                reaction_data = self.reaction.get_last_candle_reaction(self.warmup_zones, candle)
+                                
+                                tempATH = ATHHandler(self.symbol,pd.DataFrame(history)).getATHFromCandles()
                                 if self.ATH['zone_high'] < tempATH['zone_high']:
                                     self.ATH = tempATH
                                 use_zones = []
                                 for zone in self.warmup_zones:
-                                    if zone["timestamp"] == zone_timestamp:
-                                        zone.update({
-                                            "candle_volume": candle["volume"],
-                                            "candle_open": candle["open"],
-                                            "candle_close": candle["close"],
-                                            "candle_ema20": candle["ema20"],
-                                            "candle_ema50": candle["ema50"],
-                                            "candle_rsi": candle["rsi"],
-                                            "candle_atr": candle["atr"],
-                                            "touch_type": touch_type,
-                                        })
+                                    if zone["timestamp"] == reaction_data['touch_time']:
+                                        zone['symbol'] = self.symbol
+                                        zone['candle_volume'] = candle['volume']
+                                        zone['candle_open'] = candle['open']
+                                        zone['candle_close'] = candle['close']
+                                        zone['candle_ema20'] = candle['ema20']
+                                        zone['candle_ema50'] = candle['ema50']
+                                        zone['candle_rsi'] = candle['rsi']
+                                        zone['candle_atr'] = candle['atr']
+                                        zone['candle_bb_high'] = candle['bb_high']
+                                        zone['candle_bb_low'] = candle['bb_low']
+                                        zone['candle_bb_mid'] = candle['bb_mid']
+                                        zone['touch_type'] = reaction_data['touch_type']
+                                        zone['touch_from'] = reaction_data['touch_from']
                                         use_zones.append(nearbyzone.getAboveBelowZones(zone, self.warmup_zones, self.ATH))
 
                                 if use_zones:
@@ -110,6 +114,8 @@ class BackTestHandler:
                                         signal = signalGen.generate(use_zones, backtest=True)
                                     except NotEnoughRR as e:
                                         continue
+                            except CandleNotTouch as e:
+                                continue
                                     
                         # Manage trades
                         for trade in self.portfolio.open_trades:  # no list() copy
@@ -143,7 +149,7 @@ class BackTestHandler:
         if(self.portfolio.can_open()):
             sl = signal['sl']
             tp = signal['tp']
-            side = signal['side']
+            side = signal['position']
             meta = signal['meta']
             entry_price = self.portfolio._apply_slippage_price(signal['entry_price'],side)
             qty = self.portfolio.risk_position_size(entry_price,sl)
@@ -203,7 +209,7 @@ class BackTestHandler:
                 detector = ZoneDetector(df)
                 with mu.disable_memory_logging():
                     zones = zones + detector.get_zones(threshold=self.threshold,inner_func=True)
-            self.ATH = ATHHandler(warm_up_dfs[0]).getATHFromCandles()
+            self.ATH = ATHHandler(symbol=self.symbol,candles=warm_up_dfs[0]).getATHFromCandles()
             confluentfinder = ConfluentsFinder(zones,threshold=self.threshold)
             confluent_zones = confluentfinder.getConfluents()
             datagen = DatasetGenerator(symbol=self.symbol,timeframes=self.time_frames)
@@ -212,6 +218,7 @@ class BackTestHandler:
             self.warmup_zones = zones
         except Exception as e:
             print(f"Error during warm-up: {e}")
+            traceback.print_exc()
             return False
         return True
 
@@ -228,7 +235,7 @@ class BackTestHandler:
 
     def initial_state(self):
         for tf in self.time_frames:
-            path = self.api.store_OHLCV(symbol='BTCUSDT', interval=tf, lookback=self.lookback)
+            path = self.api.store_OHLCV(symbol=self.symbol, interval=tf, lookback=self.lookback)
             if path is not None:
                 self.ohclv_paths.append(path)
         

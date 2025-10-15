@@ -31,9 +31,10 @@ import numpy as np
 import datetime,decimal
 
 class SignalService:
-    def __init__(self,symbol = "BTCUSDT",threshold = 300,timeframes = ['1h','4h','1D']):
+    def __init__(self,symbol = "BTCUSDT",threshold = 300,timeframes = ['1h','4h','1D'],Local = False):
         
         self.api = BinanceAPI()
+        self.local = Local
         self.symbol = symbol
         self.threshold = threshold
         self.Paths = Paths()
@@ -89,7 +90,7 @@ class SignalService:
                 t_zones = t_zones + zone
             except CantFetchCandleData:
                 raise CantFetchCandleData
-        confluentfinder = ConfluentsFinder(t_zones)
+        confluentfinder = ConfluentsFinder(t_zones,self.threshold)
         zones = confluentfinder.getConfluents()
         if initial_state:
             athHandler = ATHHandler(self.symbol,self.based_candles)
@@ -261,18 +262,18 @@ class SignalService:
             self.logger.exception(f'Error : Updating Untouch Zones{self.symbol}:{(e)}')
         
 
-    def get_dataset(self,initial_state=True,for_predict=False):
+    def get_dataset(self,initial_state=True):
         try:
             df = self.get_latest_zones('3 years',initial_state=initial_state)
         except CantFetchCandleData:
             raise CantFetchCandleData
         datagen = DatasetGenerator(self.symbol,self.timeframes)
-        datagen.get_dataset_list(df,for_predict=for_predict)
+        datagen.get_dataset_list(df,for_predict=self.local)
         return datagen.total_line
     
     def clean_dataset(self,total):
         datacleaner = DataCleaner(symbol = self.symbol,timeframes=self.timeframes,batch_size=1000,total_line=total)
-        return datacleaner.perform_clean(self.ignore_cols)
+        return datacleaner.perform_clean(self.ignore_cols.signalGenModelV1)
         
     def train_model(self,total):
         model_trainer = ModelHandler(symbol=self.symbol,timeframes=self.timeframes,model_type='xgb',total_line=total)
