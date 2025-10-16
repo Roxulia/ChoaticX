@@ -41,12 +41,12 @@ class SignalGenerator:
                 if row["touch_from"] == "Above":  # touched from above
                     entry = row["zone_high"]
                     sl = row["candle_bb_high"]  
-                    tp = row["below_zone_high"]
+                    tp = row["below_zone_high"] if "below_zone_high" in row else row['candle_bb_low']
                 else:
                     # edge case: price touches supply from below (rare, breakout retest)
                     entry = row["zone_low"]
                     sl = row["zone_high"]  # add buffer
-                    tp = row["below_zone_high"]
+                    tp = row["below_zone_high"] if "below_zone_high" in row else row['candle_bb_low']
             
             else:  # Long
                 position = "Long"
