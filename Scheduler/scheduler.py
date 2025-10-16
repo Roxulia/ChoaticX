@@ -73,11 +73,8 @@ class SchedulerManager:
             # Add your jobs safely
             jobs = [
                 ("update_btc_zones", 1, self.btcservice.update_untouched_zones),
-                ("update_btc_signals", 2, self.btcservice.update_running_signals),
                 ("update_bnb_zones", 1, self.bnbservice.update_untouched_zones),
-                ("update_bnb_signals", 2, self.bnbservice.update_running_signals),
                 ("update_paxg_zones", 1, self.paxgservice.update_untouched_zones),
-                ("update_paxg_signals", 2, self.paxgservice.update_running_signals),
             ]
             for job_id, prio, func in jobs:
                 self.scheduler.add_job(lambda f=func, p=prio: self._put_task(p, f),
