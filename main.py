@@ -14,7 +14,7 @@ from Database.DataModels.Signals import Signals
 from Database.DataModels.Subscribers import Subscribers
 from Database.Cache import Cache
 
-local = True
+local = False
 symbols = {
     "BTCUSDT" : 300,
     "BNBUSDT" : 3,
@@ -156,6 +156,7 @@ if __name__ == "__main__" :
     process[args.option]()
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")
+
 
 
 
