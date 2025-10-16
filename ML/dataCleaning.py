@@ -168,7 +168,18 @@ class DataCleaner:
         df['candle_bb_high_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_bb_high'],df)
         df['candle_bb_mid_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_bb_mid'],df)
         df['candle_bb_low_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_bb_low'],df)
-        calculated_cols = ['ema_20','ema_50','above_ema_20','above_ema_50','below_ema_20','below_ema_50','candle_ema20','candle_ema50','candle_bb_high','candle_bb_low','candle_bb_mid']
+        df['bb_high_by_price'] = self.checkColandCalculate(['zone_high','zone_low','bb_high'],df)
+        df['bb_mid_by_price'] = self.checkColandCalculate(['zone_high','zone_low','bb_mid'],df)
+        df['bb_low_by_price'] = self.checkColandCalculate(['zone_high','zone_low','bb_low'],df)
+        df['above_bb_high_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_bb_high'],df)
+        df['above_bb_mid_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_bb_mid'],df)
+        df['above_bb_low_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_bb_low'],df)
+        df['below_bb_high_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_bb_high'],df)
+        df['below_bb_mid_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_bb_mid'],df)
+        df['below_bb_low_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_bb_low'],df)
+        calculated_cols = ['ema_20','ema_50','above_ema_20','above_ema_50','below_ema_20','below_ema_50','candle_ema20','candle_ema50',
+                           'candle_bb_high','candle_bb_low','candle_bb_mid','above_bb_high','above_bb_low','above_bb_mid','below_bb_high','below_bb_low','below_bb_mid'
+                           ,'bb_high','bb_low','bb_mid']
         
         df = df.drop(columns =[col for col in calculated_cols if col in columns])
         return df

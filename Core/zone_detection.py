@@ -24,6 +24,9 @@ class ZoneDetector:
         ema50 = self.df['ema50'].values
         atr = self.df['atr'].values
         rsi = self.df['rsi'].values
+        bb_high = self.df['bb_high'].values
+        bb_low = self.df['bb_low'].values
+        bb_mid = self.df['bb_mid'].values
         atr_mean = self.df['atr_mean'].values
         timestamps = self.df['timestamp'].values
 
@@ -64,6 +67,9 @@ class ZoneDetector:
                         'atr': atr[i],
                         'rsi': rsi[i],
                         'atr_mean': atr_mean[i],
+                        'bb_high':bb_high[i],
+                        'bb_low' : bb_low[i],
+                        'bb_mid' : bb_mid[i],
                         'zone_high': next_low,
                         'zone_low': prev_high,
                         'zone_width': gap,
@@ -93,6 +99,9 @@ class ZoneDetector:
                         'atr': atr[i],
                         'rsi': rsi[i],
                         'atr_mean': atr_mean[i],
+                        'bb_high':bb_high[i],
+                        'bb_low' : bb_low[i],
+                        'bb_mid' : bb_mid[i],
                         'zone_high': prev_low,
                         'zone_low': next_high,
                         'zone_width': gap,
@@ -126,6 +135,9 @@ class ZoneDetector:
         ema50 = self.df['ema50'].values
         atr = self.df['atr'].values
         rsi = self.df['rsi'].values
+        bb_high = self.df['bb_high'].values
+        bb_low = self.df['bb_low'].values
+        bb_mid = self.df['bb_mid'].values
         atr_mean = self.df['atr_mean'].values
         timestamps = self.df['timestamp'].values
 
@@ -176,6 +188,9 @@ class ZoneDetector:
                         'atr': atr[i],
                         'rsi': rsi[i],
                         'atr_mean': atr_mean[i],
+                        'bb_high':bb_high[i],
+                        'bb_low' : bb_low[i],
+                        'bb_mid' : bb_mid[i],
                         'zone_high': zone_high,
                         'zone_low': zone_low,
                         'zone_width': zone_width,
@@ -211,6 +226,9 @@ class ZoneDetector:
                         'atr': atr[i],
                         'rsi': rsi[i],
                         'atr_mean': atr_mean[i],
+                        'bb_high':bb_high[i],
+                        'bb_low' : bb_low[i],
+                        'bb_mid' : bb_mid[i],
                         'zone_high': zone_high,
                         'zone_low': zone_low,
                         'zone_width': zone_width,
@@ -257,6 +275,9 @@ class ZoneDetector:
                             'atr' : self.df.iloc[i]['atr'],
                             'rsi' : self.df.iloc[i]['rsi'],
                             'atr_mean' : self.df.iloc[i]['atr_mean'],
+                            'bb_high' : self.df.iloc[i]['bb_high'],
+                            'bb_low' : self.df.iloc[i]['bb_low'],
+                            'bb_mid' : self.df.iloc[i]['bb_mid'],
                             'timestamp' : self.df.iloc[i]['timestamp']
                             })
             elif is_swing_low:
@@ -265,6 +286,9 @@ class ZoneDetector:
                             'ema 50' : self.df.iloc[i]['ema50'],
                             'atr' : self.df.iloc[i]['atr'],
                             'rsi' : self.df.iloc[i]['rsi'],
+                            'bb_high' : self.df.iloc[i]['bb_high'],
+                            'bb_low' : self.df.iloc[i]['bb_low'],
+                            'bb_mid' : self.df.iloc[i]['bb_mid'],
                             'atr_mean' : self.df.iloc[i]['atr_mean'],
                             'timestamp' : self.df.iloc[i]['timestamp']
                             })
@@ -363,6 +387,9 @@ class ZoneDetector:
                 rsis = [g['rsi'] for g in group if 'rsi' in g]
                 atrs = [g['atr'] for g in group if 'atr' in g]
                 atr_means = [g['atr_mean'] for g in group if 'atr_mean' in g]
+                bb_highs = [g['bb_high'] for g in group if 'bb_high' in g]
+                bb_lows = [g['bb_low'] for g in group if 'bb_low' in g]
+                bb_mids = [g['bb_mid'] for g in group if 'bb_mid' in g]
                 timestamps = [g['timestamp'] for g in group if 'timestamp' in g]
                 # Find sweep candle
                 
