@@ -200,16 +200,16 @@ class SignalService:
                 signal_position = s['position']
                 if signal_position == 'Long' : 
                     if s['sl'] >= candle['low']:
-                        signal_gen.updateSignalStatus(s['id'],"LOSE")
+                        self.signal_gen.updateSignalStatus(s['id'],"LOSE")
                     elif s['tp'] <= candle['high']:
-                        signal_gen.updateSignalStatus(s['id'],"WIN")
+                        self.signal_gen.updateSignalStatus(s['id'],"WIN")
                     else:
                         continue
                 elif signal_position == 'Short':
                     if s['sl'] <= candle['high']:
-                        signal_gen.updateSignalStatus(s['id'],"LOSE")
+                        self.signal_gen.updateSignalStatus(s['id'],"LOSE")
                     elif s['tp'] >= candle['low']:
-                        signal_gen.updateSignalStatus(s['id'],"WIN")
+                        self.signal_gen.updateSignalStatus(s['id'],"WIN")
                     else:
                         continue
                 else:
@@ -228,14 +228,14 @@ class SignalService:
                     diff = abs(s['sl'] - candle['low'])
                     if diff > self.threshold:
                         if s['sl'] < candle['low'] < s['entry_price']:
-                            signal_gen.updateSignalStatus(s['id'],"RUNNING")
+                            self.signal_gen.updateSignalStatus(s['id'],"RUNNING")
                         else:
                             continue
                 elif signal_position == 'Short':
                     diff = abs(s['sl'] - candle['high'])
                     if diff>self.threshold:
                         if s['sl'] > candle['high'] > s['entry_price']:
-                            signal_gen.updateSignalStatus(s['id'],"RUNNING")
+                            self.signal_gen.updateSignalStatus(s['id'],"RUNNING")
                         else:
                             continue
                     else:
