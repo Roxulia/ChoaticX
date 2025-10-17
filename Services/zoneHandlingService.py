@@ -134,4 +134,7 @@ class ZoneHandlingService():
         datagen.get_dataset_list(df,for_predict=for_predict)
         return datagen.total_line
     
-    
+    def getUpdatedATH(self):
+        athHandler = ATHHandler(self.symbol)
+        ATH = athHandler.getATHFromStorage()
+        return ATH

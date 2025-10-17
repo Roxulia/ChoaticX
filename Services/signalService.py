@@ -18,6 +18,7 @@ from Database.DataModels.FVG import FVG
 from Database.DataModels.OB import OB
 from Database.DataModels.Liq import LIQ
 from Database.Cache import Cache
+from .zoneHandlingService import ZoneHandlingService
 import pandas as pd
 import json
 from dotenv import load_dotenv
@@ -41,6 +42,7 @@ class SignalService:
         self.timeframes = timeframes
         self.ignore_cols = IgnoreColumns()
         self.subscribers = []
+        self.zoneHandler = ZoneHandlingService(self.symbol,self.threshold,self.timeframes)
         datacleaner = DataCleaner(symbol=self.symbol,timeframes=self.timeframes)
         model_handler1 = ModelHandler(symbol=self.symbol,model_type='xgb')
         model_handler2 = ModelHandler(symbol=self.symbol,timeframes=[self.timeframes[0]],model_type='xgb')
@@ -70,75 +72,13 @@ class SignalService:
         self.logger.addHandler(file_handler)
         self.logger.addHandler(console_handler)
 
-    def register_subscribers(self,callback):
-        self.subscribers.append(callback)
-
-    def get_zones(self,interval,lookback):
-        try:
-            df = self.api.get_ohlcv(symbol=self.symbol,interval=interval,lookback=lookback)
-        except CantFetchCandleData as e:
-            raise CantFetchCandleData
-        if interval ==  self.timeframes[0]:
-            self.based_candles = df
-        detector = ZoneDetector(df)
-        zones = detector.get_zones(threshold=self.threshold)
-        return zones
-
-    @mu.log_memory
-    def get_latest_zones(self,lookback='1 years',initial_state = False):
-        t_zones = []
-        for tf in self.timeframes:
-            try:
-                zone = self.get_zones(tf,lookback)
-                
-                t_zones = t_zones + zone
-            except CantFetchCandleData:
-                raise CantFetchCandleData
-        confluentfinder = ConfluentsFinder(t_zones,self.threshold)
-        zones = confluentfinder.getConfluents()
-        if initial_state:
-            athHandler = ATHHandler(self.symbol,self.based_candles)
-            athHandler.updateATH()
-        nearByZones = NearbyZones(zones,self.based_candles,threshold=self.threshold)
-        zones = nearByZones.getNearbyZone()
-        reactor = ZoneReactor()
-        zones = reactor.perform_reaction_check(zones,self.based_candles)
-        zones = sorted(zones,key=lambda x : x.get("timestamp",None))
-        return zones
-
-    def get_untouched_zones(self,limit=0):
-        try:
-            zones = FVG.getRecentData(symbol=self.symbol,key="timestamp",limit=limit) + OB.getRecentData(symbol=self.symbol,key="timestamp",limit=limit) + LIQ.getRecentData(symbol=self.symbol,key="timestamp",limit=limit)
-            if zones:
-                return zones
-            else:
-                raise NoUntouchedZone
-        except Exception as e:
-            raise e
-    
-    @mu.log_memory
-    def update_ATHzone(self,candle):
-        try:
-            self.logger.info("Performing ATH update")
-            ATH = ATHHandler(self.symbol).getATHFromStorage()
-            if ATH['zone_high'] < candle['high']:
-                candle_data = self.api.get_ohlcv(symbol=self.symbol,interval= '1h' , lookback= '7 days')
-                athHandler = ATHHandler(symbol=self.symbol,candles=candle_data)
-                new_ATH = athHandler.getATHFromCandles()
-                athHandler.store(new_ATH)
-                Cache._client.publish("ath_channel",json.dumps(new_ATH,default=utility.default_json_serializer))
-                self.logger.info(f"New ATH FORMED in {self.symbol} with price {new_ATH['zone_high']}")
-        except Exception as e:
-            self.logger.error(f"Error Occured in Updating ATH : {str(e)}")
-
     @mu.log_memory
     def get_current_signals(self):
         try:
             self.logger.info(f"{self.symbol} : getting current signal")
             candle = self.api.get_latest_candle(symbol=self.symbol)
-            zones = self.get_untouched_zones()
-            athHandler = ATHHandler(self.symbol)
-            ATH = athHandler.getATHFromStorage()
+            zones = self.zoneHandler.get_untouched_zones()
+            ATH = self.zoneHandler.getUpdatedATH()
             reactor = ZoneReactor()
             datagen = DatasetGenerator(self.symbol)
             reaction_data = reactor.get_last_candle_reaction(zones,candle)
@@ -241,36 +181,7 @@ class SignalService:
                     else:
                         continue
         except Exception as e:
-            self.logger.error(f'Error:Updating Pending Signals:{self.symbol}:{str(e)}')
-
-    def update_untouched_zones(self):
-        try:
-            self.logger.info(f"{self.symbol}:Updating Untouch Zones")
-            df_from_candle = self.get_latest_zones('6 months')
-            temp_df = []
-            for i,row in enumerate(df_from_candle):
-                #print(row['touch_type'])
-                touch_type = row.get('touch_type',None)
-                if touch_type is not None:
-                    continue
-                else:
-                    temp_df.append(row)
-            datagen = DatasetGenerator(symbol=self.symbol)
-            datagen.store_untouch_zones(temp_df)
-        except CantFetchCandleData as e:
-            self.logger.exception(f'Error : Updating Untouch Zones{self.symbol}:{(e)}')
-        except Exception as e:
-            self.logger.exception(f'Error : Updating Untouch Zones{self.symbol}:{(e)}')
-        
-
-    def get_dataset(self,initial_state=True):
-        try:
-            df = self.get_latest_zones('3 years',initial_state=initial_state)
-        except CantFetchCandleData:
-            raise CantFetchCandleData
-        datagen = DatasetGenerator(self.symbol,self.timeframes)
-        datagen.get_dataset_list(df,for_predict=self.local)
-        return datagen.total_line
+            self.logger.error(f'Error:Updating Pending Signals:{self.symbol}:{str(e)}')        
     
     def clean_dataset(self,total):
         datacleaner = DataCleaner(symbol = self.symbol,timeframes=self.timeframes,batch_size=1000,total_line=total)
@@ -285,18 +196,9 @@ class SignalService:
         model_trainer.load()
         model_trainer.test_result()
 
-    def test_dataset(self):
-        with open(self.Paths.raw_data) as f:
-            keys = set()
-            for i, line in enumerate(f):
-                obj = json.loads(line)
-                keys.update(obj.keys())
-            print(f"🧩 Total unique keys: {len(keys)}")
-            print(keys)
-
     def data_extraction(self):
         try:
-            total = self.get_dataset()
+            total = self.zoneHandler.get_dataset()
         except CantFetchCandleData:
             raise CantFetchCandleData
         total = self.clean_dataset(total)
@@ -309,36 +211,5 @@ class SignalService:
         except:
             raise TrainingFail
 
-    def test_process(self):
-        try:
-            df = self.get_latest_zones()
-        except CantFetchCandleData:
-            raise CantFetchCandleData
-        datagen = DatasetGenerator(df)
-        data = datagen.extract_features_and_labels()
-        data = datagen.extract_confluent_tf(data)
-        data = datagen.extract_nearby_zone_data(data)
-        count = 0
-        for d in data:
-            if count > 0:
-                break
-            for k,v in d.items():
-                print(k)
-            count+=1
-
-    def default_json_serializer(self,obj):
-        if isinstance(obj, (datetime.datetime, datetime.date)):
-            return obj.isoformat()
-        elif isinstance(obj, decimal.Decimal):
-            return float(obj)
-        elif isinstance(obj, (np.integer, np.int64, np.int32)):
-            return int(obj)
-        elif isinstance(obj, (np.floating, np.float64, np.float32)):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        elif hasattr(obj, '__str__'):
-            return str(obj)
-        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
     

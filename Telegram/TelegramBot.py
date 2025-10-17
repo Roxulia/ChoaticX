@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from Exceptions.ServiceExceptions import *
 from Services.signalService import SignalService
+from Services.subscriptionService import SubscriptionService
 import redis,json,threading,time
 import asyncio
 import logging,traceback
@@ -22,6 +23,7 @@ class TelegramBot:
         self.btcservice = SignalService("BTCUSDT",300)
         self.bnbservice = SignalService("BNBUSDT",threshold=3)
         self.paxgservice = SignalService("PAXGUSDT",10)
+        self.subscriptionService = SubscriptionService()
         self.app = Application.builder().token(self.TELEGRAM_TOKEN).post_init(self.post_init).post_stop(self.stop).build()
         self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
         self.pubsub = self.redis.pubsub()
@@ -45,7 +47,7 @@ class TelegramBot:
                 try:
                     message = self.get_message(update)
                     user_id = update.effective_user.id
-                    user = Subscribers.getByChatID(user_id)
+                    user = self.subscriptionService.getByChatID(user_id)
 
                     if not for_starter:
 
@@ -141,16 +143,8 @@ class TelegramBot:
         try:
             message = self.get_message(update)
             chat_id = update.effective_chat.id
-            try:
-                existed = Subscribers.getByChatID(chat_id)
-                if existed:
-                    Subscribers.update(existed['id'],{"is_active":True})
-                else:
-                    Subscribers.create({"chat_id":chat_id})
-                await message.reply_text("✅ Subscribed for auto broadcasts!")
-            except Exception as e:
-                print("Error in Database")
-                await message.reply_text("Unknown Error Occur !! Pls Contact Us for Support")
+            text = self.subscriptionService.subscribeUsingTelegram(chat_id)
+            await message.reply_text(text=text)
         except EmptyTelegramMessage as e:
             print(f'{str(e)}')
 
@@ -159,17 +153,8 @@ class TelegramBot:
         try:
             message = self.get_message(update)
             chat_id = update.effective_chat.id
-            try:
-                existed = Subscribers.getByChatID(chat_id)
-                if existed:
-                    Subscribers.update(existed['id'],{"is_active":False})
-                    await message.reply_text("❌ Unsubscribed.")
-                else:
-                    Subscribers.create({"chat_id":chat_id,"is_active":False})
-                    await message.reply_text("U Haven't Subcribed to this Channel")
-            except Exception as e:
-                print("Error in Database")
-                await message.reply_text("Unknown Error Occur !! Pls Contact Us for Support")
+            text = self.subscriptionService.unsubscribeUsingTelegram(chat_id)
+            await message.reply_text(text=text)
         except EmptyTelegramMessage as e:
             print(f'{str(e)}')
 
@@ -178,7 +163,7 @@ class TelegramBot:
         try:
             message = self.get_message(update)
             try:
-                zones = self.btcservice.get_untouched_zones(limit= 5)
+                zones = self.btcservice.zoneHandler.get_untouched_zones(limit= 5)
                 sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
                 msg = f"📊 *Recent BTCUSDT Zones*\n\n"
                 for i, zz in enumerate(sorted_zones, start=1):
@@ -213,8 +198,9 @@ class TelegramBot:
                 signals = self.btcservice.get_given_signals()
                 msg = f"📊 *Recent BTCUSDT Signals*\n\n"
                 if user is not None and (user['tier'] > 1 or user['is_admin']):
+                    porfolio = Portfolio(starting_balance= user['capital'])
                     for i,s in enumerate(signals,start=1):
-                        porfolio = Portfolio(starting_balance= user['capital'])
+                        
                         lot_size = porfolio.risk_position_size(s['entry_price'],s['sl'],user['risk_size'])
                         side = s["position"].upper()
                         emoji = "🟩" if side == "LONG" else "🟥"
@@ -258,7 +244,7 @@ class TelegramBot:
         try:
             message = self.get_message(update)
             try:
-                zones = self.bnbservice.get_untouched_zones(limit= 5)
+                zones = self.bnbservice.zoneHandler.get_untouched_zones(limit= 5)
                 sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
                 msg = f"📊 *Recent BNBUSDT Zones*\n\n"
                 for i, zz in enumerate(sorted_zones, start=1):
@@ -292,9 +278,9 @@ class TelegramBot:
             try:
                 signals = self.bnbservice.get_given_signals()
                 msg = f"📊 *Recent BNBUSDT Signals*\n\n"
-
+                portfolio = Portfolio(starting_balance=user["capital"])
                 for i, s in enumerate(signals, start=1):
-                    portfolio = Portfolio(starting_balance=user["capital"])
+                    
                     lot_size = portfolio.risk_position_size(s["entry_price"], s["sl"], user["risk_size"])
 
                     side = s["position"].upper()
@@ -325,7 +311,7 @@ class TelegramBot:
         try:
             message = self.get_message(update)
             try:
-                zones = self.paxgservice.get_untouched_zones(limit= 5)
+                zones = self.paxgservice.zoneHandler.get_untouched_zones(limit= 5)
                 sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
                 msg = f"📊 *Recent PAXGUSDT Zones*\n\n"
                 for i, zz in enumerate(sorted_zones, start=1):
@@ -359,9 +345,9 @@ class TelegramBot:
             try:
                 signals = self.paxgservice.get_given_signals()
                 msg = f"📊 *Recent PAXGUSDT Signals*\n\n"
-
+                portfolio = Portfolio(starting_balance=user["capital"])
                 for i, s in enumerate(signals, start=1):
-                    portfolio = Portfolio(starting_balance=user["capital"])
+                    
                     lot_size = portfolio.risk_position_size(s["entry_price"], s["sl"], user["risk_size"])
 
                     side = s["position"].upper()
@@ -410,18 +396,18 @@ class TelegramBot:
             message = self.get_message(update)
             try:
                 capital = float(message.text)
-                if capital <= 0:
-                    await message.reply_text("⚠️ Capital must be greater than 0. Try again:")
-                    return self.CAPITAL_UPDATE
-
-                Subscribers.update(user['id'], {"capital": capital})
-
+                self.subscriptionService.updateCapital(user['id'],capital)
                 await message.reply_text(f"✅ Your capital has been updated to *{capital} USDT*.", parse_mode="Markdown")
                 return ConversationHandler.END
-
             except ValueError:
                 await message.reply_text("❌ Please enter a valid number:")
                 return self.CAPITAL_UPDATE
+            except ValueLessThanZero:
+                await message.reply_text("⚠️ Capital must be greater than 0. Try again:")
+                return self.CAPITAL_UPDATE
+            except Exception as e:
+                await message.reply_text("❌ Error Occur during updating!!")
+                return ConversationHandler.END
         except EmptyTelegramMessage as e:
             print(f'{str(e)}')
             return ConversationHandler.END
@@ -446,7 +432,7 @@ class TelegramBot:
         f"| Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
         )
         if signal['symbol'] == "BTCUSDT":
-            subscribers = Subscribers.getActiveSubscribers()
+            subscribers = self.subscriptionService.getActiveSubscribers()
             for s in subscribers:
                 if s['is_admin'] == True or s['tier'] > 1:
                     porfolio = Portfolio(starting_balance= s['capital'])
@@ -456,14 +442,14 @@ class TelegramBot:
                 else:
                     await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
         elif signal['symbol'] == "BNBUSDT" :
-            subscribers = Subscribers.getActiveSubscriberWithTier(2)
+            subscribers = self.subscriptionService.getActiveSubscribers(tier=2)
             for s in subscribers:
                 porfolio = Portfolio(starting_balance= s['capital'])
                 lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
                 temp_text = text + f"| Lot Size: {lot_size}"
                 await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
         elif signal['symbol'] == "PAXGUSDT" :
-            subscribers = Subscribers.getActiveSubscriberWithTier(3)
+            subscribers = self.subscriptionService.getActiveSubscribers(tier=3)
             for s in subscribers:
                 porfolio = Portfolio(starting_balance= s['capital'])
                 lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
@@ -479,20 +465,20 @@ class TelegramBot:
         f"with Price {data['zone_high']}"
         )
         if data['symbol'] == "BTCUSDT":
-            subscribers = Subscribers.getActiveSubscribers()
+            subscribers = self.subscriptionService.getActiveSubscribers()
             for s in subscribers:
                     await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
         elif data['symbol'] == "BNBUSDT" :
-            subscribers = Subscribers.getActiveSubscriberWithTier(2)
+            subscribers = self.subscriptionService.getActiveSubscribers(tier=2)
             for s in subscribers:
                 await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
         elif data['symbol'] == "PAXGUSDT" :
-            subscribers = Subscribers.getActiveSubscriberWithTier(3)
+            subscribers = self.subscriptionService.getActiveSubscribers(tier=3)
             for s in subscribers:
                 await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
 
     async def broadcast_error(self,data):
-        subscribers = Subscribers.getAdmin()
+        subscribers = self.subscriptionService.getActiveSubscribers(admin_only=True)
         for s in subscribers:
                 await self.app.bot.send_message(chat_id=s['chat_id'], text=f"{data}")
 
@@ -580,7 +566,7 @@ class TelegramBot:
             await query.edit_message_text("⚠️ Handler not implemented yet.")
             return
         user_id = update.effective_user.id
-        user = Subscribers.getByChatID(user_id)
+        user = self.subscriptionService.getByChatID(user_id)
         if action == "update_subscriber_capital" :
             await query.answer()
             return
@@ -629,11 +615,11 @@ class TelegramBot:
         self.app.run_polling()
 
     async def startMessage(self):
-        subscribers = Subscribers.getActiveSubscribers()
-        text = (f'✅ We’re back online!'
-                'ChaoticX has completed its latest update — new optimizations, smoother signals, and improved stability are now live.'
+        subscribers = self.subscriptionService.getActiveSubscribers()
+        text = (f'✅ We’re back online!\n'
+                'ChaoticX has completed its latest update — new optimizations, smoother signals, and improved stability are now live.\n\n'
 
-                '📊 Start receiving signals again and let’s get back to trading smarter!'
+                '📊 Start receiving signals again and let’s get back to trading smarter!\n\n'
 
                 '💥 Welcome back to the chaos!')
         for s in subscribers:
@@ -645,12 +631,12 @@ class TelegramBot:
         self.stop_event.set()
         if self.listener_task:
             self.listener_task.cancel()
-            subscribers = Subscribers.getActiveSubscribers()
-            text = (f'🚧 ChaoticX is going offline for a quick update!'
-                'We’re upgrading systems and polishing things up to make your trading insights even sharper.'
-                'The bot will be temporarily unavailable during this maintenance period.'
+            subscribers = self.subscriptionService.getActiveSubscribers()
+            text = (f'🚧 ChaoticX is going offline for a quick update!\n'
+                'We’re upgrading systems and polishing things up to make your trading insights even sharper.\n'
+                'The bot will be temporarily unavailable during this maintenance period.\n\n'
 
-                '⏳ Don’t worry — we’ll be back soon, faster and smarter than ever!'
+                '⏳ Don’t worry — we’ll be back soon, faster and smarter than ever!\n\n'
 
                 '💬 Stay tuned for the comeback notification 👇')
             for s in subscribers:
