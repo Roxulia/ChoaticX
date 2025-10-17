@@ -68,7 +68,7 @@ class ZoneHandlingService():
                 t_zones = t_zones + zone
             except CantFetchCandleData:
                 raise CantFetchCandleData
-        confluentfinder = ConfluentsFinder(t_zones)
+        confluentfinder = ConfluentsFinder(t_zones,threshold=self.threshold)
         zones = confluentfinder.getConfluents()
         if initial_state:
             athHandler = ATHHandler(self.symbol,self.based_candles)

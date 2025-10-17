@@ -41,6 +41,10 @@ class SignalService:
         self.timeframes = timeframes
         self.ignore_cols = IgnoreColumns()
         self.subscribers = []
+        datacleaner = DataCleaner(symbol=self.symbol,timeframes=self.timeframes)
+        model_handler1 = ModelHandler(symbol=self.symbol,model_type='xgb')
+        model_handler2 = ModelHandler(symbol=self.symbol,timeframes=[self.timeframes[0]],model_type='xgb')
+        self.signal_gen = SignalGenerator([model_handler1,model_handler2],datacleaner,[self.ignore_cols.signalGenModelV1,self.ignore_cols.predictionModelV1])
         self.logger = logging.getLogger("SignalService")
         self.logger.setLevel(logging.DEBUG)
         self.initiate_logging()
@@ -140,10 +144,7 @@ class SignalService:
             reaction_data = reactor.get_last_candle_reaction(zones,candle)
             nearbyzone = NearbyZones(threshold=self.threshold)
             use_zones = []
-            datacleaner = DataCleaner(symbol=self.symbol,timeframes=self.timeframes)
-            model_handler1 = ModelHandler(symbol=self.symbol,model_type='xgb')
-            model_handler2 = ModelHandler(symbol=self.symbol,timeframes=[self.timeframes[0]],model_type='xgb')
-            signal_gen = SignalGenerator([model_handler1,model_handler2],datacleaner,[self.ignore_cols.signalGenModelV1,self.ignore_cols.predictionModelV1])
+            
             for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
                 curr_timestamp = pd.to_datetime(zone['timestamp'])
                 if curr_timestamp == reaction_data['touch_time']:
@@ -163,7 +164,7 @@ class SignalService:
                     use_zones.append(zone)
                     
             input_set = list(datagen.extract_input_data(use_zones))
-            signal = signal_gen.generate(input_set)
+            signal = self.signal_gen.generate(input_set)
             if signal != 'None' and signal is not None:
                 for zone in use_zones:
                     id = zone.get('id',None)
@@ -183,9 +184,9 @@ class SignalService:
             self.logger.error(f'Error:Getting New Signal:{self.symbol}:{str(e)}')
     
     def get_given_signals(self):
-        signal_gen = SignalGenerator()
+        
         try:
-            signals = signal_gen.get_given_signals(symbol=self.symbol)
+            signals = self.signal_gen.get_given_signals(symbol=self.symbol)
             return signals
         except Exception as e:
             raise e
@@ -193,8 +194,8 @@ class SignalService:
     def update_running_signals(self,candle):
         self.logger.info(f"{self.symbol}:Updating Running Signals")
         try:
-            signal_gen = SignalGenerator()
-            signals = signal_gen.get_running_signals(symbol=self.symbol)
+            
+            signals = self.signal_gen.get_running_signals(symbol=self.symbol)
             for s in signals:
                 signal_position = s['position']
                 if signal_position == 'Long' : 
@@ -219,8 +220,8 @@ class SignalService:
     def update_pending_signals(self,candle):
         self.logger.info(f"{self.symbol}:Updating Pending Signals")
         try:
-            signal_gen = SignalGenerator()
-            signals = signal_gen.get_pending_signals(symbol=self.symbol)
+            
+            signals = self.signal_gen.get_pending_signals(symbol=self.symbol)
             for s in signals:
                 signal_position = s['position']
                 if signal_position == 'Long' : 
