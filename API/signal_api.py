@@ -17,7 +17,7 @@ class SignalAPI:
         
     def get_zones(self):
         try:
-            zones = self.service.get_untouched_zones()
+            zones = self.service.zoneHandler.get_untouched_zones()
             return jsonify({"data":zones}),200
         except NoUntouchedZone as e:
             return jsonify({"error" : f'{e}'}),404

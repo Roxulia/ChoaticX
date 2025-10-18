@@ -72,9 +72,9 @@ class SchedulerManager:
         try:
             # Add your jobs safely
             jobs = [
-                ("update_btc_zones", 1, self.btcservice.update_untouched_zones),
-                ("update_bnb_zones", 1, self.bnbservice.update_untouched_zones),
-                ("update_paxg_zones", 1, self.paxgservice.update_untouched_zones),
+                ("update_btc_zones", 1, self.btcservice.zoneHandler.update_untouched_zones),
+                ("update_bnb_zones", 1, self.bnbservice.zoneHandler.update_untouched_zones),
+                ("update_paxg_zones", 1, self.paxgservice.zoneHandler.update_untouched_zones),
             ]
             for job_id, prio, func in jobs:
                 self.scheduler.add_job(lambda f=func, p=prio: self._put_task(p, f),
@@ -135,25 +135,25 @@ class SchedulerManager:
 
                         elif interval == "1h":
                             if symbol == "BTCUSDT":
-                                self._put_task(1, lambda: self.btcservice.update_ATHzone(candle))
+                                self._put_task(1, lambda: self.btcservice.zoneHandler.update_ATHzone(candle))
                                 self._put_task(5, self.btcservice.get_current_signals)
                                 print("📡 1h BTC closed → triggered ATH update and signal generation")
                             elif symbol == "BNBUSDT":
-                                self._put_task(1, lambda: self.bnbservice.update_ATHzone(candle))
+                                self._put_task(1, lambda: self.bnbservice.zoneHandler.update_ATHzone(candle))
                                 self._put_task(5, self.bnbservice.get_current_signals)
                                 print("📡 1h BNB closed → triggered ATH update and signal generation")
                             elif symbol == "PAXGUSDT":
-                                self._put_task(1, lambda: self.paxgservice.update_ATHzone(candle))
+                                self._put_task(1, lambda: self.paxgservice.zoneHandler.update_ATHzone(candle))
                                 self._put_task(5, self.paxgservice.get_current_signals)
                                 print("📡 1h PAXG closed → triggered ATH update and signal generation")
 
                         elif interval == "4h":
                             if symbol == "BTCUSDT":
-                                self._put_task(2, self.btcservice.update_untouched_zones)
+                                self._put_task(2, self.btcservice.zoneHandler.update_untouched_zones)
                             elif symbol == "BNBUSDT":
-                                self._put_task(2, self.bnbservice.update_untouched_zones)
+                                self._put_task(2, self.bnbservice.zoneHandler.update_untouched_zones)
                             elif symbol == "PAXGUSDT":
-                                self._put_task(2, self.paxgservice.update_untouched_zones)
+                                self._put_task(2, self.paxgservice.zoneHandler.update_untouched_zones)
                             print("📡 4h closed → triggered zones")
                     except Exception as e:
                         print(f"❌ Error inside on_kline_close: {e}")

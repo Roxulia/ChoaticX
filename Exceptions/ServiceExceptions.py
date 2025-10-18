@@ -49,3 +49,7 @@ class CandleNotTouch(Exception):
 class EmptyTelegramMessage(Exception):
     def __init__(self, *args):
         super().__init__("Empty Message Object")
+
+class ValueLessThanZero(Exception):
+    def __init__(self, *args):
+        super().__init__("Can't be less than Zero")
