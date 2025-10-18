@@ -14,12 +14,14 @@ from Database.DataModels.Subscribers import Subscribers
 from Backtest.Portfolio import *
 from functools import wraps
 from Utility.UtilityClass import UtilityFunctions as utility
+from Utility.ImageGeneration import ImageGenerator as imagegen
 
 class TelegramBot:
     def __init__(self, service : SignalService):
         load_dotenv()
         self.CAPITAL_UPDATE = 1
         self.TELEGRAM_TOKEN = os.getenv("BOT_API")
+        self.image_path = os.getenv("IMAGE_PATH")
         self.btcservice = SignalService("BTCUSDT",300)
         self.bnbservice = SignalService("BNBUSDT",threshold=3)
         self.paxgservice = SignalService("PAXGUSDT",10)
@@ -431,6 +433,7 @@ class TelegramBot:
         f"📢 New Signal! Side: {signal['position']} | Token: {signal['symbol']} "
         f"| Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
         )
+        path = imagegen.create_signal_card(signal,output_path=f'{self.image_path}/signal.jpg')
         if signal['symbol'] == "BTCUSDT":
             subscribers = self.subscriptionService.getActiveSubscribers()
             for s in subscribers:
@@ -439,8 +442,10 @@ class TelegramBot:
                     lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
                     temp_text = text + f"| Lot Size: {lot_size}"
                     await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
+                    await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'))
                 else:
                     await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+                    await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'))
         elif signal['symbol'] == "BNBUSDT" :
             subscribers = self.subscriptionService.getActiveSubscribers(tier=2)
             for s in subscribers:
@@ -448,6 +453,7 @@ class TelegramBot:
                 lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
                 temp_text = text + f"| Lot Size: {lot_size}"
                 await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
+                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'))
         elif signal['symbol'] == "PAXGUSDT" :
             subscribers = self.subscriptionService.getActiveSubscribers(tier=3)
             for s in subscribers:
@@ -455,6 +461,7 @@ class TelegramBot:
                 lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
                 temp_text = text + f"| Lot Size: {lot_size}"
                 await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
+                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'))
 
     async def broadcast_ath(self,data):
         if not isinstance(data, dict):
@@ -467,7 +474,7 @@ class TelegramBot:
         if data['symbol'] == "BTCUSDT":
             subscribers = self.subscriptionService.getActiveSubscribers()
             for s in subscribers:
-                    await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+                await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
         elif data['symbol'] == "BNBUSDT" :
             subscribers = self.subscriptionService.getActiveSubscribers(tier=2)
             for s in subscribers:
@@ -580,7 +587,7 @@ class TelegramBot:
                 return await func(update, context, user)
             else:
                 raise e
-
+        
     def get_message(self,update: Update):
         if update.message:
             return update.message

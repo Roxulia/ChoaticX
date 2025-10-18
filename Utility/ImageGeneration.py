@@ -4,7 +4,7 @@ from datetime import datetime
 
 class ImageGenerator():
     @staticmethod
-    def create_signal_card(signal, lot_size, rr_ratio=None, output_path="signal_card.jpg"):
+    def create_signal_card(signal, lot_size=None, rr_ratio=None, output_path="signal_card.jpg"):
         """
         Create a compact ChaoticX signal image using OpenCV.
         """
@@ -16,13 +16,13 @@ class ImageGenerator():
 
         # Text colors
         white = (240, 240, 240)
-        green = (50, 205, 50)
-        red = (0, 100, 255)
+        green = (50, 255, 50)
+        red = (0, 50, 255)
         gray = (130, 130, 130)
-        cyan = (0, 255, 255)
+        cyan = (255, 255, 0)
 
         # Title
-        cv2.putText(img, "📊  ChaoticX Signal Alert", (40, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, cyan, 2, cv2.LINE_AA)
+        cv2.putText(img, "ChaoticX Signal Alert", (130, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, cyan, 2, cv2.LINE_AA)
         cv2.line(img, (30, 70), (width - 30, 70), (80, 80, 80), 1)
 
         # Core details
@@ -40,13 +40,14 @@ class ImageGenerator():
             f"Entry: {entry}",
             f"TP: {tp}",
             f"SL: {sl}",
-            f"Lot Size: {lot_size}",
         ]
+        if lot_size:
+            lines.append(f"Lot Size: {lot_size}")
 
         if rr_ratio:
             lines.append(f"R/R Ratio: {rr_ratio}")
 
-        y = 120
+        y = 100
         for line in lines:
             if "Side" in line:
                 color = side_color
@@ -56,8 +57,8 @@ class ImageGenerator():
                 color = red
             else:
                 color = white
-            cv2.putText(img, line, (60, y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2, cv2.LINE_AA)
-            y += 40
+            cv2.putText(img, line, (60, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 1, cv2.LINE_AA)
+            y += 30
 
         # Footer
         cv2.line(img, (30, height - 60), (width - 30, height - 60), (80, 80, 80), 1)
