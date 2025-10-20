@@ -445,27 +445,25 @@ class TelegramBot:
                     porfolio = Portfolio(starting_balance= s['capital'])
                     lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
                     temp_text = text + f"| Lot Size: {lot_size}"
-                    await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
-                    await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'))
+                    
+                    await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=text, parse_mode="Markdown")
                 else:
-                    await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
-                    await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'))
+                    
+                    await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=text, parse_mode="Markdown")
         elif signal['symbol'] == "BNBUSDT" :
             subscribers = self.subscriptionService.getActiveSubscribers(tier=2)
             for s in subscribers:
                 porfolio = Portfolio(starting_balance= s['capital'])
                 lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
                 temp_text = text + f"| Lot Size: {lot_size}"
-                await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
-                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'))
+                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=text, parse_mode="Markdown")
         elif signal['symbol'] == "PAXGUSDT" :
             subscribers = self.subscriptionService.getActiveSubscribers(tier=3)
             for s in subscribers:
                 porfolio = Portfolio(starting_balance= s['capital'])
                 lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
                 temp_text = text + f"| Lot Size: {lot_size}"
-                await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
-                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'))
+                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=text, parse_mode="Markdown")
 
     async def broadcast_ath(self,data):
         if not isinstance(data, dict):
