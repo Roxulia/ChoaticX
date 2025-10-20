@@ -17,7 +17,7 @@ from Utility.UtilityClass import UtilityFunctions as utility
 from Utility.ImageGeneration import ImageGenerator as imagegen
 
 class TelegramBot:
-    def __init__(self, service : SignalService):
+    def __init__(self,testing=False):
         load_dotenv()
         self.CAPITAL_UPDATE = 1
         self.TELEGRAM_TOKEN = os.getenv("BOT_API")
@@ -29,6 +29,8 @@ class TelegramBot:
         self.app = Application.builder().token(self.TELEGRAM_TOKEN).post_init(self.post_init).post_stop(self.stop).build()
         self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
         self.pubsub = self.redis.pubsub()
+        if testing:
+            self.pubsub.subscribe("test_signals_channel")
         self.pubsub.subscribe("signals_channel")
         self.pubsub.subscribe("ath_channel")
         self.pubsub.subscribe("service_error")
@@ -524,7 +526,7 @@ class TelegramBot:
                         continue
 
                     try:
-                        if channel == "signals_channel":
+                        if channel == "signals_channel" or channel == "test_signals_channel":
                             await self.broadcast_signals(data)
                         elif channel == "ath_channel":
                             await self.broadcast_ath(data)
