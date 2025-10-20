@@ -70,11 +70,11 @@ class BackTestHandler:
                             side = signal["position"]
                             diff = abs(signal['sl'] - candle['close'])
                             if diff > self.threshold:
-                                if side == "Long" and (signal["sl"] < candle["close"] <= signal["entry_price"]):
-                                    signal['entry_price'] = candle['close']
+                                if side == "Long" and ( candle["low"] <= signal["entry_price"]):
+                                    signal['entry_price'] = candle['low']
                                     self.EnterTrade(signal, candle["timestamp"])
-                                elif side == "Short" and (signal["sl"] > candle["close"] >= signal["entry_price"]):
-                                    signal["entry_price"] = candle['close']
+                                elif side == "Short" and (candle["high"] >= signal["entry_price"]):
+                                    signal["entry_price"] = candle['high']
                                     self.EnterTrade(signal, candle["timestamp"])
                         # Update zones periodically
                         if pos % zone_update_interval == 0:

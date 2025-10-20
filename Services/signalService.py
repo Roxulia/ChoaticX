@@ -32,7 +32,7 @@ import numpy as np
 import datetime,decimal
 
 class SignalService:
-    def __init__(self,symbol = "BTCUSDT",threshold = 300,timeframes = ['1h','4h','1D'],Local = False):
+    def __init__(self,symbol = "BTCUSDT",threshold = 300,timeframes = ['1h','4h','1D'],Local = False,initial = False):
         
         self.api = BinanceAPI()
         self.local = Local
@@ -43,10 +43,11 @@ class SignalService:
         self.ignore_cols = IgnoreColumns()
         self.subscribers = []
         self.zoneHandler = ZoneHandlingService(self.symbol,self.threshold,self.timeframes)
-        datacleaner = DataCleaner(symbol=self.symbol,timeframes=self.timeframes)
-        model_handler1 = ModelHandler(symbol=self.symbol,model_type='xgb')
-        model_handler2 = ModelHandler(symbol=self.symbol,timeframes=[self.timeframes[0]],model_type='xgb')
-        self.signal_gen = SignalGenerator([model_handler1,model_handler2],datacleaner,[self.ignore_cols.signalGenModelV1,self.ignore_cols.predictionModelV1])
+        if not initial:
+            datacleaner = DataCleaner(symbol=self.symbol,timeframes=self.timeframes)
+            model_handler1 = ModelHandler(symbol=self.symbol,model_type='xgb')
+            model_handler2 = ModelHandler(symbol=self.symbol,timeframes=[self.timeframes[0]],model_type='xgb')
+            self.signal_gen = SignalGenerator([model_handler1,model_handler2],datacleaner,[self.ignore_cols.signalGenModelV1,self.ignore_cols.predictionModelV1])
         self.logger = logging.getLogger("SignalService")
         self.logger.setLevel(logging.DEBUG)
         self.initiate_logging()
@@ -198,7 +199,7 @@ class SignalService:
 
     def data_extraction(self):
         try:
-            total = self.zoneHandler.get_dataset()
+            total = self.zoneHandler.get_dataset(for_predict=self.local)
         except CantFetchCandleData:
             raise CantFetchCandleData
         total = self.clean_dataset(total)
