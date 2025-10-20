@@ -14,7 +14,7 @@ from Database.DataModels.Signals import Signals
 from Database.DataModels.Subscribers import Subscribers
 from Database.Cache import Cache
 
-local = False
+local = True
 symbols = {
     "BTCUSDT" : 300,
     "BNBUSDT" : 3,
@@ -26,9 +26,9 @@ def initiateAll():
     print("Initiating All Model and System")
     try:
         initiate_database()
-        service1 = SignalService(symbol="BTCUSDT",threshold=300,timeframes=['1h','4h','1D'],Local=local)
-        service2 = SignalService(symbol="BNBUSDT",threshold=3,timeframes=['1h','4h','1D'],Local=local)
-        service3 = SignalService(symbol="PAXGUSDT",threshold=10,timeframes=['1h','4h','1D'],Local=local)
+        service1 = SignalService(symbol="BTCUSDT",threshold=300,timeframes=['1h','4h','1D'],Local=local,initial=True)
+        service2 = SignalService(symbol="BNBUSDT",threshold=3,timeframes=['1h','4h','1D'],Local=local,initial=True)
+        service3 = SignalService(symbol="PAXGUSDT",threshold=10,timeframes=['1h','4h','1D'],Local=local,initial=True)
         total1 = service1.data_extraction()
         service1.training_process(total1)
         total1 = service2.data_extraction()
@@ -63,7 +63,7 @@ def initialState(symbol,threshold):
     print('Running Model Training')
     try:
         initiate_database()
-        test = SignalService(symbol=symbol,threshold=threshold,timeframes=['1h','4h','1D'],Local=local)
+        test = SignalService(symbol=symbol,threshold=threshold,timeframes=['1h','4h','1D'],Local=local,initial=True)
         total = test.data_extraction()
         test.training_process(total)
     except CantFetchCandleData as e:
