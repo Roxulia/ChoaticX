@@ -17,7 +17,7 @@ from Utility.UtilityClass import UtilityFunctions as utility
 from Utility.ImageGeneration import ImageGenerator as imagegen
 
 class TelegramBot:
-    def __init__(self, service : SignalService):
+    def __init__(self,testing=False):
         load_dotenv()
         self.CAPITAL_UPDATE = 1
         self.TELEGRAM_TOKEN = os.getenv("BOT_API")
@@ -29,6 +29,8 @@ class TelegramBot:
         self.app = Application.builder().token(self.TELEGRAM_TOKEN).post_init(self.post_init).post_stop(self.stop).build()
         self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
         self.pubsub = self.redis.pubsub()
+        if testing:
+            self.pubsub.subscribe("test_signals_channel")
         self.pubsub.subscribe("signals_channel")
         self.pubsub.subscribe("ath_channel")
         self.pubsub.subscribe("service_error")
@@ -433,7 +435,9 @@ class TelegramBot:
         f"📢 New Signal! Side: {signal['position']} | Token: {signal['symbol']} "
         f"| Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
         )
-        path = imagegen.create_signal_card(signal,output_path=f'{self.image_path}/signal.jpg')
+        symbol = signal['symbol']
+        position = signal['position']
+        path = imagegen.create_signal_card(signal,template=f'{self.image_path}/{symbol}_{position}_template.png',output_path=f'{self.image_path}/{symbol}_signal.jpg')
         if signal['symbol'] == "BTCUSDT":
             subscribers = self.subscriptionService.getActiveSubscribers()
             for s in subscribers:
@@ -441,27 +445,25 @@ class TelegramBot:
                     porfolio = Portfolio(starting_balance= s['capital'])
                     lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
                     temp_text = text + f"| Lot Size: {lot_size}"
-                    await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
-                    await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'))
+                    
+                    await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=text, parse_mode="Markdown")
                 else:
-                    await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
-                    await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'))
+                    
+                    await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=text, parse_mode="Markdown")
         elif signal['symbol'] == "BNBUSDT" :
             subscribers = self.subscriptionService.getActiveSubscribers(tier=2)
             for s in subscribers:
                 porfolio = Portfolio(starting_balance= s['capital'])
                 lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
                 temp_text = text + f"| Lot Size: {lot_size}"
-                await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
-                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'))
+                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=text, parse_mode="Markdown")
         elif signal['symbol'] == "PAXGUSDT" :
             subscribers = self.subscriptionService.getActiveSubscribers(tier=3)
             for s in subscribers:
                 porfolio = Portfolio(starting_balance= s['capital'])
                 lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
                 temp_text = text + f"| Lot Size: {lot_size}"
-                await self.app.bot.send_message(chat_id=s['chat_id'], text=temp_text)
-                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'))
+                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=text, parse_mode="Markdown")
 
     async def broadcast_ath(self,data):
         if not isinstance(data, dict):
@@ -522,7 +524,7 @@ class TelegramBot:
                         continue
 
                     try:
-                        if channel == "signals_channel":
+                        if channel == "signals_channel" or channel == "test_signals_channel":
                             await self.broadcast_signals(data)
                         elif channel == "ath_channel":
                             await self.broadcast_ath(data)
