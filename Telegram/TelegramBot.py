@@ -437,7 +437,7 @@ class TelegramBot:
         )
         symbol = signal['symbol']
         position = signal['position']
-        path = imagegen.create_signal_card(signal,template=f'{self.image_path}/{symbol}_{position}_template.png',output_path=f'{self.image_path}/{symbol}_signal.jpg')
+        path = imagegen.create_signal_card(signal,template=f'{self.image_path}/{symbol}_{position}_template.jpg',output_path=f'{self.image_path}/{symbol}_signal.jpg')
         if signal['symbol'] == "BTCUSDT":
             subscribers = self.subscriptionService.getActiveSubscribers()
             for s in subscribers:

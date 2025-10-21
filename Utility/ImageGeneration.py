@@ -7,7 +7,7 @@ class ImageGenerator():
     @staticmethod
     def createWithTemplate(signal,img,rr_ratio = None,lot_size = None):
         # Image size and background color
-        width, height = 512, 768
+        width, height = 562, 265
         bg_color = (15, 15, 15)  
         # Text colors
         white = (240, 240, 240)
@@ -16,10 +16,7 @@ class ImageGenerator():
         gray = (130, 130, 130)
         cyan = (255, 255, 0)
 
-        # Title
-        cv2.putText(img, "ChaoticX Signal Alert", (70, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, cyan, 2, cv2.LINE_AA)
-        cv2.line(img, (30, 70), (width - 30, 70), (80, 80, 80), 1)
-
+        
         # Core details
         side = signal["position"].upper()
         symbol = signal["symbol"]
@@ -42,7 +39,7 @@ class ImageGenerator():
         if rr_ratio:
             lines.append(f"R/R Ratio: {rr_ratio}")
 
-        y = 350
+        y = 90
         for line in lines:
             if "Side" in line:
                 color = side_color
@@ -52,14 +49,9 @@ class ImageGenerator():
                 color = red
             else:
                 color = white
-            cv2.putText(img, line, (225, y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2, cv2.LINE_AA)
-            y += 40
+            cv2.putText(img, line, (200, y), cv2.FONT_HERSHEY_PLAIN, 0.7, color, 1, cv2.LINE_AA)
+            y += 18
 
-        # Footer
-        cv2.line(img, (30, height - 60), (width - 30, height - 60), (80, 80, 80), 1)
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        cv2.putText(img, f"{timestamp}", (60, height - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, gray, 1, cv2.LINE_AA)
-        cv2.putText(img, "ChaoticX AI Trader", (width - 220, height - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, cyan, 1, cv2.LINE_AA)
         return img
     
     @staticmethod
@@ -138,13 +130,13 @@ class ImageGenerator():
 if __name__ == "__main__":
     signal = {
         "symbol": "BTCUSDT",
-        "position": "LONG",
+        "position": "Short",
         "entry_price": 68430,
         "tp": 69200,
         "sl": 67800
     }
     load_dotenv()
-    template = os.getenv(key='IMAGE_PATH') + '/BTC_Long_template.png'
+    template = os.getenv(key='IMAGE_PATH') + '/BTCUSDT_Short_template.jpg'
     output = os.getenv(key='IMAGE_PATH') + '/BTC_signal.jpg'
     lot_size = 0.015
     rr_ratio = 2.3
