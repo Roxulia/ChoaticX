@@ -56,12 +56,26 @@ class SchedulerManager:
                 try:
                     target()
                 except Exception as e:
-                    self.logger.error(f"❌ Thread [{name}] crashed: {e}")
+                    (f"❌ Thread [{name}] crashed: {e}")
                     Cache._client.publish("service_error",json.dump({"error":f"❌ Thread [{name}] crashed: {e}" }))
                     traceback.print_exc()
                     self.logger.info(f"🔄 Restarting [{name}] in 5s...")
+
+                    try:
+                        self.logger.error(f"❌ Thread [{name}] crashed: {e}")
+                        # safe publish (use dumps), and guard publish errors
+                        try:
+                            Cache._client.publish("service_error", json.dumps({"error": f"❌ Thread [{name}] crashed: {e}" }))
+                        except Exception as pub_err:
+                            self.logger.error(f"❌ Failed to publish to cache in wrapper: {pub_err}")
+                        traceback.print_exc()
+                        self.logger.info(f"🔄 Restarting [{name}] in 5s...")
+                    except Exception as inner:
+                        # If even the error handling fails, log minimal info and continue
+                        self.logger.error(f"❌ Exception inside exception handler for [{name}]: {inner}")
+
                     time.sleep(5)
-        t = threading.Thread(target=wrapper, daemon=True, name=name)
+        t = threading.Thread(target=wrapper, daemon=False, name=name)  # consider non-daemon, see note
         self.runningthread.append(t)
         t.start()
 
@@ -78,9 +92,12 @@ class SchedulerManager:
 
     # -------------------- Worker Logic --------------------
     def _worker(self):
+        print("🧵 Worker thread started")
         while True:
+            got = False
             try:
                 priority, _, func = self.task_queue.get()
+                got = True
                 with self.db_lock:
                     result = func()
                     if result is not None:
@@ -89,7 +106,12 @@ class SchedulerManager:
                 self.logger.error(f"[Worker] Error running task: {e}")
                 traceback.print_exc()
             finally:
-                self.task_queue.task_done()
+                if got:
+                    try:
+                        self.task_queue.task_done()
+                    except Exception as e:
+                        self.logger.error(f"[Worker] task_done error: {e}")
+
 
     # -------------------- APScheduler --------------------
     def start(self):
@@ -128,7 +150,7 @@ class SchedulerManager:
 
         while True:
             try:
-                print("🔌 Connecting to Binance WebSocket...")
+                self.logger.info("🔌 Connecting to Binance WebSocket...")
                 await self.binance_api.connect()
 
                 async def on_kline_close(kline):
@@ -147,29 +169,29 @@ class SchedulerManager:
                             if symbol == "BTCUSDT":
                                 self._put_task(3, lambda: self.btcservice.update_running_signals(candle))
                                 self._put_task(4, lambda: self.btcservice.update_pending_signals(candle))
-                                print("📡 15min BTC closed → triggered signals update")
+                                self.logger.info("📡 15min BTC closed → triggered signals update")
                             elif symbol == "BNBUSDT":
                                 self._put_task(3, lambda: self.bnbservice.update_running_signals(candle))
                                 self._put_task(4, lambda: self.bnbservice.update_pending_signals(candle))
-                                print("📡 15min BNB closed → triggered signals update")
+                                self.logger.info("📡 15min BNB closed → triggered signals update")
                             elif symbol == "PAXGUSDT":
                                 self._put_task(3, lambda: self.paxgservice.update_running_signals(candle))
                                 self._put_task(4, lambda: self.paxgservice.update_pending_signals(candle))
-                                print("📡 15min PAXG closed → triggered signals update")
+                                self.logger.info("📡 15min PAXG closed → triggered signals update")
 
                         elif interval == "1h":
                             if symbol == "BTCUSDT":
                                 self._put_task(1, lambda: self.btcservice.zoneHandler.update_ATHzone(candle))
                                 self._put_task(5, self.btcservice.get_current_signals)
-                                print("📡 1h BTC closed → triggered ATH update and signal generation")
+                                self.logger.info("📡 1h BTC closed → triggered ATH update and signal generation")
                             elif symbol == "BNBUSDT":
                                 self._put_task(1, lambda: self.bnbservice.zoneHandler.update_ATHzone(candle))
                                 self._put_task(5, self.bnbservice.get_current_signals)
-                                print("📡 1h BNB closed → triggered ATH update and signal generation")
+                                self.logger.info("📡 1h BNB closed → triggered ATH update and signal generation")
                             elif symbol == "PAXGUSDT":
                                 self._put_task(1, lambda: self.paxgservice.zoneHandler.update_ATHzone(candle))
                                 self._put_task(5, self.paxgservice.get_current_signals)
-                                print("📡 1h PAXG closed → triggered ATH update and signal generation")
+                                self.logger.info("📡 1h PAXG closed → triggered ATH update and signal generation")
 
                         elif interval == "4h":
                             if symbol == "BTCUSDT":
@@ -178,9 +200,9 @@ class SchedulerManager:
                                 self._put_task(2, self.bnbservice.zoneHandler.update_untouched_zones)
                             elif symbol == "PAXGUSDT":
                                 self._put_task(2, self.paxgservice.zoneHandler.update_untouched_zones)
-                            print("📡 4h closed → triggered zones")
+                            self.logger.info("📡 4h closed → triggered zones")
                     except Exception as e:
-                        print(f"❌ Error inside on_kline_close: {e}")
+                        self.logger.error(f"❌ Error inside on_kline_close: {e}")
                         traceback.print_exc()
 
                 # Start listening
@@ -198,23 +220,23 @@ class SchedulerManager:
                 delay = min(base_delay * (2 ** (retry_count - 1)), 300)  # exponential backoff up to 5min
 
                 if "ConnectionClosedOK" in str(e):
-                    print("⚠️ WebSocket closed normally. Reconnecting in 5s...")
+                    self.logger.info("⚠️ WebSocket closed normally. Reconnecting in 5s...")
                     delay = 5
                 else:
-                    print(f"❌ Binance listener crashed (attempt {retry_count}/{max_retries}): {e}")
+                    self.logger.error(f"❌ Binance listener crashed (attempt {retry_count}/{max_retries}): {e}")
                     traceback.print_exc()
 
                 # Stop trying after too many consecutive failures
                 if retry_count >= max_retries:
-                    print("🚨 Too many connection failures. Stopping Binance listener.")
+                    self.logger.error("🚨 Too many connection failures. Stopping Binance listener.")
                     break
 
                 await asyncio.sleep(delay)
-                print(f"🔄 Retrying connection (waited {delay}s)...")
+                self.logger.info(f"🔄 Retrying connection (waited {delay}s)...")
                 continue
 
         print("🛑 Binance listener exited permanently.")
-        Cache._client.publish("service_error",json.dump({'error':'binance socket error'}))
+        Cache._client.publish("service_error",json.dumps({'error':'binance socket error'}))
 
     def stop(self):
         for t in self.runningthread:
