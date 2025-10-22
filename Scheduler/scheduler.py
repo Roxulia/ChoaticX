@@ -1,7 +1,8 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from Services.signalService import SignalService
 from Data.binanceAPI import BinanceAPI
-import queue, threading, asyncio, itertools, time, traceback,json
+import queue, threading, asyncio, itertools, time, traceback,json,logging,os
+from dotenv import load_dotenv
 from Database.Cache import Cache
 
 class SchedulerManager:
@@ -11,7 +12,9 @@ class SchedulerManager:
         self.bnbservice = SignalService(symbol="BNBUSDT", threshold=3)
         self.paxgservice = SignalService(symbol="PAXGUSDT", threshold=10)
         self.binance_api = api
-
+        self.logger = logging.getLogger(f"Scheduler")
+        self.logger.setLevel(logging.DEBUG)
+        self.initiate_logging()
         self.task_queue = queue.PriorityQueue()
         self._counter = itertools.count()
         self.db_lock = threading.Lock()
@@ -20,6 +23,27 @@ class SchedulerManager:
         # Start watchdog threads
         self._start_thread(self._worker_watchdog, name="WorkerWatchdog")
         self._start_thread(self._listener_watchdog, name="ListenerWatchdog")
+
+    def initiate_logging(self):
+        load_dotenv()
+        # File handler
+        file_handler = logging.FileHandler(os.path.join(os.getenv(key='LOG_PATH'), f"scheduler.log"))
+        file_handler.setLevel(logging.DEBUG)
+
+        # Console handler (optional)
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+
+        # Formatter
+        formatter = logging.Formatter(
+            "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+        )
+        file_handler.setFormatter(formatter)
+        console_handler.setFormatter(formatter)
+
+        # Add handlers to logger
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
 
     # -------------------- Utility --------------------
     def _put_task(self, priority, func):
@@ -32,10 +56,10 @@ class SchedulerManager:
                 try:
                     target()
                 except Exception as e:
-                    print(f"❌ Thread [{name}] crashed: {e}")
+                    self.logger.error(f"❌ Thread [{name}] crashed: {e}")
                     Cache._client.publish("service_error",json.dump({"error":f"❌ Thread [{name}] crashed: {e}" }))
                     traceback.print_exc()
-                    print(f"🔄 Restarting [{name}] in 5s...")
+                    self.logger.info(f"🔄 Restarting [{name}] in 5s...")
                     time.sleep(5)
         t = threading.Thread(target=wrapper, daemon=True, name=name)
         self.runningthread.append(t)
@@ -44,12 +68,12 @@ class SchedulerManager:
     # -------------------- Watchdogs --------------------
     def _worker_watchdog(self):
         """Ensures worker thread restarts on crash"""
-        print("🧵 Worker thread started")
+        self.logger.info("🧵 Worker thread started")
         self._worker()
 
     def _listener_watchdog(self):
         """Ensures listener thread restarts on crash"""
-        print("🧩 Binance listener thread started")
+        self.logger.info("🧩 Binance listener thread started")
         self._start_binance_listener()
 
     # -------------------- Worker Logic --------------------
@@ -60,9 +84,9 @@ class SchedulerManager:
                 with self.db_lock:
                     result = func()
                     if result is not None:
-                        print(f"[Worker] Task result: {result}")
+                        self.logger.info(f"[Worker] Task result: {result}")
             except Exception as e:
-                print(f"[Worker] Error running task: {e}")
+                self.logger.error(f"[Worker] Error running task: {e}")
                 traceback.print_exc()
             finally:
                 self.task_queue.task_done()
@@ -80,9 +104,9 @@ class SchedulerManager:
                 self.scheduler.add_job(lambda f=func, p=prio: self._put_task(p, f),
                                        'interval', hours=24, id=job_id)
             self.scheduler.start()
-            print("✅ APScheduler started successfully")
+            self.logger.info("✅ APScheduler started successfully")
         except Exception as e:
-            print(f"❌ Scheduler start failed: {e}")
+            self.logger.error(f"❌ Scheduler start failed: {e}")
             traceback.print_exc()
 
     # -------------------- Binance Listener --------------------
@@ -92,9 +116,9 @@ class SchedulerManager:
             try:
                 asyncio.run(self._binance_loop())
             except Exception as e:
-                print(f"❌ Binance listener thread crashed: {e}")
+                self.logger.error(f"❌ Binance listener thread crashed: {e}")
                 traceback.print_exc()
-                print("🔄 Restarting Binance listener in 5s...")
+                self.logger.info("🔄 Restarting Binance listener in 5s...")
                 time.sleep(5)
 
     async def _binance_loop(self):

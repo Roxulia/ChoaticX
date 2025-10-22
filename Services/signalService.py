@@ -48,7 +48,7 @@ class SignalService:
             model_handler1 = ModelHandler(symbol=self.symbol,model_type='xgb')
             model_handler2 = ModelHandler(symbol=self.symbol,timeframes=[self.timeframes[0]],model_type='xgb')
             self.signal_gen = SignalGenerator([model_handler1,model_handler2],datacleaner,[self.ignore_cols.signalGenModelV1,self.ignore_cols.predictionModelV1])
-        self.logger = logging.getLogger("SignalService")
+        self.logger = logging.getLogger(f"SignalService_{self.symbol}")
         self.logger.setLevel(logging.DEBUG)
         self.initiate_logging()
 
