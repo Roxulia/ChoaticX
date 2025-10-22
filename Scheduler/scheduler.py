@@ -32,12 +32,20 @@ class SchedulerManager:
                 try:
                     target()
                 except Exception as e:
-                    print(f"❌ Thread [{name}] crashed: {e}")
-                    Cache._client.publish("service_error",json.dump({"error":f"❌ Thread [{name}] crashed: {e}" }))
-                    traceback.print_exc()
-                    print(f"🔄 Restarting [{name}] in 5s...")
+                    try:
+                        print(f"❌ Thread [{name}] crashed: {e}")
+                        # safe publish (use dumps), and guard publish errors
+                        try:
+                            Cache._client.publish("service_error", json.dumps({"error": f"❌ Thread [{name}] crashed: {e}" }))
+                        except Exception as pub_err:
+                            print(f"❌ Failed to publish to cache in wrapper: {pub_err}")
+                        traceback.print_exc()
+                        print(f"🔄 Restarting [{name}] in 5s...")
+                    except Exception as inner:
+                        # If even the error handling fails, log minimal info and continue
+                        print(f"❌ Exception inside exception handler for [{name}]: {inner}")
                     time.sleep(5)
-        t = threading.Thread(target=wrapper, daemon=True, name=name)
+        t = threading.Thread(target=wrapper, daemon=False, name=name)  # consider non-daemon, see note
         self.runningthread.append(t)
         t.start()
 
@@ -54,9 +62,12 @@ class SchedulerManager:
 
     # -------------------- Worker Logic --------------------
     def _worker(self):
+        print("🧵 Worker thread started")
         while True:
+            got = False
             try:
                 priority, _, func = self.task_queue.get()
+                got = True
                 with self.db_lock:
                     result = func()
                     if result is not None:
@@ -65,7 +76,12 @@ class SchedulerManager:
                 print(f"[Worker] Error running task: {e}")
                 traceback.print_exc()
             finally:
-                self.task_queue.task_done()
+                if got:
+                    try:
+                        self.task_queue.task_done()
+                    except Exception as e:
+                        print(f"[Worker] task_done error: {e}")
+
 
     # -------------------- APScheduler --------------------
     def start(self):
@@ -190,7 +206,7 @@ class SchedulerManager:
                 continue
 
         print("🛑 Binance listener exited permanently.")
-        Cache._client.publish("service_error",json.dump({'error':'binance socket error'}))
+        Cache._client.publish("service_error",json.dumps({'error':'binance socket error'}))
 
     def stop(self):
         for t in self.runningthread:
