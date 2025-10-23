@@ -22,9 +22,11 @@ class TelegramBot:
         self.CAPITAL_UPDATE = 1
         self.TELEGRAM_TOKEN = os.getenv("BOT_API")
         self.image_path = os.getenv("IMAGE_PATH")
-        self.btcservice = SignalService("BTCUSDT",300)
-        self.bnbservice = SignalService("BNBUSDT",threshold=3)
+        self.btcservice = SignalService("BTCUSDT",500)
+        self.bnbservice = SignalService("BNBUSDT",threshold=5)
         self.paxgservice = SignalService("PAXGUSDT",10)
+        self.ethservice = SignalService("ETHUSDT",10)
+        self.solservice = SignalService("SOLUSDT",2)
         self.subscriptionService = SubscriptionService()
         self.app = Application.builder().token(self.TELEGRAM_TOKEN).post_init(self.post_init).post_stop(self.stop).build()
         self.redis = redis.Redis(host = '127.0.0.1',port = 6379,db=0)
@@ -377,6 +379,140 @@ class TelegramBot:
         except EmptyTelegramMessage as e:
             print(f'{str(e)}')
 
+    @restricted(min_tier=3)
+    async def get_eth_zones(self,update:Update,context:ContextTypes.DEFAULT_TYPE,user):
+        try:
+            message = self.get_message(update)
+            try:
+                zones = self.ethservice.zoneHandler.get_untouched_zones(limit= 5)
+                sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
+                msg = f"📊 *Recent ETHUSDT Zones*\n\n"
+                for i, zz in enumerate(sorted_zones, start=1):
+                    zone_type = zz["zone_type"]
+                    zone_high = zz["zone_high"]
+                    zone_low = zz["zone_low"]
+                    zone_time = zz["timestamp"]
+
+                    emoji = "🟩" if ("Bullish" in zone_type or "Buy-Side" in zone_type) else "🟥" if ("Bearish" in zone_type or "Sell-Side" in zone_type) else "⚪"
+
+                    msg += (
+                        f"{emoji} *Zone {i}*\n"
+                        f"• *Type:* {utility.escape_md(zone_type)}\n"
+                        f"• *High:* `{utility.escape_md(zone_high)}`\n"
+                        f"• *Low:* `{utility.escape_md(zone_low)}`\n"
+                        f"• *Time:* `{utility.escape_md(zone_time)}`\n\n"
+                    )
+
+                await message.reply_text(msg, parse_mode="MarkdownV2")
+            except NoUntouchedZone as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
+
+    @restricted(min_tier=3)
+    async def get_given_eth_signals(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
+        try:
+            message = self.get_message(update)
+            try:
+                signals = self.ethservice.get_given_signals()
+                msg = f"📊 *Recent ETHUSDT Signals*\n\n"
+                portfolio = Portfolio(starting_balance=user["capital"])
+                for i, s in enumerate(signals, start=1):
+                    
+                    lot_size = portfolio.risk_position_size(s["entry_price"], s["sl"], user["risk_size"])
+
+                    side = s["position"].upper()
+                    emoji = "🟩" if side == "LONG" else "🟥"
+                    rr_ratio = round(abs((s["tp"] - s["entry_price"]) / (s["entry_price"] - s["sl"])), 2) if s["entry_price"] != s["sl"] else "N/A"
+
+                    msg += (
+                        f"{emoji} *Signal {i}*\n"
+                        f"• *Side:* {side}\n"
+                        f"• *Symbol:* `{s['symbol']}`\n"
+                        f"• *Entry:* `{s['entry_price']}`\n"
+                        f"• *TP:* `{s['tp']}`\n"
+                        f"• *SL:* `{s['sl']}`\n"
+                        f"• *Lot Size:* `{lot_size}`\n"
+                        f"• *R/R Ratio:* `{rr_ratio}`\n\n"
+                    )
+
+                await message.reply_text(msg, parse_mode="MarkdownV2")
+            except EmptySignalException as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
+
+    @restricted(min_tier=3)
+    async def get_sol_zones(self,update:Update,context:ContextTypes.DEFAULT_TYPE,user):
+        try:
+            message = self.get_message(update)
+            try:
+                zones = self.solservice.zoneHandler.get_untouched_zones(limit= 5)
+                sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
+                msg = f"📊 *Recent SOLUSDT Zones*\n\n"
+                for i, zz in enumerate(sorted_zones, start=1):
+                    zone_type = zz["zone_type"]
+                    zone_high = zz["zone_high"]
+                    zone_low = zz["zone_low"]
+                    zone_time = zz["timestamp"]
+
+                    emoji = "🟩" if ("Bullish" in zone_type or "Buy-Side" in zone_type) else "🟥" if ("Bearish" in zone_type or "Sell-Side" in zone_type) else "⚪"
+
+                    msg += (
+                        f"{emoji} *Zone {i}*\n"
+                        f"• *Type:* {utility.escape_md(zone_type)}\n"
+                        f"• *High:* `{utility.escape_md(zone_high)}`\n"
+                        f"• *Low:* `{utility.escape_md(zone_low)}`\n"
+                        f"• *Time:* `{utility.escape_md(zone_time)}`\n\n"
+                    )
+
+                await message.reply_text(msg, parse_mode="MarkdownV2")
+            except NoUntouchedZone as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
+
+    @restricted(min_tier=3)
+    async def get_given_sol_signals(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
+        try:
+            message = self.get_message(update)
+            try:
+                signals = self.solservice.get_given_signals()
+                msg = f"📊 *Recent SOLUSDT Signals*\n\n"
+                portfolio = Portfolio(starting_balance=user["capital"])
+                for i, s in enumerate(signals, start=1):
+                    
+                    lot_size = portfolio.risk_position_size(s["entry_price"], s["sl"], user["risk_size"])
+
+                    side = s["position"].upper()
+                    emoji = "🟩" if side == "LONG" else "🟥"
+                    rr_ratio = round(abs((s["tp"] - s["entry_price"]) / (s["entry_price"] - s["sl"])), 2) if s["entry_price"] != s["sl"] else "N/A"
+
+                    msg += (
+                        f"{emoji} *Signal {i}*\n"
+                        f"• *Side:* {side}\n"
+                        f"• *Symbol:* `{s['symbol']}`\n"
+                        f"• *Entry:* `{s['entry_price']}`\n"
+                        f"• *TP:* `{s['tp']}`\n"
+                        f"• *SL:* `{s['sl']}`\n"
+                        f"• *Lot Size:* `{lot_size}`\n"
+                        f"• *R/R Ratio:* `{rr_ratio}`\n\n"
+                    )
+
+                await message.reply_text(msg, parse_mode="MarkdownV2")
+            except EmptySignalException as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
+
     @restricted(min_tier=2)  # only Tier ≥2 or admins
     async def update_subscriber_capital(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
         try:
@@ -446,7 +582,7 @@ class TelegramBot:
                     lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
                     temp_text = text + f"| Lot Size: {lot_size}"
                     
-                    await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=text, parse_mode="Markdown")
+                    await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=temp_text, parse_mode="Markdown")
                 else:
                     
                     await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=text, parse_mode="Markdown")
@@ -456,14 +592,14 @@ class TelegramBot:
                 porfolio = Portfolio(starting_balance= s['capital'])
                 lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
                 temp_text = text + f"| Lot Size: {lot_size}"
-                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=text, parse_mode="Markdown")
-        elif signal['symbol'] == "PAXGUSDT" :
+                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=temp_text, parse_mode="Markdown")
+        elif signal['symbol'] in ["PAXGUSDT","ETHUSDT","SOLUSDT"] :
             subscribers = self.subscriptionService.getActiveSubscribers(tier=3)
             for s in subscribers:
                 porfolio = Portfolio(starting_balance= s['capital'])
                 lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
                 temp_text = text + f"| Lot Size: {lot_size}"
-                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=text, parse_mode="Markdown")
+                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=temp_text, parse_mode="Markdown")
 
     async def broadcast_ath(self,data):
         if not isinstance(data, dict):
@@ -481,11 +617,11 @@ class TelegramBot:
             subscribers = self.subscriptionService.getActiveSubscribers(tier=2)
             for s in subscribers:
                 await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
-        elif data['symbol'] == "PAXGUSDT" :
+        elif data['symbol'] in ["PAXGUSDT","ETHUSDT","SOLUSDT"] :
             subscribers = self.subscriptionService.getActiveSubscribers(tier=3)
             for s in subscribers:
                 await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
-
+        
     async def broadcast_error(self,data):
         subscribers = self.subscriptionService.getActiveSubscribers(admin_only=True)
         for s in subscribers:
@@ -617,6 +753,10 @@ class TelegramBot:
         self.app.add_handler(CommandHandler("bnb_signals", self.get_given_bnb_signals))
         self.app.add_handler(CommandHandler("paxg_zones", self.get_paxg_zones))
         self.app.add_handler(CommandHandler("paxg_signals", self.get_given_paxg_signals))
+        self.app.add_handler(CommandHandler("eth_zones", self.get_eth_zones))
+        self.app.add_handler(CommandHandler("eth_signals", self.get_given_eth_signals))
+        self.app.add_handler(CommandHandler("sol_zones", self.get_sol_zones))
+        self.app.add_handler(CommandHandler("sol_signals", self.get_given_sol_signals))
         self.app.add_handler(CommandHandler("help", self.help))
         self.app.add_handler(capital_update_handler)
         self.app.add_handler(CallbackQueryHandler(self.button_handler))

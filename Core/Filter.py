@@ -1,5 +1,5 @@
 class Filter:
-    def __init__(self, min_rr=2.0):
+    def __init__(self, min_rr=2):
         self.min_rr = min_rr
 
     def is_valid(self, entry_price, sl, tp):

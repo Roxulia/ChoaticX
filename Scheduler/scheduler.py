@@ -8,9 +8,11 @@ from Database.Cache import Cache
 class SchedulerManager:
     def __init__(self, api: BinanceAPI):
         self.scheduler = BackgroundScheduler()
-        self.btcservice = SignalService(symbol="BTCUSDT", threshold=300)
-        self.bnbservice = SignalService(symbol="BNBUSDT", threshold=3)
+        self.btcservice = SignalService(symbol="BTCUSDT", threshold=500)
+        self.bnbservice = SignalService(symbol="BNBUSDT", threshold=5)
         self.paxgservice = SignalService(symbol="PAXGUSDT", threshold=10)
+        self.ethservice = SignalService(symbol="ETHUSDT", threshold=10)
+        self.solservice = SignalService(symbol="SOLUSDT", threshold=2)
         self.binance_api = api
         self.logger = logging.getLogger(f"Scheduler")
         self.logger.setLevel(logging.DEBUG)
@@ -121,6 +123,8 @@ class SchedulerManager:
                 ("update_btc_zones", 1, self.btcservice.zoneHandler.update_untouched_zones),
                 ("update_bnb_zones", 1, self.bnbservice.zoneHandler.update_untouched_zones),
                 ("update_paxg_zones", 1, self.paxgservice.zoneHandler.update_untouched_zones),
+                ("update_eth_zones", 1, self.ethservice.zoneHandler.update_untouched_zones),
+                ("update_sol_zones", 1, self.solservice.zoneHandler.update_untouched_zones),
             ]
             for job_id, prio, func in jobs:
                 self.scheduler.add_job(lambda f=func, p=prio: self._put_task(p, f),
@@ -178,6 +182,14 @@ class SchedulerManager:
                                 self._put_task(3, lambda: self.paxgservice.update_running_signals(candle))
                                 self._put_task(4, lambda: self.paxgservice.update_pending_signals(candle))
                                 self.logger.info("📡 15min PAXG closed → triggered signals update")
+                            elif symbol == "ETHUSDT":
+                                self._put_task(3, lambda: self.ethservice.update_running_signals(candle))
+                                self._put_task(4, lambda: self.ethservice.update_pending_signals(candle))
+                                self.logger.info("📡 15min ETH closed → triggered signals update")
+                            elif symbol == "SOLUSDT":
+                                self._put_task(3, lambda: self.solservice.update_running_signals(candle))
+                                self._put_task(4, lambda: self.solservice.update_pending_signals(candle))
+                                self.logger.info("📡 15min SOL closed → triggered signals update")
 
                         elif interval == "1h":
                             if symbol == "BTCUSDT":
@@ -192,6 +204,14 @@ class SchedulerManager:
                                 self._put_task(1, lambda: self.paxgservice.zoneHandler.update_ATHzone(candle))
                                 self._put_task(5, self.paxgservice.get_current_signals)
                                 self.logger.info("📡 1h PAXG closed → triggered ATH update and signal generation")
+                            elif symbol == "ETHUSDT":
+                                self._put_task(1, lambda: self.ethservice.zoneHandler.update_ATHzone(candle))
+                                self._put_task(5, self.ethservice.get_current_signals)
+                                self.logger.info("📡 1h ETH closed → triggered ATH update and signal generation")
+                            elif symbol == "SOLUSDT":
+                                self._put_task(1, lambda: self.solservice.zoneHandler.update_ATHzone(candle))
+                                self._put_task(5, self.solservice.get_current_signals)
+                                self.logger.info("📡 1h SOL closed → triggered ATH update and signal generation")
 
                         elif interval == "4h":
                             if symbol == "BTCUSDT":
@@ -200,6 +220,10 @@ class SchedulerManager:
                                 self._put_task(2, self.bnbservice.zoneHandler.update_untouched_zones)
                             elif symbol == "PAXGUSDT":
                                 self._put_task(2, self.paxgservice.zoneHandler.update_untouched_zones)
+                            elif symbol == "ETHUSDT":
+                                self._put_task(2, self.ethservice.zoneHandler.update_untouched_zones)
+                            elif symbol == "SOLUSDT":
+                                self._put_task(2, self.solservice.zoneHandler.update_untouched_zones)
                             self.logger.info("📡 4h closed → triggered zones")
                     except Exception as e:
                         self.logger.error(f"❌ Error inside on_kline_close: {e}")
@@ -207,7 +231,7 @@ class SchedulerManager:
 
                 # Start listening
                 await self.binance_api.listen_kline(
-                    ["BTCUSDT", "BNBUSDT", "PAXGUSDT"],
+                    ["BTCUSDT", "BNBUSDT", "PAXGUSDT", "ETHUSDT", "SOLUSDT"],
                     ["15m", "1h", "4h"],
                     on_kline_close,
                 )

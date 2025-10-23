@@ -16,9 +16,11 @@ from Database.Cache import Cache
 
 local = False
 symbols = {
-    "BTCUSDT" : 300,
-    "BNBUSDT" : 3,
-    "PAXGUSDT": 10
+    "BTCUSDT" : 500,
+    "BNBUSDT" : 5,
+    "PAXGUSDT": 10,
+    "ETHUSDT" : 10,
+    "SOLUSDT" : 2
     }
 timeframes = ['15min','1h','4h','1D']
 @mu.log_memory
@@ -26,15 +28,21 @@ def initiateAll():
     print("Initiating All Model and System")
     try:
         initiate_database()
-        service1 = SignalService(symbol="BTCUSDT",threshold=300,timeframes=['1h','4h','1D'],Local=local,initial=True)
-        service2 = SignalService(symbol="BNBUSDT",threshold=3,timeframes=['1h','4h','1D'],Local=local,initial=True)
-        service3 = SignalService(symbol="PAXGUSDT",threshold=10,timeframes=['1h','4h','1D'],Local=local,initial=True)
-        total1 = service1.data_extraction()
-        service1.training_process(total1)
-        total1 = service2.data_extraction()
-        service2.training_process(total1)
-        total1 = service3.data_extraction()
-        service3.training_process(total1)
+        service = SignalService(symbol="BTCUSDT",threshold=500,timeframes=['1h','4h','1D'],Local=local,initial=True)
+        total1 = service.data_extraction()
+        service.training_process(total1)
+        service = SignalService(symbol="BNBUSDT",threshold=5,timeframes=['1h','4h','1D'],Local=local,initial=True)
+        total1 = service.data_extraction()
+        service.training_process(total1)
+        service = SignalService(symbol="PAXGUSDT",threshold=10,timeframes=['1h','4h','1D'],Local=local,initial=True)
+        total1 = service.data_extraction()
+        service.training_process(total1)
+        service = SignalService(symbol="ETHUSDT",threshold=10,timeframes=['1h','4h','1D'],Local=local,initial=True)
+        total1 = service.data_extraction()
+        service.training_process(total1)
+        service = SignalService(symbol="SOLUSDT",threshold=2,timeframes=['1h','4h','1D'],Local=local,initial=True)
+        total1 = service.data_extraction()
+        service.training_process(total1)
         initiate_prediction_models()
     except CantFetchCandleData as e:
         print(f'{e}')
@@ -141,15 +149,21 @@ if __name__ == "__main__" :
     process = {
         '*' : run_all_process,
         'update-database' : initiate_database,
-        'initiate-btc' : lambda : initialState("BTCUSDT",300),
-        'initiate-bnb' : lambda : initialState("BNBUSDT",3),
+        'initiate-btc' : lambda : initialState("BTCUSDT",500),
+        'initiate-bnb' : lambda : initialState("BNBUSDT",5),
         'initiate-paxg' : lambda : initialState("PAXGUSDT",10),
-        'train-btc' : lambda : train_model("BTCUSDT",300),
-        'train-bnb' : lambda : train_model("BNBUSDT",3),
+        'initiate-eth' : lambda : initialState("ETHUSDT",10),
+        'initiate-sol' : lambda : initialState("SOLUSDT",10),
+        'train-btc' : lambda : train_model("BTCUSDT",500),
+        'train-bnb' : lambda : train_model("BNBUSDT",5),
         'train-paxg' : lambda : train_model("PAXGUSDT",10),
-        'backtest-btc' : lambda : backtest("BTCUSDT",300),
-        'backtest-bnb' : lambda : backtest("BNBUSDT",3),
+        'train-eth' : lambda : train_model("ETHUSDT",10),
+        'train-sol' : lambda : train_model("SOLUSDT",10),
+        'backtest-btc' : lambda : backtest("BTCUSDT",500),
+        'backtest-bnb' : lambda : backtest("BNBUSDT",5),
         'backtest-paxg' : lambda : backtest("PAXGUSDT",10),
+        'backtest-eth' : lambda : backtest("ETHUSDT",10),
+        'backtest-sol' : lambda : backtest("SOLUSDT",10),
         'initiate-system' : initiateAll,
         'initiate-predict' : initiate_prediction_models,
     }

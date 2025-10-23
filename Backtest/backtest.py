@@ -70,10 +70,10 @@ class BackTestHandler:
                             side = signal["position"]
                             diff = abs(signal['sl'] - candle['close'])
                             if diff > self.threshold:
-                                if side == "Long" and ( candle["low"] <= signal["entry_price"]):
+                                if side == "Long" and (signal['sl'] < candle["low"] <= signal["entry_price"]):
                                     signal['entry_price'] = candle['low']
                                     self.EnterTrade(signal, candle["timestamp"])
-                                elif side == "Short" and (candle["high"] >= signal["entry_price"]):
+                                elif side == "Short" and (candle["high"] >= signal["entry_price"] > signal['sl']):
                                     signal["entry_price"] = candle['high']
                                     self.EnterTrade(signal, candle["timestamp"])
                         # Update zones periodically
@@ -142,22 +142,21 @@ class BackTestHandler:
             print(f"Unknown Error Occurred : {e}")
             print(stack_trace)
         finally:
-            print("Backtest completed.")
+            print(f"Backtest completed at {(history[-1]['timestamp'])}.")
             self.portfolio.stats()
 
     def EnterTrade(self,signal,timestamp):
-        if(self.portfolio.can_open()):
-            sl = signal['sl']
-            tp = signal['tp']
-            side = signal['position']
-            meta = signal['meta']
-            entry_price = self.portfolio._apply_slippage_price(signal['entry_price'],side)
-            qty = self.portfolio.risk_position_size(entry_price,sl)
-            trade = Trade(side=side,entry_time=timestamp,entry_price=entry_price,qty=qty,sl=sl,tp=tp,meta=meta)
-            try:
-                self.portfolio.open_trade(trade)
-            except BalanceZero as e:
-                print("Balance Zero")
+        sl = signal['sl']
+        tp = signal['tp']
+        side = signal['position']
+        meta = signal['meta']
+        entry_price = self.portfolio._apply_slippage_price(signal['entry_price'],side)
+        qty = self.portfolio.risk_position_size(entry_price,sl)
+        trade = Trade(side=side,entry_time=timestamp,entry_price=entry_price,qty=qty,sl=sl,tp=tp,meta=meta)
+        try:
+            self.portfolio.open_trade(trade)
+        except BalanceZero as e:
+            raise e
 
     def load_OHLCV_for_backtest(self,warmup_month =3,candle_interval = '1D',inner_func = False):
         temp_dfs = []
@@ -190,8 +189,7 @@ class BackTestHandler:
             self.warmup_zones = utility.removeDataFromListByKeyValueList(self.warmup_zones,self.used_zones,'timestamp')
         except Exception as e:
             print(f"error updating zones : {e}")
-            return False
-        return True
+            raise e
 
     
     def warm_up(self):
