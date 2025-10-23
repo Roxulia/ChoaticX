@@ -49,8 +49,8 @@ class ImageGenerator():
                 color = red
             else:
                 color = white
-            cv2.putText(img, line, (200, y), cv2.FONT_HERSHEY_PLAIN, 0.7, color, 1, cv2.LINE_AA)
-            y += 18
+            cv2.putText(img, line, (200, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, color, 1, cv2.LINE_AA)
+            y += 22
 
         return img
     
@@ -138,7 +138,6 @@ if __name__ == "__main__":
     load_dotenv()
     template = os.getenv(key='IMAGE_PATH') + '/BTCUSDT_Short_template.jpg'
     output = os.getenv(key='IMAGE_PATH') + '/BTC_signal.jpg'
-    lot_size = 0.015
-    rr_ratio = 2.3
+    
 
-    img_path = ImageGenerator.create_signal_card(signal, lot_size, rr_ratio,template,output)
+    img_path = ImageGenerator.create_signal_card(signal, None, None,template,output)
