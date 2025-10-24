@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from Exceptions.ServiceExceptions import *
 from Services.signalService import SignalService
 from Services.subscriptionService import SubscriptionService
+from Services.DailyAnalysisService import DailyAnalysisService
 import redis,json,threading,time
 import asyncio
 import logging,traceback
@@ -245,6 +246,20 @@ class TelegramBot:
         except EmptyTelegramMessage as e:
             print(f'{str(e)}')
 
+    @restricted(for_starter=True)
+    async def get_btc_analysis(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
+        try:
+            message = self.get_message(update)
+            try:
+                msg = DailyAnalysisService("BTCUSDT").get_daily_report()
+                await message.reply_text(msg,parse_mode="MarkdownV2")
+            except EmptySignalException as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
+
     @restricted(min_tier=2)
     async def get_bnb_zones(self,update:Update,context:ContextTypes.DEFAULT_TYPE,user):
         try:
@@ -305,6 +320,20 @@ class TelegramBot:
                     )
 
                 await message.reply_text(msg, parse_mode="MarkdownV2")
+            except EmptySignalException as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
+
+    @restricted(min_tier=2)
+    async def get_bnb_analysis(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
+        try:
+            message = self.get_message(update)
+            try:
+                msg = DailyAnalysisService("BNBUSDT").get_daily_report()
+                await message.reply_text(msg,parse_mode="MarkdownV2")
             except EmptySignalException as e:
                 await message.reply_text(str(e))
             except Exception as e:
@@ -380,6 +409,20 @@ class TelegramBot:
             print(f'{str(e)}')
 
     @restricted(min_tier=3)
+    async def get_paxg_analysis(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
+        try:
+            message = self.get_message(update)
+            try:
+                msg = DailyAnalysisService("PAXGUSDT").get_daily_report()
+                await message.reply_text(msg,parse_mode="MarkdownV2")
+            except EmptySignalException as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
+
+    @restricted(min_tier=3)
     async def get_eth_zones(self,update:Update,context:ContextTypes.DEFAULT_TYPE,user):
         try:
             message = self.get_message(update)
@@ -447,6 +490,20 @@ class TelegramBot:
             print(f'{str(e)}')
 
     @restricted(min_tier=3)
+    async def get_eth_analysis(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
+        try:
+            message = self.get_message(update)
+            try:
+                msg = DailyAnalysisService("ETHUSDT").get_daily_report()
+                await message.reply_text(msg,parse_mode="MarkdownV2")
+            except EmptySignalException as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
+
+    @restricted(min_tier=3)
     async def get_sol_zones(self,update:Update,context:ContextTypes.DEFAULT_TYPE,user):
         try:
             message = self.get_message(update)
@@ -506,6 +563,20 @@ class TelegramBot:
                     )
 
                 await message.reply_text(msg, parse_mode="MarkdownV2")
+            except EmptySignalException as e:
+                await message.reply_text(str(e))
+            except Exception as e:
+                await message.reply_text(f"Error: {str(e)}")
+        except EmptyTelegramMessage as e:
+            print(f'{str(e)}')
+
+    @restricted(min_tier=3)
+    async def get_sol_analysis(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
+        try:
+            message = self.get_message(update)
+            try:
+                msg = DailyAnalysisService("SOLUSDT").get_daily_report()
+                await message.reply_text(msg,parse_mode="MarkdownV2")
             except EmptySignalException as e:
                 await message.reply_text(str(e))
             except Exception as e:
