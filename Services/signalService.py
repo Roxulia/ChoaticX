@@ -99,6 +99,11 @@ class SignalService:
                     zone['candle_bb_high'] = candle['bb_high']
                     zone['candle_bb_low'] = candle['bb_low']
                     zone['candle_bb_mid'] = candle['bb_mid']
+                    if self.symbol != 'BTCUSDT':
+                        zone['candle_alpha'] = candle['alpha']
+                        zone['candle_beta'] = candle['beta']
+                        zone['candle_gamma'] = candle['gamma']
+                        zone['candle_r2'] = candle['r2']
                     zone['touch_type'] = reaction_data['touch_type']
                     zone['touch_from'] = reaction_data['touch_from']
                     zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)

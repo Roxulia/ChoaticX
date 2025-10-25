@@ -3,7 +3,7 @@ from Core.zone_confluents import ConfluentsFinder
 from Core.zone_detection import ZoneDetector
 from Core.zone_nearby import NearbyZones
 from Core.zone_reactions import ZoneReactor
-
+from Core.RollingRegression import RollingRegression
 from ML.datasetGeneration import DatasetGenerator
 from Exceptions.ServiceExceptions import *
 from Data.binanceAPI import BinanceAPI
@@ -50,6 +50,10 @@ class ZoneHandlingService():
     def get_zones(self,interval,lookback):
         try:
             df = self.api.get_ohlcv(symbol=self.symbol,interval=interval,lookback=lookback)
+            if self.symbol != 'BTCUSDT':
+                df_btc= self.api.get_ohlcv(symbol='BTCUSDT',interval=interval,lookback=lookback)
+                roller = RollingRegression(df,df_btc)
+                df = roller.AddRegressionValues()
         except CantFetchCandleData as e:
             raise CantFetchCandleData
         if interval ==  self.timeframes[0]:
