@@ -80,7 +80,7 @@ class BinanceAPI:
             df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
             df.set_index('timestamp', inplace=True)
 
-            df = df[['open', 'high', 'low', 'close', 'volume']]
+            df = df[['open', 'high', 'low', 'close', 'volume','number_of_trades']]
             df = df.apply(pd.to_numeric).astype('float32')
             df = self.add_TA(df)
             df['timestamp'] = df.index

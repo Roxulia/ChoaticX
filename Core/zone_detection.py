@@ -29,6 +29,10 @@ class ZoneDetector:
         bb_mid = self.df['bb_mid'].values
         atr_mean = self.df['atr_mean'].values
         timestamps = self.df['timestamp'].values
+        alphas = self.df['alpha'].values if 'alpha' in self.df else None
+        betas = self.df['beta'].values if 'beta' in self.df else None
+        gammas = self.df['gamma'].values if 'gamma' in self.df else None
+        r2s = self.df['r2'].values if 'r2' in self.df else None
 
         length = len(self.df)
 
@@ -70,6 +74,10 @@ class ZoneDetector:
                         'bb_high':bb_high[i],
                         'bb_low' : bb_low[i],
                         'bb_mid' : bb_mid[i],
+                        'alpha' : alphas[i] if alphas is not None else None,
+                        'beta' : betas[i] if betas is not None else None,
+                        'gamma' : gammas[i] if gammas is not None else None,
+                        'r2' : r2s[i] if r2s is not None else None,
                         'zone_high': next_low,
                         'zone_low': prev_high,
                         'zone_width': gap,
@@ -102,6 +110,10 @@ class ZoneDetector:
                         'bb_high':bb_high[i],
                         'bb_low' : bb_low[i],
                         'bb_mid' : bb_mid[i],
+                        'alpha' : alphas[i] if alphas is not None else None,
+                        'beta' : betas[i] if betas is not None else None,
+                        'gamma' : gammas[i] if gammas is not None else None,
+                        'r2' : r2s[i] if r2s is not None else None,
                         'zone_high': prev_low,
                         'zone_low': next_high,
                         'zone_width': gap,
@@ -140,6 +152,10 @@ class ZoneDetector:
         bb_mid = self.df['bb_mid'].values
         atr_mean = self.df['atr_mean'].values
         timestamps = self.df['timestamp'].values
+        alphas = self.df['alpha'].values if 'alpha' in self.df else None
+        betas = self.df['beta'].values if 'beta' in self.df else None
+        gammas = self.df['gamma'].values if 'gamma' in self.df else None
+        r2s = self.df['r2'].values if 'r2' in self.df else None
 
         for i in tqdm(range(5, len(self.df) - 2),desc='Extracting OBs',disable=inner_func):
             open_, close_ = opens[i], closes[i]
@@ -191,6 +207,10 @@ class ZoneDetector:
                         'bb_high':bb_high[i],
                         'bb_low' : bb_low[i],
                         'bb_mid' : bb_mid[i],
+                        'alpha' : alphas[i] if alphas is not None else None,
+                        'beta' : betas[i] if betas is not None else None,
+                        'gamma' : gammas[i] if gammas is not None else None,
+                        'r2' : r2s[i] if r2s is not None else None,
                         'zone_high': zone_high,
                         'zone_low': zone_low,
                         'zone_width': zone_width,
@@ -229,6 +249,10 @@ class ZoneDetector:
                         'bb_high':bb_high[i],
                         'bb_low' : bb_low[i],
                         'bb_mid' : bb_mid[i],
+                        'alpha' : alphas[i] if alphas is not None else None,
+                        'beta' : betas[i] if betas is not None else None,
+                        'gamma' : gammas[i] if gammas is not None else None,
+                        'r2' : r2s[i] if r2s is not None else None,
                         'zone_high': zone_high,
                         'zone_low': zone_low,
                         'zone_width': zone_width,
@@ -278,6 +302,10 @@ class ZoneDetector:
                             'bb_high' : self.df.iloc[i]['bb_high'],
                             'bb_low' : self.df.iloc[i]['bb_low'],
                             'bb_mid' : self.df.iloc[i]['bb_mid'],
+                            'alpha' : self.df.iloc[i]['alpha'] if 'alpha' in self.df else None,
+                            'beta' : self.df.iloc[i]['beta'] if 'beta' in self.df else None,
+                            'gamma' : self.df.iloc[i]['gamma'] if 'gamma' in self.df else None,
+                            'r2' : self.df.iloc[i]['r2'] if 'r2' in self.df else None,
                             'timestamp' : self.df.iloc[i]['timestamp']
                             })
             elif is_swing_low:
@@ -290,6 +318,10 @@ class ZoneDetector:
                             'bb_low' : self.df.iloc[i]['bb_low'],
                             'bb_mid' : self.df.iloc[i]['bb_mid'],
                             'atr_mean' : self.df.iloc[i]['atr_mean'],
+                            'alpha' : self.df.iloc[i]['alpha'] if 'alpha' in self.df else None,
+                            'beta' : self.df.iloc[i]['beta'] if 'beta' in self.df else None,
+                            'gamma' : self.df.iloc[i]['gamma'] if 'gamma' in self.df else None,
+                            'r2' : self.df.iloc[i]['r2'] if 'r2' in self.df else None,
                             'timestamp' : self.df.iloc[i]['timestamp']
                             })
 
@@ -390,6 +422,10 @@ class ZoneDetector:
                 bb_highs = [g['bb_high'] for g in group if 'bb_high' in g]
                 bb_lows = [g['bb_low'] for g in group if 'bb_low' in g]
                 bb_mids = [g['bb_mid'] for g in group if 'bb_mid' in g]
+                alphas = [g['alpha'] for g in group if 'alpha' in g]
+                betas = [g['beta'] for g in group if 'beta' in g]
+                gammas = [g['gamma'] for g in group if 'gamma' in g]
+                r2s = [g['r2'] for g in group if 'r2' in g]
                 timestamps = [g['timestamp'] for g in group if 'timestamp' in g]
                 # Find sweep candle
                 
@@ -422,6 +458,13 @@ class ZoneDetector:
                     'rsi' : np.mean(rsis),
                     'atr' : np.mean(atrs),
                     'atr_mean' : np.mean(atr_means),
+                    'bb_high': np.mean(bb_highs),
+                    'bb_mid': np.mean(bb_mids),
+                    'bb_low': np.mean(bb_lows),
+                    'alpha': np.mean(alphas),
+                    'beta': np.mean(betas),
+                    'gamma': np.mean(gammas),
+                    'r2' : np.mean(r2s),
                     'time_frame' : self.timeframe,
                     'timestamp' : timestamps[0]
                 })

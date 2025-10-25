@@ -258,6 +258,10 @@ class DatasetGenerator:
             features['candle_bb_high'] = None
             features['candle_bb_low'] = None
             features['candle_bb_mid'] = None
+            features['candle_alpha'] = None
+            features['candle_beta'] = None
+            features['candle_gamma'] = None
+            features['candle_r2'] = None
             features['candle_rsi'] = None
             features['candle_atr'] = None
             features['candle_timestamp'] = None
