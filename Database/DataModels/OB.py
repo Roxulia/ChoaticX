@@ -39,7 +39,14 @@ class OB(BaseModel):
         'conf_1h_count' : 'INTEGER',
         'conf_4h_count' : 'INTEGER',
         'conf_1D_count' : 'INTEGER',
-        'touch_from' : 'VARCHAR(20)'
+        'touch_from' : 'VARCHAR(20)',
+        'bb_high' : 'FLOAT',
+        'bb_mid' : 'FLOAT',
+        'bb_low' : 'FLOAT',
+        'alpha' : 'FLOAT',
+        'beta' : 'FLOAT',
+        'gamma' : 'FLOAT',
+        'r2' : 'FLOAT'
     }
 
     

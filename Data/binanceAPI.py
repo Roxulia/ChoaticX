@@ -73,7 +73,7 @@ class BinanceAPI:
         """
         Fetch historical OHLCV data and return as formatted DataFrame
         """
-        print(f'Fetching {lookback} worth of {interval} timeframe candle data...')
+        print(f'Fetching {lookback} worth of {interval} timeframe {symbol} data...')
         tf = timeFrame()
         try:
             klines = self.apiclient.get_historical_klines(symbol,tf.getTimeFrame(interval) , lookback)
