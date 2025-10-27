@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import asyncio
+import websockets
 from binance import AsyncClient, BinanceSocketManager
 from binance.client import Client
 from dotenv import load_dotenv
@@ -59,6 +60,12 @@ class BinanceAPI:
 
                     if kline.get("x"):  # ✅ candle closed
                         await callback(kline)
+        except websockets.exceptions.ConnectionClosedOK:
+            # graceful disconnect
+            print("⚠️ Binance WebSocket closed normally (1001 Going Away).")
+            raise Exception("ConnectionClosedOK")
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             raise e
 
