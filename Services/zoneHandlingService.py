@@ -22,7 +22,7 @@ class ZoneHandlingService():
         self.symbol = symbol
         self.threshold = threshold 
         self.timeframes = timeframes
-        self.logger = logging.getLogger("ZoneHandlingService")
+        self.logger = logging.getLogger(f"ZoneHandlingService_{symbol}")
         self.logger.setLevel(logging.DEBUG)
         self.initiate_logging()
 
