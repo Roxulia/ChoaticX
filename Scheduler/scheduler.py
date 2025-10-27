@@ -8,23 +8,36 @@ from Database.Cache import Cache
 class SchedulerManager:
     def __init__(self, api: BinanceAPI):
         self.scheduler = BackgroundScheduler()
-        self.btcservice = SignalService(symbol="BTCUSDT", threshold=500)
-        self.bnbservice = SignalService(symbol="BNBUSDT", threshold=5)
-        self.paxgservice = SignalService(symbol="PAXGUSDT", threshold=10)
-        self.ethservice = SignalService(symbol="ETHUSDT", threshold=10)
-        self.solservice = SignalService(symbol="SOLUSDT", threshold=2)
+        self.services = {
+            "BTCUSDT": SignalService(symbol="BTCUSDT", threshold=500),
+            "BNBUSDT": SignalService(symbol="BNBUSDT", threshold=5),
+            "PAXGUSDT": SignalService(symbol="PAXGUSDT", threshold=10),
+            "ETHUSDT": SignalService(symbol="ETHUSDT", threshold=10),
+            "SOLUSDT": SignalService(symbol="SOLUSDT", threshold=2),
+        }
         self.binance_api = api
         self.logger = logging.getLogger(f"Scheduler")
         self.logger.setLevel(logging.DEBUG)
         self.initiate_logging()
+
+        # Worker system
         self.task_queue = queue.PriorityQueue()
         self._counter = itertools.count()
         self.db_lock = threading.Lock()
-        self.runningthread = []
 
-        # Start watchdog threads
-        self._start_thread(self._worker_watchdog, name="WorkerWatchdog")
-        self._start_thread(self._listener_watchdog, name="ListenerWatchdog")
+        # Threading controls
+        self._stop_event = threading.Event()
+        self.running_threads = []
+        self._listener_thread = None
+
+        # Reconnect controls
+        self.max_retries = 10
+        self.base_delay = 5
+        self.inactivity_timeout = 300  # seconds
+
+        # Start worker & listener
+        self._start_thread(self._worker_loop, name="WorkerThread")
+        self._start_thread(self._listener_entry, name="BinanceListener")
 
     def initiate_logging(self):
         load_dotenv()
@@ -47,221 +60,139 @@ class SchedulerManager:
         self.logger.addHandler(file_handler)
         self.logger.addHandler(console_handler)
 
-    # -------------------- Utility --------------------
+    # 🧱 Utility
     def _put_task(self, priority, func):
         self.task_queue.put((priority, next(self._counter), func))
 
-    def _start_thread(self, target, name):
-        """Start a thread that restarts itself if it crashes."""
-        def wrapper():
-            while True:
+    def _start_thread(self, target, name, daemon=True):
+        """Thread wrapper with auto-restart if it crashes."""
+        def runner():
+            while not self._stop_event.is_set():
                 try:
                     target()
                 except Exception as e:
-                    (f"❌ Thread [{name}] crashed: {e}")
-                    Cache._client.publish("service_error",json.dump({"error":f"❌ Thread [{name}] crashed: {e}" }))
+                    self.logger.error(f"❌ Thread [{name}] crashed: {e}")
                     traceback.print_exc()
-                    self.logger.info(f"🔄 Restarting [{name}] in 5s...")
-
-                    try:
-                        self.logger.error(f"❌ Thread [{name}] crashed: {e}")
-                        # safe publish (use dumps), and guard publish errors
-                        try:
-                            Cache._client.publish("service_error", json.dumps({"error": f"❌ Thread [{name}] crashed: {e}" }))
-                        except Exception as pub_err:
-                            self.logger.error(f"❌ Failed to publish to cache in wrapper: {pub_err}")
-                        traceback.print_exc()
-                        self.logger.info(f"🔄 Restarting [{name}] in 5s...")
-                    except Exception as inner:
-                        # If even the error handling fails, log minimal info and continue
-                        self.logger.error(f"❌ Exception inside exception handler for [{name}]: {inner}")
-
                     time.sleep(5)
-        t = threading.Thread(target=wrapper, daemon=False, name=name)  # consider non-daemon, see note
-        self.runningthread.append(t)
+        t = threading.Thread(target=runner, name=name, daemon=daemon)
         t.start()
+        self.running_threads.append(t)
+        return t
 
-    # -------------------- Watchdogs --------------------
-    def _worker_watchdog(self):
-        """Ensures worker thread restarts on crash"""
-        self.logger.info("🧵 Worker thread started")
-        self._worker()
-
-    def _listener_watchdog(self):
-        """Ensures listener thread restarts on crash"""
-        self.logger.info("🧩 Binance listener thread started")
-        self._start_binance_listener()
-
-    # -------------------- Worker Logic --------------------
-    def _worker(self):
-        print("🧵 Worker thread started")
-        while True:
-            got = False
+    # -------------------------------------------------------------------------
+    # ⚙️ Worker Loop
+    def _worker_loop(self):
+        self.logger.info("🧵 Worker loop started.")
+        while not self._stop_event.is_set():
             try:
-                priority, _, func = self.task_queue.get()
-                got = True
+                priority, _, func = self.task_queue.get(timeout=1)
                 with self.db_lock:
-                    result = func()
-                    if result is not None:
-                        self.logger.info(f"[Worker] Task result: {result}")
+                    func()
+                self.task_queue.task_done()
+            except queue.Empty:
+                continue
             except Exception as e:
-                self.logger.error(f"[Worker] Error running task: {e}")
+                self.logger.error(f"Worker error: {e}")
                 traceback.print_exc()
-            finally:
-                if got:
-                    try:
-                        self.task_queue.task_done()
-                    except Exception as e:
-                        self.logger.error(f"[Worker] task_done error: {e}")
 
-
-    # -------------------- APScheduler --------------------
+    # -------------------------------------------------------------------------
+    # 🕒 Scheduler
     def start(self):
+        """Start APScheduler jobs."""
         try:
-            # Add your jobs safely
-            jobs = [
-                ("update_btc_zones", 1, self.btcservice.zoneHandler.update_untouched_zones),
-                ("update_bnb_zones", 1, self.bnbservice.zoneHandler.update_untouched_zones),
-                ("update_paxg_zones", 1, self.paxgservice.zoneHandler.update_untouched_zones),
-                ("update_eth_zones", 1, self.ethservice.zoneHandler.update_untouched_zones),
-                ("update_sol_zones", 1, self.solservice.zoneHandler.update_untouched_zones),
-            ]
-            for job_id, prio, func in jobs:
-                self.scheduler.add_job(lambda f=func, p=prio: self._put_task(p, f),
-                                       'interval', hours=24, id=job_id)
+            for symbol, service in self.services.items():
+                self.scheduler.add_job(
+                    lambda s=service: self._put_task(1, s.zoneHandler.update_untouched_zones),
+                    'interval', hours=24, id=f"update_{symbol.lower()}_zones"
+                )
             self.scheduler.start()
-            self.logger.info("✅ APScheduler started successfully")
+            self.logger.info("✅ APScheduler started successfully.")
         except Exception as e:
-            self.logger.error(f"❌ Scheduler start failed: {e}")
+            self.logger.error(f"Failed to start scheduler: {e}")
             traceback.print_exc()
 
-    # -------------------- Binance Listener --------------------
-    def _start_binance_listener(self):
-        """Run async Binance listener inside a thread."""
-        while True:
-            try:
-                asyncio.run(self._binance_loop())
-            except Exception as e:
-                self.logger.error(f"❌ Binance listener thread crashed: {e}")
-                traceback.print_exc()
-                self.logger.info("🔄 Restarting Binance listener in 5s...")
-                time.sleep(5)
-
-    async def _binance_loop(self):
-        max_retries = 10           # stop after 10 consecutive failures
-        base_delay = 5             # seconds
-        retry_count = 0
-
-        while True:
-            try:
-                self.logger.info("🔌 Connecting to Binance WebSocket...")
-                await self.binance_api.connect()
-
-                async def on_kline_close(kline):
-                    try:
-                        interval = kline.get("i")
-                        symbol = kline.get("s")
-                        candle = {
-                            "open": float(kline["o"]),
-                            "close": float(kline["c"]),
-                            "high": float(kline["h"]),
-                            "low": float(kline["l"]),
-                        }
-
-                        # --- Candle handling logic ---
-                        if interval == "15m":
-                            if symbol == "BTCUSDT":
-                                self._put_task(3, lambda: self.btcservice.update_running_signals(candle))
-                                self._put_task(4, lambda: self.btcservice.update_pending_signals(candle))
-                                self.logger.info("📡 15min BTC closed → triggered signals update")
-                            elif symbol == "BNBUSDT":
-                                self._put_task(3, lambda: self.bnbservice.update_running_signals(candle))
-                                self._put_task(4, lambda: self.bnbservice.update_pending_signals(candle))
-                                self.logger.info("📡 15min BNB closed → triggered signals update")
-                            elif symbol == "PAXGUSDT":
-                                self._put_task(3, lambda: self.paxgservice.update_running_signals(candle))
-                                self._put_task(4, lambda: self.paxgservice.update_pending_signals(candle))
-                                self.logger.info("📡 15min PAXG closed → triggered signals update")
-                            elif symbol == "ETHUSDT":
-                                self._put_task(3, lambda: self.ethservice.update_running_signals(candle))
-                                self._put_task(4, lambda: self.ethservice.update_pending_signals(candle))
-                                self.logger.info("📡 15min ETH closed → triggered signals update")
-                            elif symbol == "SOLUSDT":
-                                self._put_task(3, lambda: self.solservice.update_running_signals(candle))
-                                self._put_task(4, lambda: self.solservice.update_pending_signals(candle))
-                                self.logger.info("📡 15min SOL closed → triggered signals update")
-
-                        elif interval == "1h":
-                            if symbol == "BTCUSDT":
-                                self._put_task(1, lambda: self.btcservice.zoneHandler.update_ATHzone(candle))
-                                self._put_task(5, self.btcservice.get_current_signals)
-                                self.logger.info("📡 1h BTC closed → triggered ATH update and signal generation")
-                            elif symbol == "BNBUSDT":
-                                self._put_task(1, lambda: self.bnbservice.zoneHandler.update_ATHzone(candle))
-                                self._put_task(5, self.bnbservice.get_current_signals)
-                                self.logger.info("📡 1h BNB closed → triggered ATH update and signal generation")
-                            elif symbol == "PAXGUSDT":
-                                self._put_task(1, lambda: self.paxgservice.zoneHandler.update_ATHzone(candle))
-                                self._put_task(5, self.paxgservice.get_current_signals)
-                                self.logger.info("📡 1h PAXG closed → triggered ATH update and signal generation")
-                            elif symbol == "ETHUSDT":
-                                self._put_task(1, lambda: self.ethservice.zoneHandler.update_ATHzone(candle))
-                                self._put_task(5, self.ethservice.get_current_signals)
-                                self.logger.info("📡 1h ETH closed → triggered ATH update and signal generation")
-                            elif symbol == "SOLUSDT":
-                                self._put_task(1, lambda: self.solservice.zoneHandler.update_ATHzone(candle))
-                                self._put_task(5, self.solservice.get_current_signals)
-                                self.logger.info("📡 1h SOL closed → triggered ATH update and signal generation")
-
-                        elif interval == "4h":
-                            if symbol == "BTCUSDT":
-                                self._put_task(2, self.btcservice.zoneHandler.update_untouched_zones)
-                            elif symbol == "BNBUSDT":
-                                self._put_task(2, self.bnbservice.zoneHandler.update_untouched_zones)
-                            elif symbol == "PAXGUSDT":
-                                self._put_task(2, self.paxgservice.zoneHandler.update_untouched_zones)
-                            elif symbol == "ETHUSDT":
-                                self._put_task(2, self.ethservice.zoneHandler.update_untouched_zones)
-                            elif symbol == "SOLUSDT":
-                                self._put_task(2, self.solservice.zoneHandler.update_untouched_zones)
-                            self.logger.info("📡 4h closed → triggered zones")
-                    except Exception as e:
-                        self.logger.error(f"❌ Error inside on_kline_close: {e}")
-                        traceback.print_exc()
-
-                # Start listening
-                await self.binance_api.listen_kline(
-                    ["BTCUSDT", "BNBUSDT", "PAXGUSDT", "ETHUSDT", "SOLUSDT"],
-                    ["15m", "1h", "4h"],
-                    on_kline_close,
-                )
-
-                # If listen_kline completes normally, reset retry counter
-                retry_count = 0
-
-            except Exception as e:
-                retry_count += 1
-                delay = min(base_delay * (2 ** (retry_count - 1)), 300)  # exponential backoff up to 5min
-
-                if "ConnectionClosedOK" in str(e):
-                    self.logger.info("⚠️ WebSocket closed normally. Reconnecting in 5s...")
-                    delay = 5
-                else:
-                    self.logger.error(f"❌ Binance listener crashed (attempt {retry_count}/{max_retries}): {e}")
-                    traceback.print_exc()
-
-                # Stop trying after too many consecutive failures
-                if retry_count >= max_retries:
-                    self.logger.error("🚨 Too many connection failures. Stopping Binance listener.")
-                    break
-
-                await asyncio.sleep(delay)
-                self.logger.info(f"🔄 Retrying connection (waited {delay}s)...")
-                continue
-
-        print("🛑 Binance listener exited permanently.")
-        Cache._client.publish("service_error",json.dumps({'error':'binance socket error'}))
-
     def stop(self):
-        for t in self.runningthread:
-            t.join()
+        """Graceful shutdown."""
+        self.logger.info("🛑 Stopping SchedulerManager...")
+        self._stop_event.set()
+        try:
+            self.scheduler.shutdown(wait=False)
+        except Exception:
+            pass
+
+        # Close Binance broadcast client
+        try:
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(self.binance_api.close())
+            loop.close()
+        except Exception as e:
+            self.logger.warning(f"Binance close failed: {e}")
+
+        for t in self.running_threads:
+            t.join(timeout=3)
+
+        self.logger.info("✅ SchedulerManager stopped cleanly.")
+
+    # -------------------------------------------------------------------------
+    # 📡 Binance Listener Entry
+    def _listener_entry(self):
+        """Launch async listener in its own event loop."""
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self._binance_listener_main())
+        loop.close()
+
+    async def _binance_listener_main(self):
+        """Main loop: reconnect if websocket closes or times out."""
+        retry = 0
+        while not self._stop_event.is_set():
+            try:
+                await self._start_binance_listener()
+                retry = 0  # reset on success
+            except Exception as e:
+                retry += 1
+                delay = min(self.base_delay * (2 ** (retry - 1)), 300)
+                self.logger.error(f"Listener error ({retry}/{self.max_retries}): {e}")
+                traceback.print_exc()
+                if retry >= self.max_retries:
+                    self.logger.error("🚨 Too many reconnect failures. Stopping listener.")
+                    break
+                await asyncio.sleep(delay)
+                self.logger.info(f"🔄 Retrying in {delay}s...")
+
+    async def _start_binance_listener(self):
+        """Connect and listen using binance_api.listen_kline()."""
+        await self.binance_api.connect()
+        symbols = list(self.services.keys())
+        intervals = ["15m", "1h", "4h"]
+
+        async def callback(kline):
+            try:
+                symbol = kline.get("s")
+                interval = kline.get("i")
+                service = self.services.get(symbol)
+                if not service:
+                    return
+                candle = {
+                    "open": float(kline["o"]),
+                    "high": float(kline["h"]),
+                    "low": float(kline["l"]),
+                    "close": float(kline["c"]),
+                }
+
+                if interval == "15m":
+                    self._put_task(3, lambda s=service, c=candle: s.update_running_signals(c))
+                    self._put_task(4, lambda s=service, c=candle: s.update_pending_signals(c))
+                    self.logger.info(f"📊 {symbol} {interval} → signal updates.")
+                elif interval == "1h":
+                    self._put_task(1, lambda s=service, c=candle: s.zoneHandler.update_ATHzone(c))
+                    self._put_task(5, service.get_current_signals)
+                    self.logger.info(f"📊 {symbol} {interval} → ATH + current signals.")
+                elif interval == "4h":
+                    self._put_task(2, service.zoneHandler.update_untouched_zones)
+                    self.logger.info(f"📊 {symbol} {interval} → zone refresh.")
+            except Exception as e:
+                self.logger.error(f"Callback error: {e}")
+
+        self.logger.info(f"🔌 Connected to Binance WebSocket for {len(symbols)} symbols.")
+        await self.binance_api.listen_kline(symbols, intervals, callback)
