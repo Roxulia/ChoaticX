@@ -14,7 +14,7 @@ from Database.DataModels.Signals import Signals
 from Database.DataModels.Subscribers import Subscribers
 from Database.Cache import Cache
 
-local = False
+local = True
 symbols = {
     "BTCUSDT" : 500,
     "BNBUSDT" : 5,
@@ -93,6 +93,12 @@ def initiate_database():
         LIQ.initiate()
         Signals.initiate()
         Subscribers.initiate()
+        FVG.create_index(['symbol','timestamp','time_frame'])
+        OB.create_index(['symbol','timestamp','time_frame'])
+        LIQ.create_index(['symbol','timestamp','time_frame'])
+        Signals.create_index(['result','symbol','timestamp'])
+        Subscribers.create_index(['chat_id'])
+        Subscribers.create_index(['tier','is_admin'])
     except Exception as e:
         print(f'{str(e)}')
         raise e

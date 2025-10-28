@@ -1,6 +1,7 @@
 from ..DB import MySQLDB as DB
 from ..Cache import Cache
 from functools import wraps
+import re
 
 class BaseModel:
     table :str = None  # to override in subclasses
@@ -55,28 +56,64 @@ class BaseModel:
                     f"🔄 Updated column `{col_name}` type from {existing_cols[col_name]} to {col_type} in `{cls.table}`"
                 )
                 
+    @staticmethod
+    def _quote_ident_mysql(name: str) -> str:
+        # simple sanitizer: allow alphanum, underscore; otherwise quote
+        if re.match(r'^[A-Za-z0-9_]+$', name):
+            return f"`{name}`"
+        # fallback to backticks with escaping
+        return "`" + name.replace("`", "``") + "`"
+
     @classmethod
-    def create_index(cls, columns: list, unique: bool = False):
+    def create_index(cls, columns: list[str], unique: bool = False):
         """
-        Create an index on specified columns for the table.
-        
-        Args:
-            columns (list): list of column names to index
-            unique (bool): whether to create a UNIQUE index
+        Create an index in MySQL if it does not already exist.
+        Uses information_schema.statistics to check existence.
         """
+        if not cls.table:
+            raise ValueError("cls.table must be set")
+
         if not columns:
-            raise ValueError("Column list for index cannot be empty.")
-        
-        # Generate a readable index name
+            raise ValueError("columns list cannot be empty")
+
+        # build index name (keep it reasonably short)
         index_name = f"{cls.table}_{'_'.join(columns)}_idx"
-        if unique:
-            sql = f"CREATE UNIQUE INDEX IF NOT EXISTS {index_name} ON {cls.table} ({', '.join(columns)})"
-        else:
-            sql = f"CREATE INDEX IF NOT EXISTS {index_name} ON {cls.table} ({', '.join(columns)})"
-        
-        # Execute SQL
-        DB.execute(sql, commit=True)
-        print(f"✅ Index created: {index_name} on {cls.table} ({', '.join(columns)})")
+        # MySQL has 64 char limit for index names; truncate if needed
+        if len(index_name) > 60:
+            index_name = index_name[:60]
+
+        quoted_index = cls._quote_ident_mysql(index_name)
+        quoted_table = cls._quote_ident_mysql(cls.table)
+        quoted_cols = ", ".join(cls._quote_ident_mysql(c) for c in columns)
+
+        # Check existence in information_schema.statistics
+        check_sql = """
+            SELECT COUNT(*) 
+            FROM information_schema.statistics
+            WHERE table_schema = DATABASE()
+              AND table_name = %s
+              AND index_name = %s
+        """
+        try:
+            row = DB.execute(check_sql, [cls.table, index_name],fetchone=True)
+            # try to get a row from cursor-like return
+            exists = bool(row)
+        except Exception as e:
+            # If we can't query information_schema for any reason, be conservative:
+            print("⚠️ Could not check index existence:", e)
+            exists = False
+
+        if exists:
+            print(f"ℹ️ Index already exists: {index_name}")
+            return
+
+        create_sql = f"CREATE {'UNIQUE ' if unique else ''}INDEX {quoted_index} ON {quoted_table} ({quoted_cols})"
+        try:
+            DB.execute(create_sql, commit=True)
+            print(f"✅ Created index: {index_name} on {cls.table} ({', '.join(columns)})")
+        except Exception as e:
+            print(f"❌ Failed to create index {index_name}: {e}")
+            raise
 
     @classmethod
     def create(cls, data: dict):
@@ -166,5 +203,16 @@ class BaseModel:
             return cached
         sql = f"SELECT * FROM {cls.table} WHERE timestamp = %s and symbol = %s"
         result =  DB.execute(sql,[timestamp,symbol],fetchone=True)
+        Cache.set(raw_key,result)
+        return result
+    
+    @classmethod
+    def GetByUniqueZone(cls,timestamp,symbol,time_frame):
+        raw_key = f"{cls.table}:find:timestamp:{timestamp}:symbol:{symbol}:timeframe:{time_frame}"
+        cached = Cache.get(raw_key)
+        if cached is not None:
+            return cached
+        sql = f"SELECT * FROM {cls.table} WHERE timestamp = %s and symbol = %s and time_frame = %s"
+        result =  DB.execute(sql,[timestamp,symbol,time_frame],fetchone=True)
         Cache.set(raw_key,result)
         return result
