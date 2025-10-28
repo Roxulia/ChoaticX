@@ -50,10 +50,10 @@ class ZoneHandlingService():
     def get_zones(self,interval,lookback):
         try:
             df = self.api.get_ohlcv(symbol=self.symbol,interval=interval,lookback=lookback)
-            if self.symbol != 'BTCUSDT':
+            """if self.symbol != 'BTCUSDT':
                 df_btc= self.api.get_ohlcv(symbol='BTCUSDT',interval=interval,lookback=lookback)
                 roller = RollingRegression(df,df_btc)
-                df = roller.AddRegressionValues()
+                df = roller.AddRegressionValues()"""
         except CantFetchCandleData as e:
             raise CantFetchCandleData
         if interval ==  self.timeframes[0]:
