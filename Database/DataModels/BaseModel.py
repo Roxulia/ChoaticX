@@ -97,7 +97,7 @@ class BaseModel:
         try:
             row = DB.execute(check_sql, [cls.table, index_name],fetchone=True)
             # try to get a row from cursor-like return
-            exists = bool(row)
+            exists = (row!=0)
         except Exception as e:
             # If we can't query information_schema for any reason, be conservative:
             print("⚠️ Could not check index existence:", e)
