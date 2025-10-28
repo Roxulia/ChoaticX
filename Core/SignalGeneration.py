@@ -40,7 +40,7 @@ class SignalGenerator:
                 position = "Short"
                 if row["touch_from"] == "Above":  # touched from above
                     entry = row["zone_high"]
-                    sl = row["candle_bb_high"]  
+                    sl = row["candle_bb_high"]  if 'candle_bb_high' in row else row['zone_high']+(row['zone_high']*0.02)
                     tp = row["below_zone_high"] if "below_zone_high" in row else row['candle_bb_low']
                 else:
                     # edge case: price touches supply from below (rare, breakout retest)
@@ -53,7 +53,7 @@ class SignalGenerator:
                 if row["touch_from"] == "Below":  # touched from below
                     entry = row["zone_low"]   # aggressive
                     # entry = row["zone_low"]  # safer option
-                    sl = row["candle_bb_low"]
+                    sl = row["candle_bb_low"] if 'candle_bb_low' in row else row['zone_low']-(row['zone_low']*0.02)
                     tp = row["above_zone_low"]
                 else:
                     # edge case: price touches demand from above (breakout retest)

@@ -54,7 +54,29 @@ class BaseModel:
                 DB._logger.info(
                     f"🔄 Updated column `{col_name}` type from {existing_cols[col_name]} to {col_type} in `{cls.table}`"
                 )
-
+                
+    @classmethod
+    def create_index(cls, columns: list, unique: bool = False):
+        """
+        Create an index on specified columns for the table.
+        
+        Args:
+            columns (list): list of column names to index
+            unique (bool): whether to create a UNIQUE index
+        """
+        if not columns:
+            raise ValueError("Column list for index cannot be empty.")
+        
+        # Generate a readable index name
+        index_name = f"{cls.table}_{'_'.join(columns)}_idx"
+        if unique:
+            sql = f"CREATE UNIQUE INDEX IF NOT EXISTS {index_name} ON {cls.table} ({', '.join(columns)})"
+        else:
+            sql = f"CREATE INDEX IF NOT EXISTS {index_name} ON {cls.table} ({', '.join(columns)})"
+        
+        # Execute SQL
+        DB.execute(sql, commit=True)
+        print(f"✅ Index created: {index_name} on {cls.table} ({', '.join(columns)})")
 
     @classmethod
     def create(cls, data: dict):

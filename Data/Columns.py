@@ -16,5 +16,8 @@ class IgnoreColumns:
             'above_conf_count_BrFVG','below_conf_count_BuLiq','above_conf_1D_count','above_prev_volatility_5','candle_ema20',
             'atr','below_wick_ratio','below_conf_count_BrFVG','above_conf_is_buy_zone','above_avg_volume_past_5','above_momentum_5',
             'ema 50','above_atr_mean','above_wick_ratio','above_conf_count_BuOB','above_conf_4h_count','conf_count_BuFVG',
-            'candle_atr_mean'
+            'candle_atr_mean','r2','alpha','beta','gamma','bb_high','bb_mid','bb_low','above_r2',
+            'above_alpha','above_beta','above_gamma','above_bb_high','above_bb_mid','above_bb_low',
+            'below_r2','below_alpha','below_beta','below_gamma','below_bb_high','below_bb_mid','below_bb_low',
+            'candle_r2','candle_alpha','candle_beta','candle_gamma','candle_bb_high','candle_bb_mid','candle_bb_low'
         ])
