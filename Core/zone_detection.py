@@ -461,10 +461,10 @@ class ZoneDetector:
                     'bb_high': np.mean(bb_highs),
                     'bb_mid': np.mean(bb_mids),
                     'bb_low': np.mean(bb_lows),
-                    'alpha': np.mean(alphas),
-                    'beta': np.mean(betas),
-                    'gamma': np.mean(gammas),
-                    'r2' : np.mean(r2s),
+                    'alpha': np.mean(alphas) if alphas != [] else None,
+                    'beta': np.mean(betas) if betas != [] else None,
+                    'gamma': np.mean(gammas) if gammas != [] else None,
+                    'r2' : np.mean(r2s) if r2s != [] else None,
                     'time_frame' : self.timeframe,
                     'timestamp' : timestamps[0]
                 })
@@ -509,3 +509,4 @@ class ZoneDetector:
         ob = self.detect_order_blocks(threshold=threshold,inner_func=inner_func)
         liq = self.detect_liquidity_zones(inner_func=inner_func)
         return fvg+ob+liq
+
