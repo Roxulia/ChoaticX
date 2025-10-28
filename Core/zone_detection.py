@@ -422,10 +422,10 @@ class ZoneDetector:
                 bb_highs = [g['bb_high'] for g in group if 'bb_high' in g]
                 bb_lows = [g['bb_low'] for g in group if 'bb_low' in g]
                 bb_mids = [g['bb_mid'] for g in group if 'bb_mid' in g]
-                alphas = [g['alpha'] for g in group if 'alpha' in g]
-                betas = [g['beta'] for g in group if 'beta' in g]
-                gammas = [g['gamma'] for g in group if 'gamma' in g]
-                r2s = [g['r2'] for g in group if 'r2' in g]
+                alphas = [g['alpha'] for g in group if 'alpha' in g and g['alpha'] is not None]
+                betas = [g['beta'] for g in group if 'beta' in g and g['beta'] is not None]
+                gammas = [g['gamma'] for g in group if 'gamma' in g and g['gamma'] is not None]
+                r2s = [g['r2'] for g in group if 'r2' in g and g['r2'] is not None]
                 timestamps = [g['timestamp'] for g in group if 'timestamp' in g]
                 # Find sweep candle
                 
@@ -461,10 +461,10 @@ class ZoneDetector:
                     'bb_high': np.mean(bb_highs),
                     'bb_mid': np.mean(bb_mids),
                     'bb_low': np.mean(bb_lows),
-                    'alpha': np.mean(alphas) if alphas is not None else None,
-                    'beta': np.mean(betas) if betas is not None else None,
-                    'gamma': np.mean(gammas) if gammas is not None else None,
-                    'r2' : np.mean(r2s) if r2s is not None else None,
+                    'alpha': np.mean(alphas) if alphas else None,
+                    'beta': np.mean(betas) if betas else None,
+                    'gamma': np.mean(gammas) if gammas else None,
+                    'r2': np.mean(r2s) if r2s else None,
                     'time_frame' : self.timeframe,
                     'timestamp' : timestamps[0]
                 })
@@ -509,5 +509,6 @@ class ZoneDetector:
         ob = self.detect_order_blocks(threshold=threshold,inner_func=inner_func)
         liq = self.detect_liquidity_zones(inner_func=inner_func)
         return fvg+ob+liq
+
 
 
