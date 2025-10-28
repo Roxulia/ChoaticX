@@ -88,7 +88,7 @@ class BaseModel:
 
         # Check existence in information_schema.statistics
         check_sql = """
-            SELECT COUNT(*) 
+            SELECT COUNT(*) AS idx_count
             FROM information_schema.statistics
             WHERE table_schema = DATABASE()
               AND table_name = %s
@@ -97,7 +97,7 @@ class BaseModel:
         try:
             row = DB.execute(check_sql, [cls.table, index_name],fetchone=True)
             # try to get a row from cursor-like return
-            exists = bool(row)
+            exists = bool(row['idx_count'] > 0)
         except Exception as e:
             # If we can't query information_schema for any reason, be conservative:
             print("⚠️ Could not check index existence:", e)
