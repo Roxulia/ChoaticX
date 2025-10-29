@@ -10,19 +10,19 @@ class DailyAnalysisService():
         
         try:
             data = requests.get(self.url).json()
-
+            base_symbol = self.symbol.replace("USDT", "").replace("BUSD", "").replace("USDC", "")
             # Extract key stats
             report = f"""
-            📊 24H MARKET REPORT — {self.symbol}
-            ---------------------------------
-            💰 Last Price: {float(data['lastPrice']):,.2f} USDT
-            📈 Change: {float(data['priceChange']):,.2f} USDT ({float(data['priceChangePercent']):.2f}%)
-            🔼 High: {float(data['highPrice']):,.2f}
-            🔽 Low: {float(data['lowPrice']):,.2f}
-            📊 Volume: {float(data['volume']):,.2f} BTC
-            💵 Quote Volume: {float(data['quoteVolume']):,.2f} USDT
-            🕒 Open Price: {float(data['openPrice']):,.2f}
-            ---------------------------------
+            📊 24H MARKET REPORT — {self.symbol}\n\n
+            
+            💰 Last Price: {float(data['lastPrice']):,.2f} USDT\n
+            📈 Change: {float(data['priceChange']):,.2f} USDT ({float(data['priceChangePercent']):.2f}%)\n
+            🔼 High: {float(data['highPrice']):,.2f}\n
+            🔽 Low: {float(data['lowPrice']):,.2f}\n
+            📊 Volume: {float(data['volume']):,.2f} {base_symbol}\n
+            💵 Quote Volume: {float(data['quoteVolume']):,.2f} USDT\n
+            🕒 Open Price: {float(data['openPrice']):,.2f}\n
+            
             """
 
             # Optional: simple sentiment tone
