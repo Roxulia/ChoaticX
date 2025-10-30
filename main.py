@@ -22,27 +22,22 @@ symbols = {
     "ETHUSDT" : 10,
     "SOLUSDT" : 2
     }
+services_based_1h = {
+    "BTCUSDT" : SignalService(symbol="BTCUSDT",threshold=symbols['BTCUSDT'],timeframes=['1h','4h','1D'],Local=local,initial=True),
+    "BNBUSDT" : SignalService(symbol="BNBUSDT",threshold=symbols['BNBUSDT'],timeframes=['1h','4h','1D'],Local=local,initial=True),
+    "ETHUSDT" : SignalService(symbol="ETHUSDT",threshold=symbols['ETHUSDT'],timeframes=['1h','4h','1D'],Local=local,initial=True),
+    "SOLUSDT" : SignalService(symbol="SOLUSDT",threshold=symbols['SOLUSDT'],timeframes=['1h','4h','1D'],Local=local,initial=True),
+    "PAXGUSDT" : SignalService(symbol="PAXGUSDT",threshold=symbols['PAXGUSDT'],timeframes=['1h','4h','1D'],Local=local,initial=True),
+}
 timeframes = ['15min','1h','4h','1D']
 @mu.log_memory
 def initiateAll():
     print("Initiating All Model and System")
     try:
         initiate_database()
-        service = SignalService(symbol="BTCUSDT",threshold=500,timeframes=['1h','4h','1D'],Local=local,initial=True)
-        total1 = service.data_extraction()
-        service.training_process(total1)
-        service = SignalService(symbol="BNBUSDT",threshold=5,timeframes=['1h','4h','1D'],Local=local,initial=True)
-        total1 = service.data_extraction()
-        service.training_process(total1)
-        service = SignalService(symbol="PAXGUSDT",threshold=10,timeframes=['1h','4h','1D'],Local=local,initial=True)
-        total1 = service.data_extraction()
-        service.training_process(total1)
-        service = SignalService(symbol="ETHUSDT",threshold=10,timeframes=['1h','4h','1D'],Local=local,initial=True)
-        total1 = service.data_extraction()
-        service.training_process(total1)
-        service = SignalService(symbol="SOLUSDT",threshold=2,timeframes=['1h','4h','1D'],Local=local,initial=True)
-        total1 = service.data_extraction()
-        service.training_process(total1)
+        for k,v in services_based_1h.items():
+            total = v.data_extraction()
+            v.training_process(total)
         initiate_prediction_models()
     except CantFetchCandleData as e:
         print(f'{e}')
@@ -67,11 +62,11 @@ def initiate_prediction_models():
         raise e
 
 @mu.log_memory
-def initialState(symbol,threshold):
+def initialState(symbol):
     print('Running Model Training')
     try:
         initiate_database()
-        test = SignalService(symbol=symbol,threshold=threshold,timeframes=['1h','4h','1D'],Local=local,initial=True)
+        test = services_based_1h[symbol]
         total = test.data_extraction()
         test.training_process(total)
     except CantFetchCandleData as e:
@@ -104,9 +99,9 @@ def initiate_database():
         raise e
 
 @mu.log_memory
-def train_model(symbol,threshold):
+def train_model(symbol):
     try:
-        test = SignalService(symbol=symbol,threshold=threshold,timeframes=['1h','4h','1D'],Local=local)
+        test = services_based_1h[symbol]
         total = test.data_extraction()
         test.training_process(total)
     except CantFetchCandleData as e:
@@ -155,16 +150,16 @@ if __name__ == "__main__" :
     process = {
         '*' : run_all_process,
         'update-database' : initiate_database,
-        'initiate-btc' : lambda : initialState("BTCUSDT",500),
-        'initiate-bnb' : lambda : initialState("BNBUSDT",5),
-        'initiate-paxg' : lambda : initialState("PAXGUSDT",10),
-        'initiate-eth' : lambda : initialState("ETHUSDT",10),
-        'initiate-sol' : lambda : initialState("SOLUSDT",10),
-        'train-btc' : lambda : train_model("BTCUSDT",500),
-        'train-bnb' : lambda : train_model("BNBUSDT",5),
-        'train-paxg' : lambda : train_model("PAXGUSDT",10),
-        'train-eth' : lambda : train_model("ETHUSDT",10),
-        'train-sol' : lambda : train_model("SOLUSDT",10),
+        'initiate-btc' : lambda : initialState("BTCUSDT"),
+        'initiate-bnb' : lambda : initialState("BNBUSDT"),
+        'initiate-paxg' : lambda : initialState("PAXGUSDT"),
+        'initiate-eth' : lambda : initialState("ETHUSDT"),
+        'initiate-sol' : lambda : initialState("SOLUSDT"),
+        'train-btc' : lambda : train_model("BTCUSDT"),
+        'train-bnb' : lambda : train_model("BNBUSDT"),
+        'train-paxg' : lambda : train_model("PAXGUSDT"),
+        'train-eth' : lambda : train_model("ETHUSDT"),
+        'train-sol' : lambda : train_model("SOLUSDT"),
         'backtest-btc' : lambda : backtest("BTCUSDT",500),
         'backtest-bnb' : lambda : backtest("BNBUSDT",5),
         'backtest-paxg' : lambda : backtest("PAXGUSDT",10),

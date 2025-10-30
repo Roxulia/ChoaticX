@@ -84,11 +84,11 @@ class SignalGenerator:
             raise e
         finally:
             return {
-                "position": position,
+                "position": position ,
                 "symbol" : symbol,
-                "entry_price": entry,
-                "tp": tp,
-                "sl": sl,
+                "entry_price": f'{float(entry):,.2f}',
+                "tp": f'{float(tp):,.2f}',
+                "sl": f'{float(sl):,.2f}',
                 "timestamp" : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "meta": row.to_dict(),  # safer for later use
             }

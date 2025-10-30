@@ -343,7 +343,7 @@ class DatasetGenerator:
                     fvg_columns = [k for k,v in FVG.columns.items()]
                     sql_data = {k:v for k,v in sql_data.items() if k in fvg_columns}
                     sql_data['symbol'] = self.symbol
-                    existed_zone = FVG.GetBySymbolTimeStamp(sql_data['timestamp'],self.symbol)
+                    existed_zone = FVG.GetByUniqueZone(sql_data['timestamp'],self.symbol,sql_data['time_frame'])
                     if existed_zone:
                         FVG.update(existed_zone['id'],sql_data)
                     else:
@@ -352,7 +352,7 @@ class DatasetGenerator:
                     ob_columns = [k for k,v in OB.columns.items()]
                     sql_data = {k:v for k,v in sql_data.items() if k in ob_columns}
                     sql_data['symbol'] = self.symbol
-                    existed_zone = OB.GetBySymbolTimeStamp(sql_data['timestamp'],self.symbol)
+                    existed_zone = OB.GetByUniqueZone(sql_data['timestamp'],self.symbol,self.symbol,sql_data['time_frame'])
                     if existed_zone:
                         OB.update(existed_zone['id'],sql_data)
                     else:
@@ -361,7 +361,7 @@ class DatasetGenerator:
                     liq_columns = [k for k,v in LIQ.columns.items()]
                     sql_data = {k:v for k,v in sql_data.items() if k in liq_columns}
                     sql_data['symbol'] = self.symbol
-                    existed_zone = LIQ.GetBySymbolTimeStamp(sql_data['timestamp'],self.symbol)
+                    existed_zone = LIQ.GetByUniqueZone(sql_data['timestamp'],self.symbol,self.symbol,sql_data['time_frame'])
                     if existed_zone:
                         LIQ.update(existed_zone['id'],sql_data)
                     else:
@@ -403,7 +403,7 @@ class DatasetGenerator:
                         fvg_columns = [k for k,v in FVG.columns.items()]
                         sql_data = {k:v for k,v in sql_data.items() if k in fvg_columns}
                         sql_data['symbol'] = self.symbol
-                        existed_zone = FVG.GetBySymbolTimeStamp(sql_data['timestamp'],self.symbol)
+                        existed_zone = FVG.GetByUniqueZone(sql_data['timestamp'],self.symbol,sql_data['time_frame'])
                         if existed_zone:
                             FVG.update(existed_zone['id'],sql_data)
                         else:
@@ -412,7 +412,7 @@ class DatasetGenerator:
                         ob_columns = [k for k,v in OB.columns.items()]
                         sql_data = {k:v for k,v in sql_data.items() if k in ob_columns}
                         sql_data['symbol'] = self.symbol
-                        existed_zone = OB.GetBySymbolTimeStamp(sql_data['timestamp'],self.symbol)
+                        existed_zone = OB.GetByUniqueZone(sql_data['timestamp'],self.symbol,self.symbol,sql_data['time_frame'])
                         if existed_zone:
                             OB.update(existed_zone['id'],sql_data)
                         else:
@@ -421,7 +421,7 @@ class DatasetGenerator:
                         liq_columns = [k for k,v in LIQ.columns.items()]
                         sql_data = {k:v for k,v in sql_data.items() if k in liq_columns}
                         sql_data['symbol'] = self.symbol
-                        existed_zone = LIQ.GetBySymbolTimeStamp(sql_data['timestamp'],self.symbol)
+                        existed_zone = LIQ.GetByUniqueZone(sql_data['timestamp'],self.symbol,self.symbol,sql_data['time_frame'])
                         if existed_zone:
                             LIQ.update(existed_zone['id'],sql_data)
                         else:
