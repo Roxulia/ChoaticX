@@ -8,7 +8,7 @@ from Database.Cache import Cache
 class SchedulerManager:
     def __init__(self, api: BinanceAPI):
         self.scheduler = BackgroundScheduler()
-        self.services = {
+        self.services_based_1h = {
             "BTCUSDT": SignalService(symbol="BTCUSDT", threshold=500),
             "BNBUSDT": SignalService(symbol="BNBUSDT", threshold=5),
             "PAXGUSDT": SignalService(symbol="PAXGUSDT", threshold=10),
@@ -100,7 +100,7 @@ class SchedulerManager:
     def start(self):
         """Start APScheduler jobs."""
         try:
-            for symbol, service in self.services.items():
+            for symbol, service in self.services_based_1h.items():
                 self.scheduler.add_job(
                     lambda s=service: self._put_task(1, s.zoneHandler.update_untouched_zones),
                     'interval', hours=24, id=f"update_{symbol.lower()}_zones"
@@ -163,14 +163,14 @@ class SchedulerManager:
     async def _start_binance_listener(self):
         """Connect and listen using binance_api.listen_kline()."""
         await self.binance_api.connect()
-        symbols = list(self.services.keys())
+        symbols = list(self.services_based_1h.keys())
         intervals = ["15m", "1h", "4h"]
 
         async def callback(kline):
             try:
                 symbol = kline.get("s")
                 interval = kline.get("i")
-                service = self.services.get(symbol)
+                service = self.services_based_1h.get(symbol)
                 if not service:
                     return
                 candle = {
