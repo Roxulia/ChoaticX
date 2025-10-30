@@ -15,6 +15,13 @@ class SchedulerManager:
             "ETHUSDT": SignalService(symbol="ETHUSDT", threshold=10),
             "SOLUSDT": SignalService(symbol="SOLUSDT", threshold=2),
         }
+        self.services_based_15min = {
+            "BTCUSDT": SignalService(symbol="BTCUSDT", threshold=125),
+            "BNBUSDT": SignalService(symbol="BNBUSDT", threshold=2),
+            "PAXGUSDT": SignalService(symbol="PAXGUSDT", threshold=4),
+            "ETHUSDT": SignalService(symbol="ETHUSDT", threshold=4),
+            "SOLUSDT": SignalService(symbol="SOLUSDT", threshold=0.75),
+        }
         self.binance_api = api
         self.logger = logging.getLogger(f"Scheduler")
         self.logger.setLevel(logging.DEBUG)
@@ -164,14 +171,15 @@ class SchedulerManager:
         """Connect and listen using binance_api.listen_kline()."""
         await self.binance_api.connect()
         symbols = list(self.services_based_1h.keys())
-        intervals = ["15m", "1h", "4h"]
+        intervals = ["5m","15m", "1h", "4h"]
 
         async def callback(kline):
             try:
                 symbol = kline.get("s")
                 interval = kline.get("i")
-                service = self.services_based_1h.get(symbol)
-                if not service:
+                service_1h = self.services_based_1h.get(symbol)
+                service_15m = self.services_based_15min.get(symbol)
+                if not service_1h:
                     return
                 candle = {
                     "open": float(kline["o"]),
@@ -180,17 +188,21 @@ class SchedulerManager:
                     "close": float(kline["c"]),
                 }
 
-                if interval == "15m":
-                    self._put_task(3, lambda s=service, c=candle: s.update_running_signals(c))
-                    self._put_task(4, lambda s=service, c=candle: s.update_pending_signals(c))
+                if interval == "5m":
+                    self._put_task(3, lambda s=service_1h, c=candle: s.update_running_signals(c))
+                    self._put_task(4, lambda s=service_1h, c=candle: s.update_pending_signals(c))
                     self.logger.info(f"📊 {symbol} {interval} → signal updates.")
+                elif interval == "15m":
+                    self._put_task(1, lambda s=service_1h, c=candle: s.zoneHandler.update_ATHzone(c))
+                    self._put_task(5, service_15m.get_current_signals)
+                    self.logger.info(f"📊 {symbol} {interval} → ATH + 15m current signals.")
                 elif interval == "1h":
-                    self._put_task(1, lambda s=service, c=candle: s.zoneHandler.update_ATHzone(c))
-                    self._put_task(5, service.get_current_signals)
-                    self.logger.info(f"📊 {symbol} {interval} → ATH + current signals.")
+                    self._put_task(2, service_15m.zoneHandler.update_untouched_zones)
+                    self._put_task(6, service_1h.get_current_signals)
+                    self.logger.info(f"📊 {symbol} {interval} →15m zone refresh + 1h current signals.")
                 elif interval == "4h":
-                    self._put_task(2, service.zoneHandler.update_untouched_zones)
-                    self.logger.info(f"📊 {symbol} {interval} → zone refresh.")
+                    self._put_task(2, service_1h.zoneHandler.update_untouched_zones)
+                    self.logger.info(f"📊 {symbol} {interval} →1h zone refresh.")
             except Exception as e:
                 self.logger.error(f"Callback error: {e}")
 

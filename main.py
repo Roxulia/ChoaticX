@@ -16,19 +16,33 @@ from Database.Cache import Cache
 
 local = False
 symbols = {
-    "BTCUSDT" : 500,
-    "BNBUSDT" : 5,
-    "PAXGUSDT": 10,
-    "ETHUSDT" : 10,
-    "SOLUSDT" : 2
+    "BTCUSDT" : [500,125],
+    "BNBUSDT" : [5,2],
+    "PAXGUSDT": [10,4],
+    "ETHUSDT" : [10,4],
+    "SOLUSDT" : [2,0.75]
     }
 services_based_1h = {
-    "BTCUSDT" : SignalService(symbol="BTCUSDT",threshold=symbols['BTCUSDT'],timeframes=['1h','4h','1D'],Local=local,initial=True),
-    "BNBUSDT" : SignalService(symbol="BNBUSDT",threshold=symbols['BNBUSDT'],timeframes=['1h','4h','1D'],Local=local,initial=True),
-    "ETHUSDT" : SignalService(symbol="ETHUSDT",threshold=symbols['ETHUSDT'],timeframes=['1h','4h','1D'],Local=local,initial=True),
-    "SOLUSDT" : SignalService(symbol="SOLUSDT",threshold=symbols['SOLUSDT'],timeframes=['1h','4h','1D'],Local=local,initial=True),
-    "PAXGUSDT" : SignalService(symbol="PAXGUSDT",threshold=symbols['PAXGUSDT'],timeframes=['1h','4h','1D'],Local=local,initial=True),
+    "BTCUSDT" : SignalService(symbol="BTCUSDT",threshold=symbols['BTCUSDT'][0],timeframes=['1h','4h','1D'],Local=local,initial=True),
+    "BNBUSDT" : SignalService(symbol="BNBUSDT",threshold=symbols['BNBUSDT'][0],timeframes=['1h','4h','1D'],Local=local,initial=True),
+    "ETHUSDT" : SignalService(symbol="ETHUSDT",threshold=symbols['ETHUSDT'][0],timeframes=['1h','4h','1D'],Local=local,initial=True),
+    "SOLUSDT" : SignalService(symbol="SOLUSDT",threshold=symbols['SOLUSDT'][0],timeframes=['1h','4h','1D'],Local=local,initial=True),
+    "PAXGUSDT" : SignalService(symbol="PAXGUSDT",threshold=symbols['PAXGUSDT'][0],timeframes=['1h','4h','1D'],Local=local,initial=True),
 }
+services_based_15min = {
+    "BTCUSDT" : SignalService(symbol="BTCUSDT",threshold=symbols['BTCUSDT'][1],timeframes=['15m','1h','4h'],Local=local,initial=True),
+    "BNBUSDT" : SignalService(symbol="BNBUSDT",threshold=symbols['BNBUSDT'][1],timeframes=['15m','1h','4h'],Local=local,initial=True),
+    "ETHUSDT" : SignalService(symbol="ETHUSDT",threshold=symbols['ETHUSDT'][1],timeframes=['15m','1h','4h'],Local=local,initial=True),
+    "SOLUSDT" : SignalService(symbol="SOLUSDT",threshold=symbols['SOLUSDT'][1],timeframes=['15m','1h','4h'],Local=local,initial=True),
+    "PAXGUSDT" : SignalService(symbol="PAXGUSDT",threshold=symbols['PAXGUSDT'][1],timeframes=['15m','1h','4h'],Local=local,initial=True),
+}
+"""services_based_1D = {
+    "BTCUSDT" : SignalService(symbol="BTCUSDT",threshold=symbols['BTCUSDT'],timeframes=['1D','3D','1W'],Local=local,initial=True),
+    "BNBUSDT" : SignalService(symbol="BNBUSDT",threshold=symbols['BNBUSDT'],timeframes=['1D','3D','1W'],Local=local,initial=True),
+    "ETHUSDT" : SignalService(symbol="ETHUSDT",threshold=symbols['ETHUSDT'],timeframes=['1D','3D','1W'],Local=local,initial=True),
+    "SOLUSDT" : SignalService(symbol="SOLUSDT",threshold=symbols['SOLUSDT'],timeframes=['1D','3D','1W'],Local=local,initial=True),
+    "PAXGUSDT" : SignalService(symbol="PAXGUSDT",threshold=symbols['PAXGUSDT'],timeframes=['1D','3D','1W'],Local=local,initial=True),
+}"""
 timeframes = ['15min','1h','4h','1D']
 @mu.log_memory
 def initiateAll():
@@ -36,6 +50,9 @@ def initiateAll():
     try:
         initiate_database()
         for k,v in services_based_1h.items():
+            total = v.data_extraction()
+            v.training_process(total)
+        for k,v in services_based_15min.items():
             total = v.data_extraction()
             v.training_process(total)
         initiate_prediction_models()
