@@ -13,6 +13,7 @@ from Database.DataModels.Liq import LIQ
 from Database.Cache import Cache
 from Utility.MemoryUsage import MemoryUsage as mu
 from Utility.UtilityClass import UtilityFunctions as utility
+from Utility.Logger import Logger
 from dotenv import load_dotenv
 import os,json,logging
 
@@ -22,38 +23,15 @@ class ZoneHandlingService():
         self.symbol = symbol
         self.threshold = threshold 
         self.timeframes = timeframes
-        self.logger = logging.getLogger(f"ZoneHandlingService_{symbol}")
-        self.logger.setLevel(logging.DEBUG)
-        self.initiate_logging()
-
-    def initiate_logging(self):
-        load_dotenv()
-        # File handler
-        file_handler = logging.FileHandler(os.path.join(os.getenv(key='LOG_PATH'), f"zone_handling_service_{self.symbol}.log"))
-        file_handler.setLevel(logging.DEBUG)
-
-        # Console handler (optional)
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)
-
-        # Formatter
-        formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-        )
-        file_handler.setFormatter(formatter)
-        console_handler.setFormatter(formatter)
-
-        # Add handlers to logger
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
+        self.logger = Logger()
 
     def get_zones(self,interval,lookback):
         try:
             df = self.api.get_ohlcv(symbol=self.symbol,interval=interval,lookback=lookback)
-            """if self.symbol != 'BTCUSDT':
+            if self.symbol != 'BTCUSDT':
                 df_btc= self.api.get_ohlcv(symbol='BTCUSDT',interval=interval,lookback=lookback)
                 roller = RollingRegression(df,df_btc)
-                df = roller.AddRegressionValues()"""
+                df = roller.AddRegressionValues()
         except CantFetchCandleData as e:
             raise CantFetchCandleData
         if interval ==  self.timeframes[0]:
@@ -65,6 +43,7 @@ class ZoneHandlingService():
     @mu.log_memory
     def get_latest_zones(self,lookback='1 years',initial_state = False):
         t_zones = []
+        self.logger.info(f"{self.__class__}: getting updated zone for {self.symbol}")
         for tf in self.timeframes:
             try:
                 zone = self.get_zones(tf,lookback)

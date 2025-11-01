@@ -13,6 +13,7 @@ from Data.binanceAPI import BinanceAPI
 from Data.Columns import IgnoreColumns
 from Utility.UtilityClass import UtilityFunctions as utility
 from Utility.MemoryUsage import MemoryUsage as mu
+from Utility.Logger import Logger
 from Exceptions.ServiceExceptions import *
 from Database.DataModels.FVG import FVG
 from Database.DataModels.OB import OB
@@ -48,31 +49,8 @@ class SignalService:
             model_handler1 = ModelHandler(symbol=self.symbol,model_type='xgb')
             model_handler2 = ModelHandler(symbol=self.symbol,timeframes=[self.timeframes[0]],model_type='xgb')
             self.signal_gen = SignalGenerator([model_handler1,model_handler2],datacleaner,[self.ignore_cols.signalGenModelV1,self.ignore_cols.predictionModelV1])
-        self.logger = logging.getLogger(f"SignalService_{self.symbol}")
-        self.logger.setLevel(logging.DEBUG)
-        self.initiate_logging()
-
-    def initiate_logging(self):
-        load_dotenv()
-        # File handler
-        file_handler = logging.FileHandler(os.path.join(os.getenv(key='LOG_PATH'), f"signal_service_{self.symbol}.log"))
-        file_handler.setLevel(logging.DEBUG)
-
-        # Console handler (optional)
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)
-
-        # Formatter
-        formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-        )
-        file_handler.setFormatter(formatter)
-        console_handler.setFormatter(formatter)
-
-        # Add handlers to logger
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
-
+        self.logger = Logger()
+        
     @mu.log_memory
     def get_current_signals(self):
         try:
@@ -99,11 +77,11 @@ class SignalService:
                     zone['candle_bb_high'] = candle['bb_high']
                     zone['candle_bb_low'] = candle['bb_low']
                     zone['candle_bb_mid'] = candle['bb_mid']
-                    """if self.symbol != 'BTCUSDT':
+                    if self.symbol != 'BTCUSDT':
                         zone['candle_alpha'] = candle['alpha']
                         zone['candle_beta'] = candle['beta']
                         zone['candle_gamma'] = candle['gamma']
-                        zone['candle_r2'] = candle['r2']"""
+                        zone['candle_r2'] = candle['r2']
                     zone['touch_type'] = reaction_data['touch_type']
                     zone['touch_from'] = reaction_data['touch_from']
                     zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)

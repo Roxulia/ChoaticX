@@ -1,8 +1,9 @@
 from Database.DataModels.Subscribers import Subscribers
 from Exceptions.ServiceExceptions import *
+from Utility.Logger import Logger
 class SubscriptionService():
     def __init__(self):
-        pass
+        self.logger = Logger()
 
     def subscribeUsingTelegram(self,chat_id):
         try:
@@ -13,7 +14,7 @@ class SubscriptionService():
                 Subscribers.create({"chat_id":chat_id})
             return "✅ Subscribed for auto broadcasts!"
         except Exception as e:
-            print("Error in Database")
+            self.logger.error(f"{self.__class__} : Error in Database : {e}")
             return "Unknown Error Occur !! Pls Contact Us for Support"
         
     def unsubscribeUsingTelegram(self,chat_id):
@@ -26,7 +27,7 @@ class SubscriptionService():
                 Subscribers.create({"chat_id":chat_id,"is_active":False})
                 return "U Haven't Subcribed to this Channel"
         except Exception as e:
-            print("Error in Database")
+            self.logger.error(f"{self.__class__} : Error in Database : {e}")
             return "Unknown Error Occur !! Pls Contact Us for Support"
         
     def getByChatID(self,chat_id):

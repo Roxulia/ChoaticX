@@ -9,8 +9,9 @@ from flask_limiter.util import get_remote_address
 import redis,json,threading,os
 from Database.DB import MySQLDB as DB
 from Database.Cache import Cache
+from Utility.Logger import Logger
 
-
+Logger.set_context("api_service")
 DB.init_logger('api_db.log')
 Cache.init()
 app = Flask(__name__)

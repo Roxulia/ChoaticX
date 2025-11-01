@@ -4,6 +4,7 @@ import argparse
 from Services.signalService import SignalService
 from Services.predictionService import PredictionService
 from Utility.MemoryUsage import MemoryUsage as mu
+from Utility.Logger import Logger
 from Backtest.backtest import BackTestHandler
 from Exceptions.ServiceExceptions import *
 from Database.DB import MySQLDB as DB
@@ -14,6 +15,7 @@ from Database.DataModels.Signals import Signals
 from Database.DataModels.Subscribers import Subscribers
 from Database.Cache import Cache
 
+Logger.set_context("main_system")
 local = False
 symbols = {
     "BTCUSDT" : [500,125],
