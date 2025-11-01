@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import *
+from telegram.helpers import escape_markdown
 import os
 from dotenv import load_dotenv
 from Exceptions.ServiceExceptions import *
@@ -254,7 +255,8 @@ class TelegramBot:
             message = self.get_message(update)
             try:
                 msg = DailyAnalysisService("BTCUSDT").get_daily_report()
-                await message.reply_text(msg,parse_mode="MarkdownV2")
+                safe_msg = escape_markdown(msg, version=2)
+                await message.reply_text(safe_msg,parse_mode="MarkdownV2")
             except EmptySignalException as e:
                 await message.reply_text(str(e))
             except Exception as e:
@@ -335,7 +337,8 @@ class TelegramBot:
             message = self.get_message(update)
             try:
                 msg = DailyAnalysisService("BNBUSDT").get_daily_report()
-                await message.reply_text(msg,parse_mode="MarkdownV2")
+                safe_msg = escape_markdown(msg, version=2)
+                await message.reply_text(safe_msg,parse_mode="MarkdownV2")
             except EmptySignalException as e:
                 await message.reply_text(str(e))
             except Exception as e:
@@ -416,7 +419,8 @@ class TelegramBot:
             message = self.get_message(update)
             try:
                 msg = DailyAnalysisService("PAXGUSDT").get_daily_report()
-                await message.reply_text(msg,parse_mode="MarkdownV2")
+                safe_msg = escape_markdown(msg, version=2)
+                await message.reply_text(safe_msg,parse_mode="MarkdownV2")
             except EmptySignalException as e:
                 await message.reply_text(str(e))
             except Exception as e:
@@ -497,7 +501,8 @@ class TelegramBot:
             message = self.get_message(update)
             try:
                 msg = DailyAnalysisService("ETHUSDT").get_daily_report()
-                await message.reply_text(msg,parse_mode="MarkdownV2")
+                safe_msg = escape_markdown(msg, version=2)
+                await message.reply_text(safe_msg,parse_mode="MarkdownV2")
             except EmptySignalException as e:
                 await message.reply_text(str(e))
             except Exception as e:
@@ -578,7 +583,8 @@ class TelegramBot:
             message = self.get_message(update)
             try:
                 msg = DailyAnalysisService("SOLUSDT").get_daily_report()
-                await message.reply_text(msg,parse_mode="MarkdownV2")
+                safe_msg = escape_markdown(msg, version=2)
+                await message.reply_text(safe_msg,parse_mode="MarkdownV2")
             except EmptySignalException as e:
                 await message.reply_text(str(e))
             except Exception as e:
@@ -877,4 +883,5 @@ class TelegramBot:
                 self.pubsub.close()
             except Exception:
                 pass
+
         self.logger.info("✅ TelegramBot stopped.")
