@@ -32,11 +32,11 @@ services_based_1h = {
     "PAXGUSDT" : SignalService(symbol="PAXGUSDT",threshold=symbols['PAXGUSDT'][0],timeframes=['1h','4h','1D'],Local=local,initial=True),
 }
 services_based_15min = {
-    "BTCUSDT" : SignalService(symbol="BTCUSDT",threshold=symbols['BTCUSDT'][1],timeframes=['15m','1h','4h'],Local=local,initial=True),
-    "BNBUSDT" : SignalService(symbol="BNBUSDT",threshold=symbols['BNBUSDT'][1],timeframes=['15m','1h','4h'],Local=local,initial=True),
-    "ETHUSDT" : SignalService(symbol="ETHUSDT",threshold=symbols['ETHUSDT'][1],timeframes=['15m','1h','4h'],Local=local,initial=True),
-    "SOLUSDT" : SignalService(symbol="SOLUSDT",threshold=symbols['SOLUSDT'][1],timeframes=['15m','1h','4h'],Local=local,initial=True),
-    "PAXGUSDT" : SignalService(symbol="PAXGUSDT",threshold=symbols['PAXGUSDT'][1],timeframes=['15m','1h','4h'],Local=local,initial=True),
+    "BTCUSDT" : SignalService(symbol="BTCUSDT",threshold=symbols['BTCUSDT'][1],timeframes=['15min','1h','4h'],Local=local,initial=True),
+    "BNBUSDT" : SignalService(symbol="BNBUSDT",threshold=symbols['BNBUSDT'][1],timeframes=['15min','1h','4h'],Local=local,initial=True),
+    "ETHUSDT" : SignalService(symbol="ETHUSDT",threshold=symbols['ETHUSDT'][1],timeframes=['15min','1h','4h'],Local=local,initial=True),
+    "SOLUSDT" : SignalService(symbol="SOLUSDT",threshold=symbols['SOLUSDT'][1],timeframes=['15min','1h','4h'],Local=local,initial=True),
+    "PAXGUSDT" : SignalService(symbol="PAXGUSDT",threshold=symbols['PAXGUSDT'][1],timeframes=['15min','1h','4h'],Local=local,initial=True),
 }
 """services_based_1D = {
     "BTCUSDT" : SignalService(symbol="BTCUSDT",threshold=symbols['BTCUSDT'],timeframes=['1D','3D','1W'],Local=local,initial=True),
@@ -190,6 +190,7 @@ if __name__ == "__main__" :
     process[args.option]()
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")
+
 
 
 
