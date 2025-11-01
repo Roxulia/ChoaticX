@@ -352,7 +352,7 @@ class DatasetGenerator:
                     ob_columns = [k for k,v in OB.columns.items()]
                     sql_data = {k:v for k,v in sql_data.items() if k in ob_columns}
                     sql_data['symbol'] = self.symbol
-                    existed_zone = OB.GetByUniqueZone(sql_data['timestamp'],self.symbol,self.symbol,sql_data['time_frame'])
+                    existed_zone = OB.GetByUniqueZone(sql_data['timestamp'],self.symbol,sql_data['time_frame'])
                     if existed_zone:
                         OB.update(existed_zone['id'],sql_data)
                     else:
@@ -361,7 +361,7 @@ class DatasetGenerator:
                     liq_columns = [k for k,v in LIQ.columns.items()]
                     sql_data = {k:v for k,v in sql_data.items() if k in liq_columns}
                     sql_data['symbol'] = self.symbol
-                    existed_zone = LIQ.GetByUniqueZone(sql_data['timestamp'],self.symbol,self.symbol,sql_data['time_frame'])
+                    existed_zone = LIQ.GetByUniqueZone(sql_data['timestamp'],self.symbol,sql_data['time_frame'])
                     if existed_zone:
                         LIQ.update(existed_zone['id'],sql_data)
                     else:
@@ -412,7 +412,7 @@ class DatasetGenerator:
                         ob_columns = [k for k,v in OB.columns.items()]
                         sql_data = {k:v for k,v in sql_data.items() if k in ob_columns}
                         sql_data['symbol'] = self.symbol
-                        existed_zone = OB.GetByUniqueZone(sql_data['timestamp'],self.symbol,self.symbol,sql_data['time_frame'])
+                        existed_zone = OB.GetByUniqueZone(sql_data['timestamp'],self.symbol,sql_data['time_frame'])
                         if existed_zone:
                             OB.update(existed_zone['id'],sql_data)
                         else:
@@ -421,7 +421,7 @@ class DatasetGenerator:
                         liq_columns = [k for k,v in LIQ.columns.items()]
                         sql_data = {k:v for k,v in sql_data.items() if k in liq_columns}
                         sql_data['symbol'] = self.symbol
-                        existed_zone = LIQ.GetByUniqueZone(sql_data['timestamp'],self.symbol,self.symbol,sql_data['time_frame'])
+                        existed_zone = LIQ.GetByUniqueZone(sql_data['timestamp'],self.symbol,sql_data['time_frame'])
                         if existed_zone:
                             LIQ.update(existed_zone['id'],sql_data)
                         else:
@@ -458,4 +458,5 @@ class DatasetGenerator:
     def extract_input_data(self,zones):
         data = list(self.extract_based_zone_confluent_tf(zones))
         for z in data:
+
             yield self.extract_nearby_zones_confluent_tf(z)
