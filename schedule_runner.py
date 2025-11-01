@@ -6,8 +6,9 @@ from Data.binanceAPI import BinanceAPI
 from Database.DB import MySQLDB as DB
 import time,asyncio,signal,sys
 from Database.Cache import Cache
+from Utility.Logger import Logger
 
-
+Logger.set_context("scheduling_service")
 Cache.init()
 stop_requested = False
 
@@ -21,6 +22,7 @@ signal.signal(signal.SIGTERM, handle_shutdown)
 signal.signal(signal.SIGINT, handle_shutdown)
 
 if __name__ == "__main__":
+    logger = Logger()
     DB.init_logger("schedule_runner_db.log")
     api = BinanceAPI()
     scheduler = SchedulerManager(api=api)
@@ -30,12 +32,12 @@ if __name__ == "__main__":
         while not stop_requested:
             time.sleep(1)
     except Exception as e:
-        print(f"❌ Unknown exception: {e}")
+        logger.error(f"❌ Unknown exception: {e}")
     finally:
-        print("🛑 Stopping SchedulerManager...")
+        logger.info("🛑 Stopping SchedulerManager...")
         try:
             scheduler.stop()  # ✅ implement this in SchedulerManager if not yet
         except Exception as e:
-            print(f"Error stopping scheduler: {e}")
-        print("✅ All threads stopped, exiting.")
+            logger.error(f"Error stopping scheduler: {e}")
+        logger.info("✅ All threads stopped, exiting.")
         sys.exit(0)

@@ -4,6 +4,7 @@ from Data.binanceAPI import BinanceAPI
 import queue, threading, asyncio, itertools, time, traceback,json,logging,os
 from dotenv import load_dotenv
 from Database.Cache import Cache
+from Utility.Logger import Logger
 
 class SchedulerManager:
     def __init__(self, api: BinanceAPI):
@@ -15,10 +16,15 @@ class SchedulerManager:
             "ETHUSDT": SignalService(symbol="ETHUSDT", threshold=10),
             "SOLUSDT": SignalService(symbol="SOLUSDT", threshold=2),
         }
+        self.services_based_15min = {
+            "BTCUSDT": SignalService(symbol="BTCUSDT", threshold=125),
+            "BNBUSDT": SignalService(symbol="BNBUSDT", threshold=2),
+            "PAXGUSDT": SignalService(symbol="PAXGUSDT", threshold=4),
+            "ETHUSDT": SignalService(symbol="ETHUSDT", threshold=4),
+            "SOLUSDT": SignalService(symbol="SOLUSDT", threshold=0.75),
+        }
         self.binance_api = api
-        self.logger = logging.getLogger(f"Scheduler")
-        self.logger.setLevel(logging.DEBUG)
-        self.initiate_logging()
+        self.logger = Logger()
 
         # Worker system
         self.task_queue = queue.PriorityQueue()
@@ -38,27 +44,6 @@ class SchedulerManager:
         # Start worker & listener
         self._start_thread(self._worker_loop, name="WorkerThread")
         self._start_thread(self._listener_entry, name="BinanceListener")
-
-    def initiate_logging(self):
-        load_dotenv()
-        # File handler
-        file_handler = logging.FileHandler(os.path.join(os.getenv(key='LOG_PATH'), f"scheduler.log"))
-        file_handler.setLevel(logging.DEBUG)
-
-        # Console handler (optional)
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)
-
-        # Formatter
-        formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-        )
-        file_handler.setFormatter(formatter)
-        console_handler.setFormatter(formatter)
-
-        # Add handlers to logger
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
 
     # 🧱 Utility
     def _put_task(self, priority, func):
@@ -115,10 +100,10 @@ class SchedulerManager:
         """Graceful shutdown."""
         self.logger.info("🛑 Stopping SchedulerManager...")
         self._stop_event.set()
-        try:
+        '''try:
             self.scheduler.shutdown(wait=False)
         except Exception:
-            pass
+            pass'''
 
         # Close Binance broadcast client
         try:
@@ -137,10 +122,13 @@ class SchedulerManager:
     # 📡 Binance Listener Entry
     def _listener_entry(self):
         """Launch async listener in its own event loop."""
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(self._binance_listener_main())
-        loop.close()
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(self._binance_listener_main())
+            loop.close()
+        except Exception as e:
+            self.logger.error(f"{self.__class__}:Error:{e}")
 
     async def _binance_listener_main(self):
         """Main loop: reconnect if websocket closes or times out."""
@@ -162,37 +150,46 @@ class SchedulerManager:
 
     async def _start_binance_listener(self):
         """Connect and listen using binance_api.listen_kline()."""
-        await self.binance_api.connect()
-        symbols = list(self.services_based_1h.keys())
-        intervals = ["15m", "1h", "4h"]
+        try:
+            await self.binance_api.connect()
+            symbols = list(self.services_based_1h.keys())
+            intervals = ["5m","15m", "1h", "4h"]
+        
+            async def callback(kline):
+                try:
+                    symbol = kline.get("s")
+                    interval = kline.get("i")
+                    service_1h = self.services_based_1h.get(symbol)
+                    service_15m = self.services_based_15min.get(symbol)
+                    if not service_1h:
+                        return
+                    candle = {
+                        "open": float(kline["o"]),
+                        "high": float(kline["h"]),
+                        "low": float(kline["l"]),
+                        "close": float(kline["c"]),
+                    }
 
-        async def callback(kline):
-            try:
-                symbol = kline.get("s")
-                interval = kline.get("i")
-                service = self.services_based_1h.get(symbol)
-                if not service:
-                    return
-                candle = {
-                    "open": float(kline["o"]),
-                    "high": float(kline["h"]),
-                    "low": float(kline["l"]),
-                    "close": float(kline["c"]),
-                }
+                    if interval == "5m":
+                        self._put_task(3, lambda s=service_1h, c=candle: s.update_running_signals(c))
+                        self._put_task(4, lambda s=service_1h, c=candle: s.update_pending_signals(c))
+                        self.logger.info(f"📊 {symbol} {interval} → signal updates.")
+                    elif interval == "15m":
+                        self._put_task(1, lambda s=service_1h, c=candle: s.zoneHandler.update_ATHzone(c))
+                        self._put_task(5, service_15m.get_current_signals)
+                        self.logger.info(f"📊 {symbol} {interval} → ATH + 15m current signals.")
+                    elif interval == "1h":
+                        self._put_task(2, service_15m.zoneHandler.update_untouched_zones)
+                        self._put_task(6, service_1h.get_current_signals)
+                        self.logger.info(f"📊 {symbol} {interval} →15m zone refresh + 1h current signals.")
+                    elif interval == "4h":
+                        self._put_task(2, service_1h.zoneHandler.update_untouched_zones)
+                        self.logger.info(f"📊 {symbol} {interval} →1h zone refresh.")
+                except Exception as e:
+                    self.logger.error(f"Callback error: {e}")
+                    raise e
 
-                if interval == "15m":
-                    self._put_task(3, lambda s=service, c=candle: s.update_running_signals(c))
-                    self._put_task(4, lambda s=service, c=candle: s.update_pending_signals(c))
-                    self.logger.info(f"📊 {symbol} {interval} → signal updates.")
-                elif interval == "1h":
-                    self._put_task(1, lambda s=service, c=candle: s.zoneHandler.update_ATHzone(c))
-                    self._put_task(5, service.get_current_signals)
-                    self.logger.info(f"📊 {symbol} {interval} → ATH + current signals.")
-                elif interval == "4h":
-                    self._put_task(2, service.zoneHandler.update_untouched_zones)
-                    self.logger.info(f"📊 {symbol} {interval} → zone refresh.")
-            except Exception as e:
-                self.logger.error(f"Callback error: {e}")
-
-        self.logger.info(f"🔌 Connected to Binance WebSocket for {len(symbols)} symbols.")
-        await self.binance_api.listen_kline(symbols, intervals, callback)
+            self.logger.info(f"🔌 Connected to Binance WebSocket for {len(symbols)} symbols.")
+            await self.binance_api.listen_kline(symbols, intervals, callback)
+        except Exception as e:
+            raise e

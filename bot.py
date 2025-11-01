@@ -2,9 +2,11 @@ from Services.signalService import SignalService
 from Telegram.TelegramBot import TelegramBot
 from Database.DB import MySQLDB as DB
 from Database.Cache import Cache
+from Utility.Logger import Logger
 import time,signal,sys
 import argparse
 Cache.init()
+Logger.set_context("telegram_bot_service")
 
 if __name__ == "__main__":
     DB.init_logger("bot_db.log")

@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import ta
 from .timeFrames import timeFrame
 from Exceptions.ServiceExceptions import *
+from Utility.Logger import Logger
 
 class BinanceAPI:
     def __init__(self):
@@ -18,6 +19,7 @@ class BinanceAPI:
         self.apiclient = Client(self.api_key, self.api_secret)
         self.broadcast_client = None
         self.bm = None
+        self.logger = Logger()
 
     async def connect(self):
         """Initialize async client + socket manager."""
@@ -25,6 +27,7 @@ class BinanceAPI:
             self.broadcast_client= await AsyncClient.create(self.api_key, self.api_secret)
             self.bm = BinanceSocketManager(self.broadcast_client)
         except Exception as e:
+            self.logger.error(f"{self.__class__}:Error:{e}")
             raise e
 
     async def close(self):
@@ -33,6 +36,7 @@ class BinanceAPI:
             if self.broadcast_client:
                 await self.broadcast_client.close_connection()
         except Exception as e:
+            self.logger.error(f"{self.__class__}:Error:{e}")
             raise e
 
     async def listen_kline(self, symbols, intervals, callback):
@@ -60,20 +64,23 @@ class BinanceAPI:
 
                     if kline.get("x"):  # ✅ candle closed
                         await callback(kline)
-        except websockets.exceptions.ConnectionClosedOK:
+        except websockets.exceptions.ConnectionClosedOK as e:
             # graceful disconnect
-            print("⚠️ Binance WebSocket closed normally (1001 Going Away).")
-            raise Exception("ConnectionClosedOK")
-        except asyncio.CancelledError:
-            raise
+            self.logger.info("⚠️ Binance WebSocket closed normally (1001 Going Away).")
+            self.logger.error(f"{self.__class__}:Error:{e}")
+            raise e
+        except asyncio.CancelledError as e:
+            self.logger.error(f"{self.__class__}:Error:{e}")
+            raise 
         except Exception as e:
+            self.logger.error(f"{self.__class__}:Error:{e}")
             raise e
 
     def get_ohlcv(self, symbol='BTCUSDT', interval='1h', lookback='3 years'):
         """
         Fetch historical OHLCV data and return as formatted DataFrame
         """
-        print(f'Fetching {lookback} worth of {interval} timeframe {symbol} data...')
+        self.logger.info(f'Fetching {lookback} worth of {interval} timeframe {symbol} data...')
         tf = timeFrame()
         try:
             klines = self.apiclient.get_historical_klines(symbol,tf.getTimeFrame(interval) , lookback)
@@ -93,7 +100,7 @@ class BinanceAPI:
             df['timestamp'] = df.index
             return df
         except Exception as e:
-            print(f'{str(e)}')
+            self.logger.error(f"{self.__class__}:Error:{e}")
             raise CantFetchCandleData
         
     
@@ -131,7 +138,7 @@ class BinanceAPI:
             df['timestamp'] = df.index
             return df.iloc[-1]
         except Exception as e:
-            print(f'{str(e)}')
+            self.logger.error(f"{self.__class__}:Error:{e}")
             raise CantFetchCandleData
     
     def store_OHLCV(self, symbol='BTCUSDT', interval='1h',lookback='3 years'):
@@ -145,7 +152,7 @@ class BinanceAPI:
                 raise CantFetchCandleData
             file_path = f"{self.data_root}/OHLCV/{symbol}_{interval}_{lookback}.csv"
             df.to_csv(file_path)
-            print(f"Data stored to {file_path}")
+            self.logger.info(f"Data stored to {file_path}")
             return file_path
         except:
             raise CantSaveToCSV

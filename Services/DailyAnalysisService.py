@@ -1,10 +1,12 @@
 import requests,os
 from dotenv import load_dotenv
+from Utility.Logger import Logger
 class DailyAnalysisService():
     def __init__(self,symbol):
         self.symbol = symbol
         self.url = os.getenv(key='ANALYSIS_LINK')
         self.url = f"{self.url}?symbol={self.symbol}"
+        self.logger = Logger()
 
     def get_daily_report(self):
         
@@ -37,6 +39,8 @@ class DailyAnalysisService():
                 sentiment = "🚨 Heavy sell-off pressure."
 
             report += sentiment
+            self.logger.info("Report Generated")
             return report
         except Exception as e:
+            self.logger.info(f"{self.__class__}:{e}")
             raise e

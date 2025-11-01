@@ -17,6 +17,7 @@ from Backtest.Portfolio import *
 from functools import wraps
 from Utility.UtilityClass import UtilityFunctions as utility
 from Utility.ImageGeneration import ImageGenerator as imagegen
+from Utility.Logger import Logger
 
 class TelegramBot:
     def __init__(self,testing=False):
@@ -46,6 +47,7 @@ class TelegramBot:
             "update_capital" : "update_subscriber_capital"
         }
         self.listener_task = None
+        self.logger = Logger()
         self.stop_event = asyncio.Event()
 
     def restricted(min_tier=1, admin_only=False,for_starter = False):
@@ -75,7 +77,7 @@ class TelegramBot:
                             return
                     return await func(self,update, context,user, *args, **kwargs)
                 except EmptyTelegramMessage as e:
-                    print(f'{str(e)}')
+                    self.logger.error(f'{str(e)}')
                     return
             return wrapper
         return decorator
@@ -114,7 +116,7 @@ class TelegramBot:
                 parse_mode="Markdown"
             )
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(for_starter=True)  # all registered users can use help
     async def help(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user):
@@ -145,7 +147,7 @@ class TelegramBot:
 
             await message.reply_text(help_text, reply_markup=reply_markup, parse_mode="Markdown")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     async def subscribe(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
@@ -154,7 +156,7 @@ class TelegramBot:
             text = self.subscriptionService.subscribeUsingTelegram(chat_id)
             await message.reply_text(text=text)
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
 
     async def unsubscribe(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -164,7 +166,7 @@ class TelegramBot:
             text = self.subscriptionService.unsubscribeUsingTelegram(chat_id)
             await message.reply_text(text=text)
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(for_starter=True)
     async def get_btc_zones(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
@@ -196,7 +198,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(for_starter=True)
     async def get_given_btc_signals(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
@@ -245,7 +247,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(for_starter=True)
     async def get_btc_analysis(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
@@ -260,7 +262,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(min_tier=2)
     async def get_bnb_zones(self,update:Update,context:ContextTypes.DEFAULT_TYPE,user):
@@ -292,7 +294,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(min_tier=2)
     async def get_given_bnb_signals(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
@@ -327,7 +329,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(min_tier=2)
     async def get_bnb_analysis(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
@@ -342,7 +344,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(min_tier=3)
     async def get_paxg_zones(self,update:Update,context:ContextTypes.DEFAULT_TYPE,user):
@@ -374,7 +376,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(min_tier=3)
     async def get_given_paxg_signals(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
@@ -409,7 +411,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(min_tier=3)
     async def get_paxg_analysis(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
@@ -424,7 +426,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(min_tier=3)
     async def get_eth_zones(self,update:Update,context:ContextTypes.DEFAULT_TYPE,user):
@@ -456,7 +458,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(min_tier=3)
     async def get_given_eth_signals(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
@@ -491,7 +493,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(min_tier=3)
     async def get_eth_analysis(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
@@ -506,7 +508,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(min_tier=3)
     async def get_sol_zones(self,update:Update,context:ContextTypes.DEFAULT_TYPE,user):
@@ -538,7 +540,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(min_tier=3)
     async def get_given_sol_signals(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
@@ -573,7 +575,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(min_tier=3)
     async def get_sol_analysis(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
@@ -588,7 +590,7 @@ class TelegramBot:
             except Exception as e:
                 await message.reply_text(f"Error: {str(e)}")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
 
     @restricted(min_tier=2)  # only Tier ≥2 or admins
     async def update_subscriber_capital(self, update: Update, context: ContextTypes.DEFAULT_TYPE,user):
@@ -604,7 +606,7 @@ class TelegramBot:
                 await message.reply_text("⚠️ An error occurred while starting update.")
                 return ConversationHandler.END
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
             return ConversationHandler.END
 
     @restricted(min_tier=2)  # only Tier ≥2 or admins
@@ -626,7 +628,7 @@ class TelegramBot:
                 await message.reply_text("❌ Error Occur during updating!!")
                 return ConversationHandler.END
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
             return ConversationHandler.END
 
     async def cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -634,7 +636,7 @@ class TelegramBot:
             message = self.get_message(update)
             await message.reply_text("❌ Capital update canceled.")
         except EmptyTelegramMessage as e:
-            print(f'{str(e)}')
+            self.logger.error(f'{self.__class__}:Error:{str(e)}')
         return ConversationHandler.END
 
 
@@ -642,7 +644,7 @@ class TelegramBot:
     async def broadcast_signals(self, signal):
         """This is called by the service when a new signal is generated."""
         if not isinstance(signal, dict):
-            print("Invalid signal format:", signal)
+            self.logger.error(f'{self.__class__}:Error:Invalid signal format:{signal}')
             return
         text = (
         f"📢 New Signal! Side: {signal['position']} | Token: {signal['symbol']} "
@@ -680,7 +682,7 @@ class TelegramBot:
 
     async def broadcast_ath(self,data):
         if not isinstance(data, dict):
-            print("Invalid signal format:", data)
+            self.logger.error(f'{self.__class__}:Error:Invalid data format:{data}')
             return
         text = (
         f"📢 New ATH! in Token: {data['symbol']} "
@@ -719,17 +721,17 @@ class TelegramBot:
                         channel = message["channel"].decode()
                         return channel, data
                 except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
-                    print("⚠️ Redis connection lost inside blocking loop.")
+                    self.logger.error(f"{self.__class__}:⚠️ Redis connection lost inside blocking loop.")
                     raise
                 except Exception as e:
-                    print(f"❌ Blocking listener error: {e}")
+                    self.logger.error(f"{self.__class__}:❌ Blocking listener error: {e}",True)
                     traceback.print_exc()
                     time.sleep(2)
             return None, None
 
         while not self.stop_event.is_set():
             try:
-                print("🚀 Starting Redis listener...")
+                self.logger.info("🚀 Starting Redis listener...")
                 # Keep reading messages until stopped
                 while not self.stop_event.is_set():
                     channel, data = await asyncio.to_thread(blocking_listen)
@@ -744,35 +746,35 @@ class TelegramBot:
                         elif channel == "service_error":
                             await self.broadcast_error(data)
                     except Exception as inner_e:
-                        print(f"❌ Error processing message from {channel}: {inner_e}")
+                        self.logger.error(f"{self.__class__}:❌ Error processing message from {channel}: {inner_e}",True)
                         traceback.print_exc()
 
             except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
                 if self.stop_event.is_set():
                     break
-                print("🔌 Redis disconnected. Attempting to reconnect in 5s...")
+                self.logger.info("🔌 Redis disconnected. Attempting to reconnect in 5s...")
                 await asyncio.sleep(5)
                 try:
                     self.redis = redis.Redis(host="127.0.0.1", port=6379, db=0)
                     self.pubsub = self.redis.pubsub()
                     self.pubsub.subscribe("signals_channel", "ath_channel", "service_error")
-                    print("✅ Reconnected to Redis.")
+                    self.logger.info("✅ Reconnected to Redis.")
                 except Exception as reconnect_err:
-                    print(f"❗ Failed to reconnect to Redis: {reconnect_err}")
+                    self.logger.error(f"❗ Failed to reconnect to Redis: {reconnect_err}")
                     await asyncio.sleep(10)
 
             except asyncio.CancelledError:
-                print("🛑 Listener task cancelled — shutting down cleanly.")
+                self.logger.info("🛑 Listener task cancelled — shutting down cleanly.")
                 break
 
             except Exception as e:
-                print(f"⚠️ Listener crashed: {e}")
+                self.logger.error(f"⚠️ Listener crashed: {e}")
                 traceback.print_exc()
                 if not self.stop_event.is_set():
-                    print("🔁 Restarting listener in 5 seconds...")
+                    self.logger.info("🔁 Restarting listener in 5 seconds...")
                     await asyncio.sleep(5)
 
-        print("👋 Listener exited.")
+        self.logger.info("👋 Listener exited.")
                 
     async def button_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
@@ -858,7 +860,7 @@ class TelegramBot:
 
     async def stop(self,app = None):
         """Gracefully stop listener and app"""
-        print("⚙️ Stopping TelegramBot tasks...")
+        self.logger.info("⚙️ Stopping TelegramBot tasks...")
         self.stop_event.set()
         if self.listener_task:
             self.listener_task.cancel()
@@ -881,4 +883,5 @@ class TelegramBot:
                 self.pubsub.close()
             except Exception:
                 pass
-        print("✅ TelegramBot stopped.")
+
+        self.logger.info("✅ TelegramBot stopped.")
