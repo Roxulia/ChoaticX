@@ -17,11 +17,11 @@ class SchedulerManager:
             "SOLUSDT": SignalService(symbol="SOLUSDT", threshold=2),
         }
         self.services_based_15min = {
-            "BTCUSDT": SignalService(symbol="BTCUSDT", threshold=125),
-            "BNBUSDT": SignalService(symbol="BNBUSDT", threshold=2),
-            "PAXGUSDT": SignalService(symbol="PAXGUSDT", threshold=4),
-            "ETHUSDT": SignalService(symbol="ETHUSDT", threshold=4),
-            "SOLUSDT": SignalService(symbol="SOLUSDT", threshold=0.75),
+            "BTCUSDT": SignalService(symbol="BTCUSDT",timeframes=['15min','1h','4h'], threshold=125),
+            "BNBUSDT": SignalService(symbol="BNBUSDT",timeframes=['15min','1h','4h'], threshold=2),
+            "PAXGUSDT": SignalService(symbol="PAXGUSDT",timeframes=['15min','1h','4h'], threshold=4),
+            "ETHUSDT": SignalService(symbol="ETHUSDT",timeframes=['15min','1h','4h'], threshold=4),
+            "SOLUSDT": SignalService(symbol="SOLUSDT",timeframes=['15min','1h','4h'], threshold=0.75),
         }
         self.binance_api = api
         self.logger = Logger()
