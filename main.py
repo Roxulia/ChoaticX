@@ -74,7 +74,7 @@ def initiate_prediction_models():
     try:
         for s,threshold in symbols.items():
             for t in timeframes:
-                predictor = PredictionService(s,[t],threshold)
+                predictor = PredictionService(s,[t],threshold[0])
                 predictor.train_process()
     except Exception as e:
         print(f'{e}')
@@ -190,6 +190,7 @@ if __name__ == "__main__" :
     process[args.option]()
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")
+
 
 
 
