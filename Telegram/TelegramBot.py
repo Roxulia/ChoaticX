@@ -220,10 +220,10 @@ class TelegramBot:
                             f"{emoji} *Signal {i}*\n"
                             f"• *Side:* {side}\n"
                             f"• *Symbol:* `{s['symbol']}`\n"
-                            f"• *Entry:* `{s['entry_price']}`\n"
-                            f"• *TP:* `{s['tp']}`\n"
-                            f"• *SL:* `{s['sl']}`\n"
-                            f"• *Lot Size:* `{lot_size}`\n"
+                            f"• *Entry:* `{float(s['entry_price']):,.2f}`\n"
+                            f"• *TP:* `{float(s['tp']):,.2f}`\n"
+                            f"• *SL:* `{float(s['sl']):,.2f}`\n"
+                            f"• *Lot Size:* `{float(lot_size):,.4f}`\n"
                             f"• *R/R Ratio:* `{rr_ratio}`\n\n"
                         )
                 else:
@@ -236,9 +236,9 @@ class TelegramBot:
                             f"{emoji} *Signal {i}*\n"
                             f"• *Side:* {side}\n"
                             f"• *Symbol:* `{s['symbol']}`\n"
-                            f"• *Entry:* `{s['entry_price']}`\n"
-                            f"• *TP:* `{s['tp']}`\n"
-                            f"• *SL:* `{s['sl']}`\n"
+                            f"• *Entry:* `{float(s['entry_price']):,.2f}`\n"
+                            f"• *TP:* `{float(s['tp']):,.2f}`\n"
+                            f"• *SL:* `{float(s['sl']):,.2f}`\n"
                             f"• *R/R Ratio:* `{rr_ratio}`\n\n"
                         )
                 await message.reply_text(msg,parse_mode="MarkdownV2")
@@ -316,10 +316,10 @@ class TelegramBot:
                         f"{emoji} *Signal {i}*\n"
                         f"• *Side:* {side}\n"
                         f"• *Symbol:* `{s['symbol']}`\n"
-                        f"• *Entry:* `{s['entry_price']}`\n"
-                        f"• *TP:* `{s['tp']}`\n"
-                        f"• *SL:* `{s['sl']}`\n"
-                        f"• *Lot Size:* `{lot_size}`\n"
+                        f"• *Entry:* `{float(s['entry_price']):,.2f}`\n"
+                        f"• *TP:* `{float(s['tp']):,.2f}`\n"
+                        f"• *SL:* `{float(s['sl']):,.2f}`\n"
+                        f"• *Lot Size:* `{float(lot_size):,.4f}`\n"
                         f"• *R/R Ratio:* `{rr_ratio}`\n\n"
                     )
 
@@ -398,10 +398,10 @@ class TelegramBot:
                         f"{emoji} *Signal {i}*\n"
                         f"• *Side:* {side}\n"
                         f"• *Symbol:* `{s['symbol']}`\n"
-                        f"• *Entry:* `{s['entry_price']}`\n"
-                        f"• *TP:* `{s['tp']}`\n"
-                        f"• *SL:* `{s['sl']}`\n"
-                        f"• *Lot Size:* `{lot_size}`\n"
+                        f"• *Entry:* `{float(s['entry_price']):,.2f}`\n"
+                        f"• *TP:* `{float(s['tp']):,.2f}`\n"
+                        f"• *SL:* `{float(s['sl']):,.2f}`\n"
+                        f"• *Lot Size:* `{float(lot_size):,.4f}`\n"
                         f"• *R/R Ratio:* `{rr_ratio}`\n\n"
                     )
 
@@ -480,10 +480,10 @@ class TelegramBot:
                         f"{emoji} *Signal {i}*\n"
                         f"• *Side:* {side}\n"
                         f"• *Symbol:* `{s['symbol']}`\n"
-                        f"• *Entry:* `{s['entry_price']}`\n"
-                        f"• *TP:* `{s['tp']}`\n"
-                        f"• *SL:* `{s['sl']}`\n"
-                        f"• *Lot Size:* `{lot_size}`\n"
+                        f"• *Entry:* `{float(s['entry_price']):,.2f}`\n"
+                        f"• *TP:* `{float(s['tp']):,.2f}`\n"
+                        f"• *SL:* `{float(s['sl']):,.2f}`\n"
+                        f"• *Lot Size:* `{float(lot_size):,.4f}`\n"
                         f"• *R/R Ratio:* `{rr_ratio}`\n\n"
                     )
 
@@ -562,10 +562,10 @@ class TelegramBot:
                         f"{emoji} *Signal {i}*\n"
                         f"• *Side:* {side}\n"
                         f"• *Symbol:* `{s['symbol']}`\n"
-                        f"• *Entry:* `{s['entry_price']}`\n"
-                        f"• *TP:* `{s['tp']}`\n"
-                        f"• *SL:* `{s['sl']}`\n"
-                        f"• *Lot Size:* `{lot_size}`\n"
+                        f"• *Entry:* `{float(s['entry_price']):,.2f}`\n"
+                        f"• *TP:* `{float(s['tp']):,.2f}`\n"
+                        f"• *SL:* `{float(s['sl']):,.2f}`\n"
+                        f"• *Lot Size:* `{float(lot_size):,.4f}`\n"
                         f"• *R/R Ratio:* `{rr_ratio}`\n\n"
                     )
 
@@ -648,7 +648,7 @@ class TelegramBot:
             return
         text = (
         f"📢 New Signal! Side: {signal['position']} | Token: {signal['symbol']} "
-        f"| Entry: {signal['entry_price']} | TP: {signal['tp']} | SL: {signal['sl']}"
+        f"| Entry: {float(signal['entry_price']):,.2f} | TP: {float(signal['tp']):,.2f} | SL: {float(signal['sl']):,.2f}"
         )
         symbol = signal['symbol']
         position = signal['position']
