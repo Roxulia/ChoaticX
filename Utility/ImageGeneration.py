@@ -29,9 +29,9 @@ class ImageGenerator():
         lines = [
             f"Pair: {symbol}",
             f"Side: {side}",
-            f"Entry: {entry}",
-            f"TP: {tp}",
-            f"SL: {sl}",
+            f"Entry: {float(entry):,.2f}",
+            f"TP: {float(tp):,.2f}",
+            f"SL: {float(sl):,.2f}",
         ]
         if lot_size:
             lines.append(f"Lot Size: {lot_size}")
@@ -83,9 +83,9 @@ class ImageGenerator():
         lines = [
             f"Pair: {symbol}",
             f"Side: {side}",
-            f"Entry: {entry}",
-            f"TP: {tp}",
-            f"SL: {sl}",
+            f"Entry: {float(entry):,.2f}",
+            f"TP: {float(tp):,.2f}",
+            f"SL: {float(sl):,.2f}",
         ]
         if lot_size:
             lines.append(f"Lot Size: {lot_size}")
