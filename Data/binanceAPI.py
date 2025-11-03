@@ -9,6 +9,7 @@ import ta
 from .timeFrames import timeFrame
 from Exceptions.ServiceExceptions import *
 from Utility.Logger import Logger
+from Core.RollingRegression import RollingRegression
 
 class BinanceAPI:
     def __init__(self):
@@ -123,19 +124,39 @@ class BinanceAPI:
         try:
             klines = self.apiclient.get_historical_klines(symbol,tf.getTimeFrame(interval) , limit = 100)
 
-            df = pd.DataFrame(klines, columns=[
+            base_df = pd.DataFrame(klines, columns=[
                 'timestamp', 'open', 'high', 'low', 'close', 'volume',
                 'close_time', 'quote_asset_volume', 'number_of_trades',
                 'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
             ])
 
-            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-            df.set_index('timestamp', inplace=True)
+            base_df['timestamp'] = pd.to_datetime(base_df['timestamp'], unit='ms')
+            base_df.set_index('timestamp', inplace=True)
 
-            df = df[['open', 'high', 'low', 'close', 'volume','number_of_trades']]
-            df = df.apply(pd.to_numeric).astype('float32')
-            df = self.add_TA(df)
-            df['timestamp'] = df.index
+            base_df = base_df[['open', 'high', 'low', 'close', 'volume','number_of_trades']]
+            base_df = base_df.apply(pd.to_numeric).astype('float32')
+            if symbol != "BTCUSDT":
+                klines = self.apiclient.get_historical_klines("BTCUSDT",tf.getTimeFrame(interval) , limit = 100)
+
+                mark_df = pd.DataFrame(klines, columns=[
+                    'timestamp', 'open', 'high', 'low', 'close', 'volume',
+                    'close_time', 'quote_asset_volume', 'number_of_trades',
+                    'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
+                ])
+
+                mark_df['timestamp'] = pd.to_datetime(mark_df['timestamp'], unit='ms')
+                mark_df.set_index('timestamp', inplace=True)
+
+                mark_df = mark_df[['open', 'high', 'low', 'close', 'volume','number_of_trades']]
+                mark_df = mark_df.apply(pd.to_numeric).astype('float32')
+                rollingRegression = RollingRegression(base_df,mark_df)
+                df = rollingRegression.AddRegressionValues()
+                df = self.add_TA(df)
+                df['timestamp'] = df.index
+            else:
+                df = self.add_TA(base_df)
+                df['timestamp'] = df.index
+
             return df.iloc[-1]
         except Exception as e:
             self.logger.error(f"{self.__class__}:Error:{e}")
