@@ -135,3 +135,8 @@ class SignalGenerator:
         except Exception as e:
             raise e
 
+    def bulkUpdateSignals(self,status,ids):
+        try:
+            Signals.bulk_update_status(ids,status)
+        except Exception as e :
+            raise e
