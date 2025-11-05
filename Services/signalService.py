@@ -115,57 +115,76 @@ class SignalService:
         except Exception as e:
             raise e
         
-    def update_running_signals(self,candle):
+    def update_running_signals(self,candle,chunk_size=20):
         self.logger.info(f"{self.symbol}:Updating Running Signals")
+        offset = 0
         try:
             
-            signals = self.signal_gen.get_running_signals(symbol=self.symbol)
-            for s in signals:
-                signal_position = s['position']
-                if signal_position == 'Long' : 
-                    if s['sl'] >= candle['low']:
-                        self.signal_gen.updateSignalStatus(s['id'],"LOSE")
-                    elif s['tp'] <= candle['high']:
-                        self.signal_gen.updateSignalStatus(s['id'],"WIN")
-                    else:
-                        continue
-                elif signal_position == 'Short':
-                    if s['sl'] <= candle['high']:
-                        self.signal_gen.updateSignalStatus(s['id'],"LOSE")
-                    elif s['tp'] >= candle['low']:
-                        self.signal_gen.updateSignalStatus(s['id'],"WIN")
-                    else:
-                        continue
-                else:
-                    continue
+            while True:
+                signals = self.signal_gen.get_running_signals(
+                    symbol=self.symbol, limit=chunk_size, offset=offset
+                )
+                if not signals:
+                    break
+
+                win_ids, lose_ids = [], []
+                for s in signals:
+                    pos = s['position']
+                    if pos == 'Long':
+                        if s['sl'] >= candle['low']:
+                            lose_ids.append(s['id'])
+                        elif s['tp'] <= candle['high']:
+                            win_ids.append(s['id'])
+                    elif pos == 'Short':
+                        if s['sl'] <= candle['high']:
+                            lose_ids.append(s['id'])
+                        elif s['tp'] >= candle['low']:
+                            win_ids.append(s['id'])
+
+                if win_ids:
+                    self.signal_gen.bulkUpdateSignals("WIN",win_ids)
+                if lose_ids:
+                    self.signal_gen.bulkUpdateSignals("LOSE",lose_ids)
+
+                offset += chunk_size  # move to next chunk
+
         except Exception as e:
             self.logger.error(f'Error:Updating Runnning Signals : {self.symbol}:{str(e)}')
 
-    def update_pending_signals(self,candle):
-        self.logger.info(f"{self.symbol}:Updating Pending Signals")
+    def update_pending_signals(self, candle, chunk_size=20):
+        self.logger.info(f"{self.symbol}: Updating Pending Signals in chunks")
+        offset = 0
+
         try:
-            
-            signals = self.signal_gen.get_pending_signals(symbol=self.symbol)
-            for s in signals:
-                signal_position = s['position']
-                if signal_position == 'Long' : 
-                    diff = abs(s['sl'] - candle['low'])
-                    if diff > self.threshold:
-                        if s['sl'] < candle['low'] < s['entry_price']:
-                            self.signal_gen.updateSignalStatus(s['id'],"RUNNING")
-                        else:
-                            continue
-                elif signal_position == 'Short':
-                    diff = abs(s['sl'] - candle['high'])
-                    if diff>self.threshold:
-                        if s['sl'] > candle['high'] > s['entry_price']:
-                            self.signal_gen.updateSignalStatus(s['id'],"RUNNING")
-                        else:
-                            continue
-                    else:
-                        continue
+            while True:
+                # ✅ Fetch a batch of pending signals
+                signals = self.signal_gen.get_pending_signals(
+                    symbol=self.symbol, limit=chunk_size, offset=offset
+                )
+                if not signals:
+                    break
+
+                running_ids = []
+
+                for s in signals:
+                    pos = s['position']
+                    if pos == 'Long':
+                        diff = abs(s['sl'] - candle['low'])
+                        if diff > self.threshold and s['sl'] < candle['low'] < s['entry_price']:
+                            running_ids.append(s['id'])
+                    elif pos == 'Short':
+                        diff = abs(s['sl'] - candle['high'])
+                        if diff > self.threshold and s['sl'] > candle['high'] > s['entry_price']:
+                            running_ids.append(s['id'])
+
+                # ✅ Batch update instead of one-by-one
+                if running_ids:
+                    self.signal_gen.bulkUpdateSignals("RUNNING",running_ids)
+
+                offset += chunk_size
+
         except Exception as e:
-            self.logger.error(f'Error:Updating Pending Signals:{self.symbol}:{str(e)}')        
+            self.logger.error(f"Error Updating Pending Signals: {self.symbol}: {str(e)}")      
     
     def clean_dataset(self,total):
         datacleaner = DataCleaner(symbol = self.symbol,timeframes=self.timeframes,batch_size=1000,total_line=total)

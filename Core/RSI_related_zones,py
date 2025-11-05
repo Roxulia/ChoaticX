@@ -1,0 +1,62 @@
+class RSIAnalyzer:
+    """
+    Detects RSI-based signals such as overbought, oversold, and midline crossovers.
+    Suitable for momentum and reversal detection.
+    """
+
+    def __init__(self, overbought=70, oversold=30, midline=50):
+        """
+        Initialize RSIAnalyzer with threshold values.
+        """
+        self.overbought = overbought
+        self.oversold = oversold
+        self.midline = midline
+        self.previous_state = None  # 'overbought', 'oversold', 'bullish', 'bearish'
+
+    def detect(self, data):
+        """
+        Detect RSI signals from a DataFrame containing 'rsi' column.
+
+        Parameters:
+            data (pd.DataFrame): Must contain an 'rsi' column.
+        
+        Returns:
+            str: Signal type ('overbought', 'oversold', 'bullish', 'bearish') or None
+        """
+        if 'rsi' not in data.columns or len(data) < 2:
+            return None
+
+        prev_rsi = data['rsi'].iloc[-2]
+        curr_rsi = data['rsi'].iloc[-1]
+
+        # Overbought / Oversold conditions
+        if curr_rsi >= self.overbought and prev_rsi < self.overbought:
+            self.updatePreviousState('overbought')
+            return 'overbought'
+
+        elif curr_rsi <= self.oversold and prev_rsi > self.oversold:
+            self.updatePreviousState('oversold')
+            return 'oversold'
+
+        # Midline (50) crossovers — momentum change
+        elif prev_rsi < self.midline and curr_rsi > self.midline:
+            self.updatePreviousState('bullish')
+            return 'bullish'
+
+        elif prev_rsi > self.midline and curr_rsi < self.midline:
+            self.updatePreviousState('bearish')
+            return 'bearish'
+
+        return None
+
+    def getPreviousState(self):
+        """
+        Returns the last detected RSI state.
+        """
+        return self.previous_state
+
+    def updatePreviousState(self, state_type):
+        """
+        Updates the previous RSI state.
+        """
+        self.previous_state = state_type
