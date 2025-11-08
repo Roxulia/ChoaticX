@@ -9,7 +9,7 @@ from Core.ATH_Handler import ATHHandler
 from ML.Model import ModelHandler
 from ML.dataCleaning import DataCleaner
 from ML.datasetGeneration import DatasetGenerator
-from Data.binanceAPI import BinanceAPI
+from Data.CandleData import CandleData
 from Data.Columns import IgnoreColumns
 from Utility.UtilityClass import UtilityFunctions as utility
 from Utility.MemoryUsage import MemoryUsage as mu
@@ -35,7 +35,7 @@ import datetime,decimal
 class SignalService:
     def __init__(self,symbol = "BTCUSDT",threshold = 300,timeframes = ['1h','4h','1D'],Local = False,initial = False):
         
-        self.api = BinanceAPI()
+        self.api = CandleData()
         self.local = Local
         self.symbol = symbol
         self.threshold = threshold
@@ -55,7 +55,7 @@ class SignalService:
     def get_current_signals(self):
         try:
             self.logger.info(f"{self.symbol} : getting current signal")
-            candle = self.api.get_latest_candle(symbol=self.symbol)
+            candle = self.api.getLatestCandle(symbol=self.symbol,interval=self.timeframes[0])
             zones = self.zoneHandler.get_untouched_zones()
             ATH = self.zoneHandler.getUpdatedATH()
             reactor = ZoneReactor()

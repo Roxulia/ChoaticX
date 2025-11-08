@@ -16,7 +16,7 @@ class BinanceAPI:
         load_dotenv()
         self.api_key = os.getenv("BINANCE_API_KEY")
         self.api_secret = os.getenv("BINANCE_SECRET_KEY")
-        self.data_root = os.getenv("DATA_PATH")
+        
         self.apiclient = Client(self.api_key, self.api_secret)
         self.broadcast_client = None
         self.bm = None
@@ -77,14 +77,22 @@ class BinanceAPI:
             self.logger.error(f"{self.__class__}:Error:{e}")
             raise e
 
-    def get_ohlcv(self, symbol='BTCUSDT', interval='1h', lookback='3 years'):
+    def get_ohlcv(self, symbol, interval, lookback,limit):
         """
         Fetch historical OHLCV data and return as formatted DataFrame
         """
-        self.logger.info(f'Fetching {lookback} worth of {interval} timeframe {symbol} data...')
+        if lookback is not None:
+            self.logger.info(f'Fetching {lookback} worth of {interval} timeframe {symbol} data...')
+        elif limit is not None:
+            self.logger.info(f'Fetching {limit} candle worth of {interval} timeframe {symbol} data...')
+        else:
+            lookback = '3 years'
         tf = timeFrame()
         try:
-            klines = self.apiclient.get_historical_klines(symbol,tf.getTimeFrame(interval) , lookback)
+            if lookback is not None :
+                klines = self.apiclient.get_historical_klines(symbol,tf.getTimeFrame(interval) , lookback)
+            else:
+                klines = self.apiclient.get_historical_klines(symbol,tf.getTimeFrame(interval) , limit = 100)
 
             df = pd.DataFrame(klines, columns=[
                 'timestamp', 'open', 'high', 'low', 'close', 'volume',
@@ -97,7 +105,6 @@ class BinanceAPI:
 
             df = df[['open', 'high', 'low', 'close', 'volume','number_of_trades']]
             df = df.apply(pd.to_numeric).astype('float32')
-            df = self.add_TA(df)
             df['timestamp'] = df.index
             return df
         except Exception as e:
@@ -105,78 +112,9 @@ class BinanceAPI:
             raise CantFetchCandleData
         
     
-    def add_TA(self,df):
-        data = df.copy()
-        data['ema20'] = ta.trend.ema_indicator(data['close'], window=20)
-        data['ema50'] = ta.trend.ema_indicator(data['close'], window=50)
-        data['atr'] = ta.volatility.average_true_range(data['high'], data['low'], data['close'], window=14)
-        data['rsi'] = ta.momentum.rsi(data['close'], window=5)  # Faster RSI for quicker signal
-        data['atr_mean'] = data['atr'].rolling(window=50).mean()
-
-        bb = ta.volatility.BollingerBands(close=data["close"], window=20, window_dev=2)
-        data["bb_high"] = bb.bollinger_hband()
-        data["bb_low"] = bb.bollinger_lband()
-        data["bb_mid"] = bb.bollinger_mavg()
-        return data
     
-    def get_latest_candle(self,symbol='BTCUSDT',interval = '1h'):
-        tf = timeFrame()
-        try:
-            klines = self.apiclient.get_historical_klines(symbol,tf.getTimeFrame(interval) , limit = 100)
-
-            base_df = pd.DataFrame(klines, columns=[
-                'timestamp', 'open', 'high', 'low', 'close', 'volume',
-                'close_time', 'quote_asset_volume', 'number_of_trades',
-                'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
-            ])
-
-            base_df['timestamp'] = pd.to_datetime(base_df['timestamp'], unit='ms')
-            base_df.set_index('timestamp', inplace=True)
-
-            base_df = base_df[['open', 'high', 'low', 'close', 'volume','number_of_trades']]
-            base_df = base_df.apply(pd.to_numeric).astype('float32')
-            if symbol != "BTCUSDT":
-                klines = self.apiclient.get_historical_klines("BTCUSDT",tf.getTimeFrame(interval) , limit = 100)
-
-                mark_df = pd.DataFrame(klines, columns=[
-                    'timestamp', 'open', 'high', 'low', 'close', 'volume',
-                    'close_time', 'quote_asset_volume', 'number_of_trades',
-                    'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
-                ])
-
-                mark_df['timestamp'] = pd.to_datetime(mark_df['timestamp'], unit='ms')
-                mark_df.set_index('timestamp', inplace=True)
-
-                mark_df = mark_df[['open', 'high', 'low', 'close', 'volume','number_of_trades']]
-                mark_df = mark_df.apply(pd.to_numeric).astype('float32')
-                rollingRegression = RollingRegression(base_df,mark_df)
-                df = rollingRegression.AddRegressionValues()
-                df = self.add_TA(df)
-                df['timestamp'] = df.index
-            else:
-                df = self.add_TA(base_df)
-                df['timestamp'] = df.index
-
-            return df.iloc[-1]
-        except Exception as e:
-            self.logger.error(f"{self.__class__}:Error:{e}")
-            raise CantFetchCandleData
     
-    def store_OHLCV(self, symbol='BTCUSDT', interval='1h',lookback='3 years'):
-        """
-        Store OHLCV data to a CSV file
-        """
-        try:
-            try:
-                df = self.get_ohlcv(symbol, interval, lookback)
-            except CantFetchCandleData as e:
-                raise CantFetchCandleData
-            file_path = f"{self.data_root}/OHLCV/{symbol}_{interval}_{lookback}.csv"
-            df.to_csv(file_path)
-            self.logger.info(f"Data stored to {file_path}")
-            return file_path
-        except:
-            raise CantSaveToCSV
+    
             
                 
             

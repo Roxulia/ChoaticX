@@ -21,27 +21,50 @@ class EMA:
 
     def detectCrossOver(self, data):
         """
-        Detect crossover signals from a DataFrame containing OHLC data.
+        Detect all crossover points between short and long ema.
 
         Parameters:
-            data (pd.DataFrame): Must contain a 'close' column.
-        
+            data (pd.DataFrame): Must contain columns 'close', 'ema_short', 'ema_long', and 'timestamp'.
+
         Returns:
-            str: 'golden_cross', 'death_cross', or None
+            list[dict]: Each dict contains:
+                {
+                    'timestamp': ...,
+                    'type': 'golden_cross' or 'death_cross',
+                    'short_ema': ...,
+                    'long_ema': ...
+                }
         """
         short_ema = data['ema_short']
         long_ema = data['ema_long']
+        timestamps = data['timestamp']
 
-        # Check latest and previous crossover state
-        if short_ema.iloc[-2] < long_ema.iloc[-2] and short_ema.iloc[-1] > long_ema.iloc[-1]:
-            self.updatePreviousCrossOver('golden_cross')
-            return 'golden_cross'
+        crossovers = []
 
-        elif short_ema.iloc[-2] > long_ema.iloc[-2] and short_ema.iloc[-1] < long_ema.iloc[-1]:
-            self.updatePreviousCrossOver('death_cross')
-            return 'death_cross'
+        for i in range(1, len(data)):
+            prev_short, prev_long = short_ema.iloc[i-1], long_ema.iloc[i-1]
+            curr_short, curr_long = short_ema.iloc[i], long_ema.iloc[i]
 
-        return None
+            # Golden cross
+            if prev_short < prev_long and curr_short > curr_long:
+                crossovers.append({
+                    'timestamp': timestamps.iloc[i],
+                    'type': 'golden_cross',
+                    'short_ema': curr_short,
+                    'long_ema': curr_long
+                })
+
+            # Death cross
+            elif prev_short > prev_long and curr_short < curr_long:
+                crossovers.append({
+                    'timestamp': timestamps.iloc[i],
+                    'type': 'death_cross',
+                    'short_ema': curr_short,
+                    'long_ema': curr_long
+                })
+
+        return crossovers
+
 
     def getPreviousCrossOver(self):
         """
