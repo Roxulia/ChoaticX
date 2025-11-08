@@ -3,7 +3,7 @@ from Core.zone_confluents import ConfluentsFinder
 from Core.zone_detection import ZoneDetector
 from Core.zone_nearby import NearbyZones
 from Core.zone_reactions import ZoneReactor
-from Core.RollingRegression import RollingRegression
+from Core.TechnicalAnalysis.RollingRegression import RollingRegression
 from ML.datasetGeneration import DatasetGenerator
 from Exceptions.ServiceExceptions import *
 from Data.binanceAPI import BinanceAPI

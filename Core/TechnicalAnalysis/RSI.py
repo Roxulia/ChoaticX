@@ -1,17 +1,24 @@
-class RSIAnalyzer:
+import ta
+class RSI:
     """
     Detects RSI-based signals such as overbought, oversold, and midline crossovers.
     Suitable for momentum and reversal detection.
     """
 
-    def __init__(self, overbought=70, oversold=30, midline=50):
+    def __init__(self, window_size = 5,overbought=70, oversold=30, midline=50):
         """
         Initialize RSIAnalyzer with threshold values.
         """
         self.overbought = overbought
         self.oversold = oversold
         self.midline = midline
+        self.window_size = window_size
         self.previous_state = None  # 'overbought', 'oversold', 'bullish', 'bearish'
+
+    def add(self,df):
+        data = df.copy()
+        data['rsi'] = ta.momentum.rsi(data['close'], window=5)
+        return data
 
     def detect(self, data):
         """

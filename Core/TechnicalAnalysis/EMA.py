@@ -1,8 +1,6 @@
-class MovingAverageCrossOver:
-    """
-    Detects moving average crossover signals (Golden Cross & Death Cross).
-    Can be extended for multiple timeframes and custom moving averages.
-    """
+import ta
+class EMA:
+    
 
     def __init__(self, short_window=20, long_window=50):
         """
@@ -11,8 +9,17 @@ class MovingAverageCrossOver:
         self.short_window = short_window
         self.long_window = long_window
         self.previous_crossover = None  # Store previous crossover info
+    
+    def add(self,df):
+        data = df.copy()
+        ema_short = ta.trend.ema_indicator(data['close'], window=self.short_window)
+        ema_long = ta.trend.ema_indicator(data['close'], window=self.long_window)
+        data['ema_short'] = ema_short
+        data['ema_long'] = ema_long
+        return data
 
-    def detect(self, data):
+
+    def detectCrossOver(self, data):
         """
         Detect crossover signals from a DataFrame containing OHLC data.
 
@@ -22,18 +29,15 @@ class MovingAverageCrossOver:
         Returns:
             str: 'golden_cross', 'death_cross', or None
         """
-        short_ma = data['close'].rolling(window=self.short_window).mean()
-        long_ma = data['close'].rolling(window=self.long_window).mean()
-
-        if len(data) < self.long_window:
-            return None  # not enough data
+        short_ema = data['ema_short']
+        long_ema = data['ema_long']
 
         # Check latest and previous crossover state
-        if short_ma.iloc[-2] < long_ma.iloc[-2] and short_ma.iloc[-1] > long_ma.iloc[-1]:
+        if short_ema.iloc[-2] < long_ema.iloc[-2] and short_ema.iloc[-1] > long_ema.iloc[-1]:
             self.updatePreviousCrossOver('golden_cross')
             return 'golden_cross'
 
-        elif short_ma.iloc[-2] > long_ma.iloc[-2] and short_ma.iloc[-1] < long_ma.iloc[-1]:
+        elif short_ema.iloc[-2] > long_ema.iloc[-2] and short_ema.iloc[-1] < long_ema.iloc[-1]:
             self.updatePreviousCrossOver('death_cross')
             return 'death_cross'
 
