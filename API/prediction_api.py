@@ -15,6 +15,8 @@ class PredictionAPI:
     def predictSignal(self):
         try:
             data = request.get_json()
+            if not data:
+                return jsonify({"error":"Empty Form Data"}),403
             symbol = data.get('symbol',None)
             timeframe = data.get('timeframe',None)
             x_Values = data.get('data',{})
