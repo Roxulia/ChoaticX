@@ -2,9 +2,9 @@ from dataclasses import dataclass,field
 
 @dataclass
 class IgnoreColumns:
-    signalGenModelV1 : list[str] = field(default_factory=lambda :['zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high','candle_open','candle_close','candle_high','candle_low'] ) 
+    signalGenModelV1 : list[str] = field(default_factory=lambda :['symbol','zone_high','zone_low','below_zone_low','above_zone_low','below_zone_high','above_zone_high','candle_open','candle_close','candle_high','candle_low'] ) 
     predictionModelV1 : list[str] = field(default_factory= lambda: [
-            'avg_volume_past_5','atr_mean','above_atr','below_atr','below_conf_count_BuFVG','conf_count_BuLiq',
+            'symbol','avg_volume_past_5','atr_mean','above_atr','below_atr','below_conf_count_BuFVG','conf_count_BuLiq',
             'below_conf_4h_count','above_conf_count_BuLiq','conf_4h_count','wick_ratio','prev_volatility_5','below_ema 20',
             'below_prev_volatility_5','above_conf_count_BrLiq','below_equal_level_deviation','ema 20','below_ema_50','below_momentum_5',
             'above_ema 20','below_conf_count_BrOB','below_ema_20','conf_is_buy_zone','above_avg_volume_around_zone','conf_count_BrOB',

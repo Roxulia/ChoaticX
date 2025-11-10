@@ -24,4 +24,11 @@ class TA:
     def add_RollingRegression(self,data,market_data):
         RR = RollingRegression(data,market_data)
         return RR.AddRegressionValues()
+    
+    def detectCrossOvers(self,data):
+        MA_cross = self.MA.detectCrossOver(data)
+        EMA_cross = self.EMA.detectCrossOver(data)
+        BB_cross = self.BollingerBands.detectCrossOver(data)
+        zones = MA_cross+EMA_cross+BB_cross
+        return zones.sort(key='timestamp')
 
