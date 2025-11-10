@@ -61,6 +61,6 @@ class PredictionService():
             'above_duration_between_first_last_touch' : data.get('above_duration_between_first_last_touch', None),
         }
         use_zones.append(zone)
-        signal_gen = SignalGenerator([self.model_handler],DataCleaner(self.symbol,self.timeframes),[self.ignore_cols])
+        signal_gen = SignalGenerator([self.model_handler],DataCleaner(self.symbol,[self.timeframes]),[self.ignore_cols])
         signal = signal_gen.generate(use_zones)
         return signal
