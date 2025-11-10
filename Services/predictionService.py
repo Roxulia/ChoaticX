@@ -23,7 +23,7 @@ class PredictionService():
 
     def predict(self,data):
         if not data:
-            return {'error': 'No data provided'}, 400
+            raise Exception("Empty Data")
         use_zones = []
         zone = {
             'touch_from' : data.get('touch_from',None),
