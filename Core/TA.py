@@ -1,9 +1,9 @@
-from TechnicalAnalysis.ATR import ATR
-from TechnicalAnalysis.BollingerBands import BollingerBands
-from TechnicalAnalysis.MA import MovingAverage
-from TechnicalAnalysis.EMA import EMA
-from TechnicalAnalysis.RSI import RSI
-from TechnicalAnalysis.RollingRegression import RollingRegression
+from .TechnicalAnalysis.ATR import ATR
+from .TechnicalAnalysis.BollingerBands import BollingerBands
+from .TechnicalAnalysis.MA import MovingAverage
+from .TechnicalAnalysis.EMA import EMA
+from .TechnicalAnalysis.RSI import RSI
+from .TechnicalAnalysis.RollingRegression import RollingRegression
 
 class TA:
     def __init__(self,candle_data):
