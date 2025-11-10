@@ -82,8 +82,11 @@ class NearbyZones():
         ath = {
             'zone_high': ATH_zone['high'],
             'zone_low': ATH_zone['low'],
-            'ema 20': ATH_zone['ema20'],
-            'ema 50': ATH_zone['ema50'],
+            'trades' : ATH_zone['number_of_trades'],
+            'ma_short': ATH_zone['ma_short'],
+            'ma_long': ATH_zone['ma_long'],
+            'ema_short': ATH_zone['ema_short'],
+            'ema_long': ATH_zone['ema_long'],
             'rsi': ATH_zone['rsi'],
             'atr': ATH_zone['atr'],
             'volume_on_creation': ATH_zone['volume'],

@@ -15,8 +15,8 @@ class MovingAverage:
     
     def add(self,df):
         data = df.copy()
-        ma_short = ta.trend.ma_indicator(data['close'], window=self.short_window)
-        ma_long = ta.trend.ma_indicator(data['close'], window=self.long_window)
+        ma_short = ta.trend.sma_indicator(data['close'], window=self.short_window)
+        ma_long = ta.trend.sma_indicator(data['close'], window=self.long_window)
         data['ma_short'] = ma_short
         data['ma_long'] = ma_long
         return data

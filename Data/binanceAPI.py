@@ -77,7 +77,7 @@ class BinanceAPI:
             self.logger.error(f"{self.__class__}:Error:{e}")
             raise e
 
-    def get_ohlcv(self, symbol, interval, lookback,limit):
+    def get_ohlcv(self, symbol, interval, lookback=None,limit=None):
         """
         Fetch historical OHLCV data and return as formatted DataFrame
         """

@@ -16,7 +16,7 @@ from Database.DataModels.Subscribers import Subscribers
 from Database.Cache import Cache
 
 Logger.set_context("main_system")
-local = False
+local = True
 symbols = {
     "BTCUSDT" : [500,125],
     "BNBUSDT" : [5,2],

@@ -253,8 +253,11 @@ class DatasetGenerator:
             features['candle_volume'] = None
             features['candle_open'] = None
             features['candle_close'] = None
-            features['candle_ema20'] = None
-            features['candle_ema50'] = None
+            features['candle_number_of_trades'] = None
+            features['candle_ma_short'] = None
+            features['candle_ma_long'] = None
+            features['candle_ema_short'] = None
+            features['candle_ema_long'] = None
             features['candle_bb_high'] = None
             features['candle_bb_low'] = None
             features['candle_bb_mid'] = None

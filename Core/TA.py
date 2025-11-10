@@ -6,7 +6,7 @@ from .TechnicalAnalysis.RSI import RSI
 from .TechnicalAnalysis.RollingRegression import RollingRegression
 
 class TA:
-    def __init__(self,candle_data):
+    def __init__(self):
         self.ATR = ATR()
         self.BollingerBands = BollingerBands()
         self.MA = MovingAverage()
