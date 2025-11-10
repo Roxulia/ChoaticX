@@ -16,9 +16,13 @@ class PredictionAPI:
         try:
             data = request.get_json()
             if not data:
-                return jsonify({"error":"Empty Form Data"}),403
+                return jsonify({"error":"Empty Request Body"}),400
             symbol = data.get('symbol',None)
             timeframe = data.get('timeframe',None)
+            if symbol is None:
+                return jsonify({"error":"Empty Symbol"}),400
+            if timeframe is None:
+                return jsonify({"error":"Empty Timeframe"}),400
             x_Values = data.get('data',{})
             predictor = PredictionService(symbol,timeframe)
             signals = predictor.predict(x_Values)
