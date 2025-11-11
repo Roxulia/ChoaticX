@@ -15,7 +15,7 @@ class PredictionService():
 
     def train_process(self):
         self.zonehandler.get_dataset(initial_state=False,for_predict=True)
-        self.datacleaner = DataCleaner(self.symbol,[self.timeframes])
+        self.datacleaner = DataCleaner(self.symbol,self.timeframes)
         self.datacleaner.perform_clean(self.ignore_cols)
         self.model_handler.train()
         self.model_handler.load()
@@ -61,6 +61,6 @@ class PredictionService():
             'above_duration_between_first_last_touch' : data.get('above_duration_between_first_last_touch', None),
         }
         use_zones.append(zone)
-        signal_gen = SignalGenerator([self.model_handler],DataCleaner(self.symbol,[self.timeframes]),[self.ignore_cols])
+        signal_gen = SignalGenerator([self.model_handler],DataCleaner(self.symbol,self.timeframes),[self.ignore_cols])
         signal = signal_gen.generate(use_zones)
         return signal
