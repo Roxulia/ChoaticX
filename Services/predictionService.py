@@ -10,7 +10,7 @@ class PredictionService():
         self.timeframes = timeframes
         self.zonehandler = ZoneHandlingService(symbol,threshold,[timeframes])
         
-        self.model_handler = ModelHandler(symbol=symbol,timeframes=[timeframes],model_type='xgb')
+        self.model_handler = ModelHandler(symbol=symbol,timeframes=timeframes,model_type='xgb')
         self.ignore_cols = IgnoreColumns().predictionModelV1
 
     def train_process(self):
