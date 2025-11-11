@@ -8,7 +8,7 @@ class PredictionService():
         self.symbol = symbol
         self.threshold = threshold
         self.timeframes = timeframes
-        self.zonehandler = ZoneHandlingService(symbol,threshold,[timeframes])
+        self.zonehandler = ZoneHandlingService(symbol,threshold,timeframes)
         
         self.model_handler = ModelHandler(symbol=symbol,timeframes=timeframes,model_type='xgb')
         self.ignore_cols = IgnoreColumns().predictionModelV1
