@@ -94,9 +94,9 @@ class SignalGenerator:
             }
 
     
-    def get_running_signals(self,limit = 0,symbol = "BTCUSDT"):
+    def get_running_signals(self,limit = 0,symbol = "BTCUSDT",offset=0):
         try:
-            signals = Signals.getRunningSignals(limit,symbol)
+            signals = Signals.getRunningSignals(limit,symbol,offset)
             if signals:
                 return signals
             else:
@@ -104,9 +104,9 @@ class SignalGenerator:
         except Exception as e:
             raise e
         
-    def get_pending_signals(self,limit = 0,symbol = "BTCUSDT"):
+    def get_pending_signals(self,limit = 0,symbol = "BTCUSDT",offset = 0):
         try:
-            signals = Signals.getPendingSignals(limit,symbol)
+            signals = Signals.getPendingSignals(limit,symbol,offset)
             if signals:
                 return signals
             else:
