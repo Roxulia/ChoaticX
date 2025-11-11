@@ -157,14 +157,22 @@ class DataCleaner:
 
     def makeValuesRatioByZonePrice(self,df):
         columns = list(df.columns)
-        df['ema_20_by_price'] = self.checkColandCalculate(['zone_high','zone_low','ema_20'],df)
-        df['ema_50_by_price'] = self.checkColandCalculate(['zone_high','zone_low','ema_50'],df)
-        df['above_ema_20_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_ema_20'],df)
-        df['above_ema_50_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_ema_50'],df)
-        df['below_ema_20_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_ema_20'],df)
-        df['below_ema_50_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_ema_50'],df)
-        df['candle_ema_20_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_ema20'],df)
-        df['candle_ema_50_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_ema50'],df)
+        df['ema_short_by_price'] = self.checkColandCalculate(['zone_high','zone_low','ema_short'],df)
+        df['ema_long_by_price'] = self.checkColandCalculate(['zone_high','zone_low','ema_long'],df)
+        df['above_ema_short_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_ema_short'],df)
+        df['above_ema_long_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_ema_long'],df)
+        df['below_ema_short_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_ema_short'],df)
+        df['below_ema_long_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_ema_long'],df)
+        df['candle_ema_long_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_ema_short'],df)
+        df['candle_ema_short_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_ema_long'],df)
+        df['ma_short_by_price'] = self.checkColandCalculate(['zone_high','zone_low','ma_short'],df)
+        df['ma_long_by_price'] = self.checkColandCalculate(['zone_high','zone_low','ma_long'],df)
+        df['above_ma_short_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_ma_short'],df)
+        df['above_ma_long_by_price'] = self.checkColandCalculate(['above_zone_high','above_zone_low','above_ma_long'],df)
+        df['below_ma_short_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_ma_short'],df)
+        df['below_ma_long_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_ma_long'],df)
+        df['candle_ma_long_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_ma_short'],df)
+        df['candle_ma_short_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_ma_long'],df)
         df['candle_bb_high_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_bb_high'],df)
         df['candle_bb_mid_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_bb_mid'],df)
         df['candle_bb_low_by_price'] = self.checkColandCalculate(['candle_open','candle_close','candle_bb_low'],df)
@@ -177,7 +185,8 @@ class DataCleaner:
         df['below_bb_high_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_bb_high'],df)
         df['below_bb_mid_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_bb_mid'],df)
         df['below_bb_low_by_price'] = self.checkColandCalculate(['below_zone_high','below_zone_low','below_bb_low'],df)
-        calculated_cols = ['ema_20','ema_50','above_ema_20','above_ema_50','below_ema_20','below_ema_50','candle_ema20','candle_ema50',
+        calculated_cols = ['ema_short','ema_long','above_ema_short','above_ema_long','below_ema_short','below_ema_long','candle_ema_short','candle_ema_long',
+                            'ma_short','ma_long','above_ma_short','above_ma_long','below_ma_short','below_ma_long','candle_ma_short','candle_ma_long',
                            'candle_bb_high','candle_bb_low','candle_bb_mid','above_bb_high','above_bb_low','above_bb_mid','below_bb_high','below_bb_low','below_bb_mid'
                            ,'bb_high','bb_low','bb_mid']
         
