@@ -27,6 +27,8 @@ class ZoneHandlingService():
             self.lookback = '1 year'
         elif timeframes[0] == '1h':
             self.lookback = '3 years'
+        else:
+            self.lookback = '3 years'
         self.logger = Logger()
 
     def get_zones(self,interval,lookback):
