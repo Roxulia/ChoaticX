@@ -27,7 +27,7 @@ class CandleData:
         if symbol != 'BTCUSDT' : 
             market_data = self.api.get_ohlcv('BTCUSDT',interval,limit = 100)
             data = self.TA.add_RollingRegression(data,market_data)
-        return data[-1]
+        return data.iloc[-1]
 
     def store_OHLCV(self, symbol, interval,lookback):
         """
