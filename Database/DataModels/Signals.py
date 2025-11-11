@@ -44,9 +44,9 @@ class Signals(BaseModel):
             SELECT * FROM {cls.table}
             WHERE result = 'PENDING' AND symbol = %s
             ORDER BY timestamp DESC
-             %s OFFSET %s
+             {limit} OFFSET %s
         """
-        result = DB.execute(sql, [symbol, limit, offset], fetchall=True)
+        result = DB.execute(sql, [symbol,  offset], fetchall=True)
         return result
     
     @classmethod
@@ -56,9 +56,9 @@ class Signals(BaseModel):
             SELECT * FROM {cls.table}
             WHERE result = 'RUNNING' AND symbol = %s
             ORDER BY timestamp DESC
-             %s OFFSET %s
+             {limit} OFFSET %s
         """
-        result = DB.execute(sql, [symbol, limit, offset], fetchall=True)
+        result = DB.execute(sql, [symbol, offset], fetchall=True)
         return result
     
     @classmethod
