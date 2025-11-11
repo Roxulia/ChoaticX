@@ -15,7 +15,7 @@ class PredictionService():
 
     def train_process(self):
         self.zonehandler.get_dataset(initial_state=False,for_predict=True)
-        self.datacleaner = DataCleaner(self.symbol,self.timeframes)
+        self.datacleaner = DataCleaner(self.symbol,[self.timeframes])
         self.datacleaner.perform_clean(self.ignore_cols)
         self.model_handler.train()
         self.model_handler.load()
