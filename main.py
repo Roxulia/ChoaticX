@@ -16,7 +16,7 @@ from Database.DataModels.Subscribers import Subscribers
 from Database.Cache import Cache
 
 Logger.set_context("main_system")
-local = True
+local = False
 symbols = {
     "BTCUSDT" : [500,125],
     "BNBUSDT" : [5,2],
@@ -85,11 +85,29 @@ def initiate_prediction_models():
         raise e
 
 @mu.log_memory
-def initialState(symbol):
+def initialState1H(symbol):
     print('Running Model Training')
     try:
         initiate_database()
         test = services_based_1h[symbol]
+        total = test.data_extraction()
+        test.training_process(total)
+    except CantFetchCandleData as e:
+        print(f'{e}')
+        raise FailInitialState
+    except TrainingFail as e:
+        print(f'{e}')
+        raise FailInitialState
+    except Exception as e:
+        print(f'{e}')
+        raise e
+
+@mu.log_memory
+def initialState15Min(symbol):
+    print('Running Model Training')
+    try:
+        initiate_database()
+        test = services_based_15min[symbol]
         total = test.data_extraction()
         test.training_process(total)
     except CantFetchCandleData as e:
@@ -173,11 +191,17 @@ if __name__ == "__main__" :
     process = {
         '*' : run_all_process,
         'update-database' : initiate_database,
-        'initiate-btc' : lambda : initialState("BTCUSDT"),
-        'initiate-bnb' : lambda : initialState("BNBUSDT"),
-        'initiate-paxg' : lambda : initialState("PAXGUSDT"),
-        'initiate-eth' : lambda : initialState("ETHUSDT"),
-        'initiate-sol' : lambda : initialState("SOLUSDT"),
+        'initiate-btc-1h' : lambda : initialState1H("BTCUSDT"),
+        'initiate-bnb-1h' : lambda : initialState1H("BNBUSDT"),
+        'initiate-paxg-1h' : lambda : initialState1H("PAXGUSDT"),
+        'initiate-eth-1h' : lambda : initialState1H("ETHUSDT"),
+        'initiate-sol-1h' : lambda : initialState1H("SOLUSDT"),
+        
+        'initiate-btc-15m' : lambda : initialState15Min("BTCUSDT"),
+        'initiate-bnb-15m' : lambda : initialState15Min("BNBUSDT"),
+        'initiate-paxg-15m' : lambda : initialState15Min("PAXGUSDT"),
+        'initiate-eth-15m' : lambda : initialState15Min("ETHUSDT"),
+        'initiate-sol-15m' : lambda : initialState15Min("SOLUSDT"),
         'train-btc' : lambda : train_model("BTCUSDT"),
         'train-bnb' : lambda : train_model("BNBUSDT"),
         'train-paxg' : lambda : train_model("PAXGUSDT"),
@@ -194,6 +218,7 @@ if __name__ == "__main__" :
     process[args.option]()
     end = time.perf_counter()
     print(f"Execution time: {end - start:.6f} seconds")
+
 
 
 
