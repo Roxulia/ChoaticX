@@ -23,6 +23,12 @@ class ZoneHandlingService():
         self.symbol = symbol
         self.threshold = threshold 
         self.timeframes = timeframes
+        if timeframes[0] == '15min':
+            self.lookback = '1 year'
+        elif timeframes[0] == '1h':
+            self.lookback = '3 years'
+        else:
+            self.lookback = '3 years'
         self.logger = Logger()
 
     def get_zones(self,interval,lookback):
@@ -106,7 +112,7 @@ class ZoneHandlingService():
 
     def get_dataset(self,initial_state=True,for_predict=False):
         try:
-            df = self.get_latest_zones('3 years',initial_state=initial_state)
+            df = self.get_latest_zones(self.lookback,initial_state=initial_state)
         except CantFetchCandleData:
             raise CantFetchCandleData
         datagen = DatasetGenerator(self.symbol,self.timeframes)

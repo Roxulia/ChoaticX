@@ -24,7 +24,7 @@ class PredictionAPI:
             if timeframe is None:
                 return jsonify({"error":"Empty Timeframe"}),400
             x_Values = data.get('data',{})
-            predictor = PredictionService(symbol,timeframe)
+            predictor = PredictionService(symbol,[timeframe])
             signals = predictor.predict(x_Values)
             return jsonify({"data" :signals}),200
         except Exception as e:
