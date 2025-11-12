@@ -64,3 +64,7 @@ class PredictionService():
         signal_gen = SignalGenerator([self.model_handler],DataCleaner(self.symbol,self.timeframes),[self.ignore_cols])
         signal = signal_gen.generate(use_zones)
         return signal
+    
+    def getRequiredColumns(self):
+        
+        return self.model_handler.getFeatureName()

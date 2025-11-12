@@ -8,7 +8,7 @@ import xgboost as xgb
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 from tqdm import tqdm
 from dotenv import load_dotenv
-import os
+import os,json
 from Data.Paths import Paths
 
 class ModelHandler:
@@ -17,16 +17,19 @@ class ModelHandler:
         model_type: 'rf' (RandomForest), 'sgd' (SGDClassifier), or 'xgb' (XGBoost)
         """
         self.model_type = model_type
+        self.timeframes = timeframes
         self.symbol = symbol
         self.Paths = Paths()
         filename = f"{symbol}"+"_".join(timeframes)
-        self.model_path = f'{self.Paths.model_root}/Model_{filename}_.pkl'
+        base = os.path.dirname(os.path.dirname(__file__))
+        self.model_path = f'{base}/{self.Paths.model_root}/Model_{model_type}_{filename}_.pkl'
         self.datafile = f'{symbol}_'+"_".join(timeframes)+"_data.csv"
         self.target_col = 'target'
         self.chunk = chunk
         self.n_estimators_step = n_estimators_step
         self.total_line = total_line
         self.classes = None
+        self.features_name = set()
         self.model = self._init_model()
 
     def _init_model(self):
@@ -39,7 +42,14 @@ class ModelHandler:
         else:
             raise ValueError(f"Unsupported model type: {self.model_type}")
         
+    def getFeatureName(self,feature_names = None):
+        try:
+            return self.load_features()
+        except Exception as e :
+            raise e
+        
     def getFeatureImportance(self,feature_names = None):
+        self.load()
         if self.model_type == 'rf':
             importances = self.model.feature_importances_
             if feature_names is None:
@@ -61,6 +71,7 @@ class ModelHandler:
             raise ValueError(f"Unsupported model type : {self.model_type}")
 
     def partial_train(self, X_batch, y_batch, iteration=0):
+        
         if self.model_type == 'sgd':
             if self.classes is None:
                 self.classes = np.unique(y_batch)
@@ -112,13 +123,20 @@ class ModelHandler:
             y (ndarray): Target batch.
         """
         for chunk in pd.read_csv(f'{self.Paths.train_data}/{self.datafile}', chunksize=self.chunk):
-            X = chunk.drop(columns = [self.target_col]).values
-            y = chunk[self.target_col].values
+            X = chunk.drop(columns = [self.target_col])
+            y = chunk[self.target_col]
             yield X, y
 
     def train(self):
         for i, (X_batch, y_batch) in tqdm(enumerate(self.data_generator()),desc="Model Training",total=self.total_line,dynamic_ncols=True):
+            for f in list(X_batch.columns):
+                self.features_name.add(f)
             self.partial_train(X_batch, y_batch, iteration=i)
+        filename = "_".join(self.timeframes)
+        base = os.path.dirname(os.path.dirname(__file__))
+        path = f'{base}/{self.Paths.feature_list}/{self.symbol}_{filename}.json'
+        with open(path,'w') as f :
+            json.dump(list(self.features_name),f)
         joblib.dump(self.model, self.model_path)
 
     def test_result(self):
@@ -133,6 +151,14 @@ class ModelHandler:
             self.model = joblib.load(path)
         else:
             self.model = joblib.load(self.model_path)
+
+    def load_features(self):
+        filename = "_".join(self.timeframes)
+        base = os.path.dirname(os.path.dirname(__file__))
+        path = f"{base}/{self.Paths.feature_list}/{self.symbol}_{filename}.json"
+        with open(path, "r") as f:
+            columns = json.load(f)
+        return columns
 
     def predict(self, X):
         return self.model.predict(X)

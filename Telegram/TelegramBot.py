@@ -658,7 +658,7 @@ class TelegramBot:
             for s in subscribers:
                 if s['is_admin'] == True or s['tier'] > 1:
                     porfolio = Portfolio(starting_balance= s['capital'])
-                    lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
+                    lot_size = porfolio.risk_position_size(float(signal['entry_price']),float(signal['sl']),s['risk_size'])
                     temp_text = text + f"| Lot Size: {float(lot_size):,.4f}"
                     
                     await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=temp_text, parse_mode="Markdown")
@@ -669,14 +669,14 @@ class TelegramBot:
             subscribers = self.subscriptionService.getActiveSubscribers(tier=2)
             for s in subscribers:
                 porfolio = Portfolio(starting_balance= s['capital'])
-                lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
+                lot_size = porfolio.risk_position_size(float(signal['entry_price']),float(signal['sl']),s['risk_size'])
                 temp_text = text + f"| Lot Size: {float(lot_size):,.4f}"
                 await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=temp_text, parse_mode="Markdown")
         elif signal['symbol'] in ["PAXGUSDT","ETHUSDT","SOLUSDT"] :
             subscribers = self.subscriptionService.getActiveSubscribers(tier=3)
             for s in subscribers:
                 porfolio = Portfolio(starting_balance= s['capital'])
-                lot_size = porfolio.risk_position_size(signal['entry_price'],signal['sl'],s['risk_size'])
+                lot_size = porfolio.risk_position_size(float(signal['entry_price']),float(signal['sl']),s['risk_size'])
                 temp_text = text + f"| Lot Size: {float(lot_size):,.4f}"
                 await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=temp_text, parse_mode="Markdown")
 

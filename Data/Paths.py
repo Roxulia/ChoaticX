@@ -13,6 +13,7 @@ class Paths :
     signal_storage: str = field(init=False)
     root: str = field(init=False)
     columns_list : str = field(init= False)
+    feature_list : str = field(init=False)
     backtest_history : str = field(init= False)
 
     def __post_init__(self):
@@ -26,4 +27,5 @@ class Paths :
         self.signal_storage = os.getenv("SIGNAL_STORAGE")
         self.root = os.getenv("DATA_PATH")
         self.columns_list = os.getenv("COLUMNS_LIST")
+        self.feature_list = os.getenv("FEATURE_LIST")
         self.backtest_history = os.getenv("BACKTEST_HISTORY")
