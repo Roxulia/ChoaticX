@@ -16,7 +16,7 @@ from Database.DataModels.Subscribers import Subscribers
 from Database.Cache import Cache
 
 Logger.set_context("main_system")
-local = False
+local = True
 symbols = {
     "BTCUSDT" : [500,125],
     "BNBUSDT" : [5,2],
@@ -80,6 +80,20 @@ def initiate_prediction_models():
                 else:
                     predictor = PredictionService(s,[t],threshold[0])
                     predictor.train_process()
+    except Exception as e:
+        print(f'{e}')
+        raise e
+    
+@mu.log_memory
+def initiate_prediction_model(symbol,timeframe):
+    print("Initiating Prediction Model:")
+    try:
+        if timeframe == '15min':
+            predictor = PredictionService(symbol,[timeframe],symbols[symbol][1])
+            predictor.train_process()
+        else:
+            predictor = PredictionService(symbol,[timeframe],symbols[symbol][1])
+            predictor.train_process()
     except Exception as e:
         print(f'{e}')
         raise e
@@ -214,6 +228,7 @@ if __name__ == "__main__" :
         'backtest-sol' : lambda : backtest("SOLUSDT",10),
         'initiate-system' : initiateAll,
         'initiate-predict' : initiate_prediction_models,
+        'initiate-predict-btc-15min' : lambda : initiate_prediction_model('BTCUSDT','15min')
     }
     process[args.option]()
     end = time.perf_counter()

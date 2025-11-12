@@ -1,7 +1,7 @@
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import numpy as np
-import json
+import json,os
 from tqdm import tqdm
 from .dataSplitting import DataSplit
 from Utility.MemoryUsage import MemoryUsage as mu
@@ -213,7 +213,8 @@ class DataCleaner:
 
     def load_columns(self,timeframes):
         filename = "_".join(timeframes)
-        path = f"{self.Paths.columns_list}/{self.symbol}_{filename}.json"
+        base = os.path.dirname(os.path.dirname(__file__))
+        path = f"{base}/{self.Paths.columns_list}/{self.symbol}_{filename}.json"
         with open(path, "r") as f:
             columns = json.load(f)
         return columns
