@@ -71,6 +71,7 @@ class SchedulerManager:
         while not self._stop_event.is_set():
             try:
                 priority, _, func = self.task_queue.get(timeout=1)
+                self.logger.info(f"Performing function :  {func.__name__}")
                 with self.db_lock:
                     func()
                 self.task_queue.task_done()
