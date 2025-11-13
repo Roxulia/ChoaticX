@@ -53,8 +53,9 @@ class SignalService:
         
     @mu.log_memory
     def get_current_signals(self):
+        self.logger.info(f"{self.symbol} : getting current signal")
         try:
-            self.logger.info(f"{self.symbol} : getting current signal")
+            
             candle = self.api.getLatestCandle(symbol=self.symbol,interval=self.timeframes[0])
             zones = self.zoneHandler.get_untouched_zones()
             ATH = self.zoneHandler.getUpdatedATH()
