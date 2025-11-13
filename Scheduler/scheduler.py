@@ -163,6 +163,8 @@ class SchedulerManager:
                     service_15m = self.services_based_15min.get(symbol)
                     if not service_1h:
                         return
+                    elif not service_15m:
+                        return
                     candle = {
                         "open": float(kline["o"]),
                         "high": float(kline["h"]),
@@ -176,7 +178,7 @@ class SchedulerManager:
                         self.logger.info(f"📊 {symbol} {interval} → signal updates.")
                     elif interval == "15m":
                         self._put_task(1, lambda s=service_1h, c=candle: s.zoneHandler.update_ATHzone(c))
-                        self._put_task(5, service_15m.get_current_signals)
+                        self._put_task(5, lambda s=service_15m :s.get_current_signals())
                         self.logger.info(f"📊 {symbol} {interval} → ATH + 15m current signals.")
                     elif interval == "1h":
                         self._put_task(2, service_15m.zoneHandler.update_untouched_zones)
