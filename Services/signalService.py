@@ -73,6 +73,9 @@ class SignalService:
                     zone['candle_close'] = candle['close']
                     zone['candle_ema_short'] = candle['ema_short']
                     zone['candle_ema_long'] = candle['ema_long']
+                    
+                    zone['candle_ma_short'] = candle['ma_short']
+                    zone['candle_ma_long'] = candle['ma_long']
                     zone['candle_rsi'] = candle['rsi']
                     zone['candle_atr'] = candle['atr']
                     zone['candle_bb_high'] = candle['bb_high']
