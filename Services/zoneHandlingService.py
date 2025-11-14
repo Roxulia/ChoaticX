@@ -67,7 +67,7 @@ class ZoneHandlingService():
 
     async def get_untouched_zones(self,limit=0):
         try:
-            zones = await FVG.getRecentData(symbol=self.symbol,key="timestamp",limit=limit) + OB.getRecentData(symbol=self.symbol,key="timestamp",limit=limit) + LIQ.getRecentData(symbol=self.symbol,key="timestamp",limit=limit)
+            zones = FVG.getRecentData(symbol=self.symbol,key="timestamp",limit=limit) + OB.getRecentData(symbol=self.symbol,key="timestamp",limit=limit) + LIQ.getRecentData(symbol=self.symbol,key="timestamp",limit=limit)
             if zones:
                 return zones
             else:

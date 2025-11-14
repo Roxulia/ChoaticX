@@ -101,7 +101,6 @@ class SignalService:
                 data = {k:v for k,v in signal.items() if k != "meta"}
                 Cache._client.publish("signals_channel", json.dumps(data,default=utility.default_json_serializer))
                 self.logger.info(f"new signal generated : {signal['symbol']},{signal['position']},{signal['tp']},{signal['sl']},{signal['entry_price']}")
-            return signal
         except Exception as e:
             self.logger.error(f'Error:Getting New Signal:{self.symbol}:{str(e)}')
     
