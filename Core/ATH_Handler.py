@@ -26,7 +26,7 @@ class ATHHandler():
             return str(obj)
         raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
     
-    def getATHFromCandles(self):
+    async def getATHFromCandles(self):
         data = self.candles
         if data is None or data.empty:
             print("candle is None")
@@ -67,7 +67,7 @@ class ATHHandler():
 
         return ath
     
-    def getATHFromStorage(self):
+    async def getATHFromStorage(self):
         if not os.path.exists(f"{self.Paths.ath_data}/{self.symbol}.json"):
             return None
 
@@ -77,7 +77,7 @@ class ATHHandler():
             except json.JSONDecodeError:
                 return None
 
-    def updateATH(self):
+    async def updateATH(self):
         candleATH = self.getATHFromCandles()
         storageATH = self.getATHFromStorage()
         if storageATH is None:
