@@ -18,7 +18,7 @@ class SignalGenerator:
         self.ignore_cols = ignore_cols
         self.filter = Filter()
 
-    def generate(self, zones: list,backtest = False):
+    async def generate(self, zones: list,backtest = False):
         
         if len(zones) == 0:
             raise EmptyDataInput
@@ -141,7 +141,7 @@ class SignalGenerator:
         except Exception as e :
             raise e
         
-    def updateSignals(self,symbol,threshold,candle,status = 'RUNNING'):
+    async def updateSignals(self,symbol,threshold,candle,status = 'RUNNING'):
         try:
             if status == 'RUNNING':
                 Signals.update_running_signals_query(symbol,candle)
