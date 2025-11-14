@@ -47,7 +47,7 @@ class SchedulerManager:
 
     # 🧱 Utility
     def _put_task(self, priority, func):
-        self.task_queue.put_nowait((priority, func))
+        self.task_queue.put_nowait((priority,next(self._counter), func))
         self.logger.info(f"Added {func.__name__} to queue")
 
     def _start_thread(self, target, name, daemon=True):
