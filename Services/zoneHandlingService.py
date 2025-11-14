@@ -31,9 +31,9 @@ class ZoneHandlingService():
             self.lookback = '3 years'
         self.logger = Logger()
 
-    def get_zones(self,interval,lookback):
+    async def get_zones(self,interval,lookback):
         try:
-            df = self.candleFetcher.getCandleData(symbol=self.symbol,interval=interval,lookback=lookback)
+            df = await self.candleFetcher.getCandleData(symbol=self.symbol,interval=interval,lookback=lookback)
         except CantFetchCandleData as e:
             raise CantFetchCandleData
         if interval ==  self.timeframes[0]:
@@ -43,7 +43,7 @@ class ZoneHandlingService():
         return zones
 
     @mu.log_memory
-    def get_latest_zones(self,lookback='1 years',initial_state = False):
+    async def get_latest_zones(self,lookback='1 years',initial_state = False):
         t_zones = []
         self.logger.info(f"{self.__class__}: getting updated zone for {self.symbol}")
         for tf in self.timeframes:
@@ -65,9 +65,9 @@ class ZoneHandlingService():
         zones = sorted(zones,key=lambda x : x.get("timestamp",None))
         return zones
 
-    def get_untouched_zones(self,limit=0):
+    async def get_untouched_zones(self,limit=0):
         try:
-            zones = FVG.getRecentData(symbol=self.symbol,key="timestamp",limit=limit) + OB.getRecentData(symbol=self.symbol,key="timestamp",limit=limit) + LIQ.getRecentData(symbol=self.symbol,key="timestamp",limit=limit)
+            zones = await FVG.getRecentData(symbol=self.symbol,key="timestamp",limit=limit) + OB.getRecentData(symbol=self.symbol,key="timestamp",limit=limit) + LIQ.getRecentData(symbol=self.symbol,key="timestamp",limit=limit)
             if zones:
                 return zones
             else:
@@ -76,12 +76,12 @@ class ZoneHandlingService():
             raise e
     
     @mu.log_memory
-    def update_ATHzone(self,candle):
+    async def update_ATHzone(self,candle):
         try:
             self.logger.info("Performing ATH update")
-            ATH = ATHHandler(self.symbol).getATHFromStorage()
+            ATH = await ATHHandler(self.symbol).getATHFromStorage()
             if ATH['zone_high'] < candle['high']:
-                candle_data = self.api.get_ohlcv(symbol=self.symbol,interval= '1h' , lookback= '7 days')
+                candle_data = await self.candleFetcher.getCandleData(symbol=self.symbol,interval= '1h' , lookback= '7 days')
                 athHandler = ATHHandler(symbol=self.symbol,candles=candle_data)
                 new_ATH = athHandler.getATHFromCandles()
                 athHandler.store(new_ATH)
@@ -90,10 +90,10 @@ class ZoneHandlingService():
         except Exception as e:
             self.logger.error(f"Error Occured in Updating ATH : {str(e)}")
 
-    def update_untouched_zones(self):
+    async def update_untouched_zones(self):
         try:
             self.logger.info(f"{self.symbol}:Updating Untouch Zones")
-            df_from_candle = self.get_latest_zones('6 months')
+            df_from_candle = await self.get_latest_zones('6 months')
             temp_df = []
             for i,row in enumerate(df_from_candle):
                 #print(row['touch_type'])
@@ -103,20 +103,20 @@ class ZoneHandlingService():
                 else:
                     temp_df.append(row)
             datagen = DatasetGenerator(symbol=self.symbol)
-            datagen.store_untouch_zones(temp_df)
+            await datagen.store_untouch_zones(temp_df)
         except CantFetchCandleData as e:
             self.logger.exception(f'Error : Updating Untouch Zones{self.symbol}:{(e)}')
         except Exception as e:
             self.logger.exception(f'Error : Updating Untouch Zones{self.symbol}:{(e)}')
         
 
-    def get_dataset(self,initial_state=True,for_predict=False):
+    async def get_dataset(self,initial_state=True,for_predict=False):
         try:
-            df = self.get_latest_zones(self.lookback,initial_state=initial_state)
+            df = await self.get_latest_zones(self.lookback,initial_state=initial_state)
         except CantFetchCandleData:
             raise CantFetchCandleData
         datagen = DatasetGenerator(self.symbol,self.timeframes)
-        datagen.get_dataset_list(df,for_predict=for_predict)
+        await datagen.get_dataset_list(df,for_predict=for_predict)
         return datagen.total_line
     
     def getUpdatedATH(self):

@@ -52,12 +52,12 @@ class SignalService:
         self.logger = Logger()
         
     @mu.log_memory
-    def get_current_signals(self):
+    async def get_current_signals(self):
         try:
             self.logger.info(f"{self.symbol} : getting current signal")
-            candle = self.api.getLatestCandle(symbol=self.symbol,interval=self.timeframes[0])
-            zones = self.zoneHandler.get_untouched_zones()
-            ATH = self.zoneHandler.getUpdatedATH()
+            candle = await self.api.getLatestCandle(symbol=self.symbol,interval=self.timeframes[0])
+            zones = await self.zoneHandler.get_untouched_zones()
+            ATH = await self.zoneHandler.getUpdatedATH()
             reactor = ZoneReactor()
             datagen = DatasetGenerator(self.symbol)
             reaction_data = reactor.get_last_candle_reaction(zones,candle)
