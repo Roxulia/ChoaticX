@@ -123,3 +123,15 @@ class ZoneHandlingService():
         athHandler = ATHHandler(self.symbol)
         ATH = athHandler.getATHFromStorage()
         return ATH
+    
+    def deleteUsedZones(self,use_zones):
+        for zone in use_zones:
+            id = zone.get('id',None)
+            if id is not None:
+                zone_type = zone.get('zone_type',None)
+                if zone_type in ['Bearish FVG','Bullish FVG'] : 
+                    FVG.delete(id)
+                elif zone_type in ['Bearish OB','Bullish OB'] :
+                    OB.delete(id)
+                elif zone_type in ['Buy-Side Liq','Sell-Side Liq']:
+                    LIQ.delete(id)

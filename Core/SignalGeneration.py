@@ -140,3 +140,12 @@ class SignalGenerator:
             Signals.bulk_update_status(ids,status)
         except Exception as e :
             raise e
+        
+    def updateSignals(self,symbol,threshold,candle,status = 'RUNNING'):
+        try:
+            if status == 'RUNNING':
+                Signals.update_running_signals_query(symbol,candle)
+            elif status == 'PENDING' :
+                Signals.update_pending_signals_query(symbol,threshold,candle)
+        except Exception as e:
+            raise e
