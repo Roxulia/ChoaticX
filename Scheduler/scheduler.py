@@ -47,40 +47,70 @@ class SchedulerManager:
 
     # 🧱 Utility
     def _put_task(self, priority, func):
-        self.task_queue.put_nowait((priority, func))
-        self.logger.info(f"Added {func.__name__} to queue")
+        self.task_queue.put_nowait((priority,next(self._counter), func))
+        # avoid calling func.__name__ blindly if func can be a coroutine object
+        try:
+            name = getattr(func, "__name__", func.__class__.__name__)
+        except Exception:
+            name = str(func)
+        self.logger.info(f"Added {name} to queue with priority={priority}")
 
     def _start_thread(self, target, name, daemon=True):
-        """Thread wrapper with auto-restart if it crashes."""
+        """Thread wrapper with auto-restart if it crashes.
+        If target is a coroutine function, we treat target as a callable that
+        returns a coroutine and we run it on the thread's event loop.
+        """
         def runner():
             while not self._stop_event.is_set():
                 try:
-                    target()
+                    # Create a dedicated event loop for this thread:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+
+                    # If the target is an async coroutine function, run it until completion
+                    if asyncio.iscoroutinefunction(target):
+                        loop.run_until_complete(target())
+                    else:
+                        # If target is a normal callable (sync def), just call it
+                        target()
                 except Exception as e:
                     self.logger.error(f"❌ Thread [{name}] crashed: {e}")
                     traceback.print_exc()
                     time.sleep(5)
+                finally:
+                    try:
+                        loop.close()
+                    except Exception:
+                        pass
         t = threading.Thread(target=runner, name=name, daemon=daemon)
         t.start()
         self.running_threads.append(t)
         return t
 
     # -------------------------------------------------------------------------
-    # ⚙️ Worker Loop
-    async def _worker_loop(self):
+    # ⚙️ Worker Loop (make this synchronous, run async callables inside thread loop)
+    def _worker_loop(self):
+        """Worker loop (runs in its own thread with dedicated event loop)."""
         self.logger.info("🧵 Worker loop started.")
+    
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    
         while not self._stop_event.is_set():
             try:
                 priority, _, func = self.task_queue.get(timeout=1)
-                self.logger.info(f"Performing function :  {func.__name__}")
+                self.logger.info(f"Worker picked task priority={priority}, func={getattr(func,'__name__',str(func))}")
+    
                 with self.db_lock:
-                    if asyncio.iscoroutinefunction(func):
-                        await func()
-
-                    # Sync function → run in thread so it doesn't block the loop
-                    else:
-                        await asyncio.to_thread(func)
+                    # Call the task
+                    result = func()  # call lambda or sync function
+    
+                    # If the result is a coroutine, await it
+                    if asyncio.iscoroutine(result):
+                        loop.run_until_complete(result)
+    
                 self.task_queue.task_done()
+    
             except queue.Empty:
                 continue
             except Exception as e:
