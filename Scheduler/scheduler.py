@@ -112,13 +112,13 @@ class SchedulerManager:
                     # If a coroutine function object (async def) was passed
                     if asyncio.iscoroutinefunction(func):
                         # run coroutine directly on this thread's loop
-                        loop.run_until_complete(func())
+                        await func()
                     # If they accidentally queued a coroutine OBJECT (i.e., func is already coroutine)
                     elif asyncio.iscoroutine(func):
-                        loop.run_until_complete(func)
+                        await func
                     else:
                         # sync function: call directly (blocking)
-                        func()
+                        await asyncio.to_thread(func)
 
                 self.task_queue.task_done()
             except queue.Empty:
