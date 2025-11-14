@@ -48,45 +48,92 @@ class SchedulerManager:
     # 🧱 Utility
     def _put_task(self, priority, func):
         self.task_queue.put_nowait((priority,next(self._counter), func))
-        self.logger.info(f"Added {func.__name__} to queue")
+        # avoid calling func.__name__ blindly if func can be a coroutine object
+        try:
+            name = getattr(func, "__name__", func.__class__.__name__)
+        except Exception:
+            name = str(func)
+        self.logger.info(f"Added {name} to queue with priority={priority}")
 
     def _start_thread(self, target, name, daemon=True):
-        """Thread wrapper with auto-restart if it crashes."""
+        """Thread wrapper with auto-restart if it crashes.
+        If target is a coroutine function, we treat target as a callable that
+        returns a coroutine and we run it on the thread's event loop.
+        """
         def runner():
             while not self._stop_event.is_set():
                 try:
-                    target()
+                    # Create a dedicated event loop for this thread:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+
+                    # If the target is an async coroutine function, run it until completion
+                    if asyncio.iscoroutinefunction(target):
+                        loop.run_until_complete(target())
+                    else:
+                        # If target is a normal callable (sync def), just call it
+                        target()
                 except Exception as e:
                     self.logger.error(f"❌ Thread [{name}] crashed: {e}")
                     traceback.print_exc()
                     time.sleep(5)
+                finally:
+                    try:
+                        loop.close()
+                    except Exception:
+                        pass
         t = threading.Thread(target=runner, name=name, daemon=daemon)
         t.start()
         self.running_threads.append(t)
         return t
 
     # -------------------------------------------------------------------------
-    # ⚙️ Worker Loop
-    async def _worker_loop(self):
+    # ⚙️ Worker Loop (make this synchronous, run async callables inside thread loop)
+    def _worker_loop(self):
+        """Synchronous worker loop that handles sync functions directly and runs
+        async functions on this thread's event loop (via run_until_complete)."""
         self.logger.info("🧵 Worker loop started.")
+        # this thread runner will create its own event loop in _start_thread->runner
+        # but create a loop here for local use as fallback:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
         while not self._stop_event.is_set():
             try:
                 priority, _, func = self.task_queue.get(timeout=1)
-                self.logger.info(f"Performing function :  {func.__name__}")
-                with self.db_lock:
-                    if asyncio.iscoroutinefunction(func):
-                        await func()
+                # log what we're about to perform
+                try:
+                    fname = getattr(func, "__name__", None) or getattr(func, "__class__", type(func)).__name__
+                except Exception:
+                    fname = str(func)
+                self.logger.info(f"Worker picked task priority={priority}, func={fname}")
 
-                    # Sync function → run in thread so it doesn't block the loop
+                with self.db_lock:
+                    # If a coroutine function object (async def) was passed
+                    if asyncio.iscoroutinefunction(func):
+                        # run coroutine directly on this thread's loop
+                        loop.run_until_complete(func())
+                    # If they accidentally queued a coroutine OBJECT (i.e., func is already coroutine)
+                    elif asyncio.iscoroutine(func):
+                        loop.run_until_complete(func)
                     else:
-                        await asyncio.to_thread(func)
+                        # sync function: call directly (blocking)
+                        func()
+
                 self.task_queue.task_done()
             except queue.Empty:
                 continue
             except Exception as e:
+                # log full traceback and continue looping
                 self.logger.error(f"Worker error: {e}")
                 traceback.print_exc()
+                # do not exit; continue to pick next task
 
+        # cleanup
+        try:
+            loop.close()
+        except Exception:
+            pass
     # -------------------------------------------------------------------------
     # 🕒 Scheduler
     def start(self):
