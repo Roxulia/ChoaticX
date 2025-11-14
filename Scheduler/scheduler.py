@@ -48,6 +48,7 @@ class SchedulerManager:
     # 🧱 Utility
     def _put_task(self, priority, func):
         self.task_queue.put((priority, next(self._counter), func))
+        self.logger.info(f"Added {func.__name__} to queue")
 
     def _start_thread(self, target, name, daemon=True):
         """Thread wrapper with auto-restart if it crashes."""
@@ -71,6 +72,7 @@ class SchedulerManager:
         while not self._stop_event.is_set():
             try:
                 priority, _, func = self.task_queue.get(timeout=1)
+                self.logger.info(f"Performing function :  {func.__name__}")
                 with self.db_lock:
                     func()
                 self.task_queue.task_done()
@@ -163,6 +165,8 @@ class SchedulerManager:
                     service_15m = self.services_based_15min.get(symbol)
                     if not service_1h:
                         return
+                    elif not service_15m:
+                        return
                     candle = {
                         "open": float(kline["o"]),
                         "high": float(kline["h"]),
@@ -175,15 +179,15 @@ class SchedulerManager:
                         self._put_task(4, lambda s=service_1h, c=candle: s.update_pending_signals(c))
                         self.logger.info(f"📊 {symbol} {interval} → signal updates.")
                     elif interval == "15m":
-                        self._put_task(1, lambda s=service_1h, c=candle: s.zoneHandler.update_ATHzone(c))
-                        self._put_task(5, service_15m.get_current_signals)
+                        self._put_task(5, lambda s=service_1h, c=candle: s.zoneHandler.update_ATHzone(c))
+                        self._put_task(1, lambda s=service_15m :s.get_current_signals())
                         self.logger.info(f"📊 {symbol} {interval} → ATH + 15m current signals.")
                     elif interval == "1h":
-                        self._put_task(2, service_15m.zoneHandler.update_untouched_zones)
-                        self._put_task(6, service_1h.get_current_signals)
+                        self._put_task(6, service_15m.zoneHandler.update_untouched_zones)
+                        self._put_task(2, service_1h.get_current_signals)
                         self.logger.info(f"📊 {symbol} {interval} →15m zone refresh + 1h current signals.")
                     elif interval == "4h":
-                        self._put_task(2, service_1h.zoneHandler.update_untouched_zones)
+                        self._put_task(7, service_1h.zoneHandler.update_untouched_zones)
                         self.logger.info(f"📊 {symbol} {interval} →1h zone refresh.")
                 except Exception as e:
                     self.logger.error(f"Callback error: {e}")
