@@ -51,59 +51,53 @@ class SignalService:
             self.signal_gen = SignalGenerator([model_handler1,model_handler2],datacleaner,[self.ignore_cols.signalGenModelV1,self.ignore_cols.predictionModelV1])
         self.logger = Logger()
         
+    async def get_predicted_result(self,zones,candle,ATH,datagen : DatasetGenerator,nearbyzone : NearbyZones,reaction_data):
+        use_zones = []
+        for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
+            curr_timestamp = pd.to_datetime(zone['timestamp'])
+            if curr_timestamp == reaction_data['touch_time']:
+                zone['candle_number_of_trades'] = candle['number_of_trades']
+                zone['candle_volume'] = candle['volume']
+                zone['candle_open'] = candle['open']
+                zone['candle_close'] = candle['close']
+                zone['candle_ema_short'] = candle['ema_short']
+                zone['candle_ema_long'] = candle['ema_long']
+                zone['candle_ma_short'] = candle['ma_short']
+                zone['candle_ma_long'] = candle['ma_long']
+                zone['candle_rsi'] = candle['rsi']
+                zone['candle_atr'] = candle['atr']
+                zone['candle_bb_high'] = candle['bb_high']
+                zone['candle_bb_low'] = candle['bb_low']
+                zone['candle_bb_mid'] = candle['bb_mid']
+                if self.symbol != 'BTCUSDT' : 
+                    zone['candle_alpha'] = candle['alpha'] if 'alpha' in candle else None
+                    zone['candle_beta'] = candle['beta'] if 'beta' in candle else None
+                    zone['candle_gamma'] = candle['gamma'] if 'gamma' in candle else None
+                    zone['candle_r2'] = candle['r2'] if 'r2' in candle else None
+                zone['touch_type'] = reaction_data['touch_type']
+                zone['touch_from'] = reaction_data['touch_from']
+                zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)
+                use_zones.append(zone)
+                
+        input_set = list(datagen.extract_input_data(use_zones))
+        signal = await self.signal_gen.generate(input_set)
+        return signal,use_zones
+    
     @mu.log_memory
-    def get_current_signals(self):
-        self.logger.info(f"{self.symbol} : getting current signal")
+    async def get_current_signals(self):
         try:
-            
-            candle = self.api.getLatestCandle(symbol=self.symbol,interval=self.timeframes[0])
-            zones = self.zoneHandler.get_untouched_zones()
-            ATH = self.zoneHandler.getUpdatedATH()
+            self.logger.info(f"{self.symbol} : getting current signal")
+            candle = await self.api.getLatestCandle(symbol=self.symbol,interval=self.timeframes[0])
+            zones = await self.zoneHandler.get_untouched_zones()
+            ATH = await self.zoneHandler.getUpdatedATH()
+
             reactor = ZoneReactor()
-            datagen = DatasetGenerator(self.symbol)
+            datagen = DatasetGenerator(self.symbol,self.timeframes)
             reaction_data = reactor.get_last_candle_reaction(zones,candle)
             nearbyzone = NearbyZones(threshold=self.threshold)
-            use_zones = []
-            
-            for i,zone in tqdm(enumerate(zones),desc = 'Getting Touched Zone Data'):
-                curr_timestamp = pd.to_datetime(zone['timestamp'])
-                if curr_timestamp == reaction_data['touch_time']:
-                    zone['candle_volume'] = candle['volume']
-                    zone['candle_open'] = candle['open']
-                    zone['candle_close'] = candle['close']
-                    zone['candle_ema_short'] = candle['ema_short']
-                    zone['candle_ema_long'] = candle['ema_long']
-                    
-                    zone['candle_ma_short'] = candle['ma_short']
-                    zone['candle_ma_long'] = candle['ma_long']
-                    zone['candle_rsi'] = candle['rsi']
-                    zone['candle_atr'] = candle['atr']
-                    zone['candle_bb_high'] = candle['bb_high']
-                    zone['candle_bb_low'] = candle['bb_low']
-                    zone['candle_bb_mid'] = candle['bb_mid']
-                    if self.symbol != 'BTCUSDT':
-                        zone['candle_alpha'] = candle['alpha']
-                        zone['candle_beta'] = candle['beta']
-                        zone['candle_gamma'] = candle['gamma']
-                        zone['candle_r2'] = candle['r2']
-                    zone['touch_type'] = reaction_data['touch_type']
-                    zone['touch_from'] = reaction_data['touch_from']
-                    zone = nearbyzone.getAboveBelowZones(zone, zones, ATH)
-                    use_zones.append(zone)
-                    
-            input_set = list(datagen.extract_input_data(use_zones))
-            signal = self.signal_gen.generate(input_set)
+            signal,use_zones = await self.get_predicted_result(zones,candle,ATH,datagen,nearbyzone,reaction_data)
             if signal != 'None' and signal is not None:
-                for zone in use_zones:
-                    id = zone.get('id',None)
-                    if id is not None:
-                        zone_type = zone.get('zone_type',None)
-                        if zone_type in ['Bearish FVG','Bullish FVG'] : 
-                            FVG.delete(id)
-                        elif zone_type in ['Bearish OB','Bullish OB'] :
-                            OB.delete(id)
-                        elif zone_type in ['Buy-Side Liq','Sell-Side Liq']:
-                            LIQ.delete(id)
+                await self.zoneHandler.deleteUsedZones(use_zones)
                 data = {k:v for k,v in signal.items() if k != "meta"}
                 Cache._client.publish("signals_channel", json.dumps(data,default=utility.default_json_serializer))
                 self.logger.info(f"new signal generated : {signal['symbol']},{signal['position']},{signal['tp']},{signal['sl']},{signal['entry_price']}")
@@ -119,74 +113,17 @@ class SignalService:
         except Exception as e:
             raise e
         
-    def update_running_signals(self,candle,chunk_size=20):
+    async def update_running_signals(self,candle):
         self.logger.info(f"{self.symbol}:Updating Running Signals")
-        offset = 0
         try:
-            
-            while True:
-                signals = self.signal_gen.get_running_signals(
-                    symbol=self.symbol, limit=chunk_size, offset=offset
-                )
-                if not signals:
-                    break
-
-                win_ids, lose_ids = [], []
-                for s in signals:
-                    pos = s['position']
-                    if pos == 'Long':
-                        if s['sl'] >= candle['low']:
-                            lose_ids.append(s['id'])
-                        elif s['tp'] <= candle['high']:
-                            win_ids.append(s['id'])
-                    elif pos == 'Short':
-                        if s['sl'] <= candle['high']:
-                            lose_ids.append(s['id'])
-                        elif s['tp'] >= candle['low']:
-                            win_ids.append(s['id'])
-
-                if win_ids:
-                    self.signal_gen.bulkUpdateSignals("WIN",win_ids)
-                if lose_ids:
-                    self.signal_gen.bulkUpdateSignals("LOSE",lose_ids)
-
-                offset += chunk_size  # move to next chunk
-
+            await self.signal_gen.updateSignals(self.symbol,self.threshold,candle,'RUNNING')
         except Exception as e:
             self.logger.error(f'Error:Updating Runnning Signals : {self.symbol}:{str(e)}')
 
-    def update_pending_signals(self, candle, chunk_size=20):
+    async def update_pending_signals(self, candle):
         self.logger.info(f"{self.symbol}: Updating Pending Signals in chunks")
-        offset = 0
-
         try:
-            while True:
-                # ✅ Fetch a batch of pending signals
-                signals = self.signal_gen.get_pending_signals(
-                    symbol=self.symbol, limit=chunk_size, offset=offset
-                )
-                if not signals:
-                    break
-
-                running_ids = []
-
-                for s in signals:
-                    pos = s['position']
-                    if pos == 'Long':
-                        diff = abs(s['sl'] - candle['low'])
-                        if diff > self.threshold and s['sl'] < candle['low'] < s['entry_price']:
-                            running_ids.append(s['id'])
-                    elif pos == 'Short':
-                        diff = abs(s['sl'] - candle['high'])
-                        if diff > self.threshold and s['sl'] > candle['high'] > s['entry_price']:
-                            running_ids.append(s['id'])
-
-                # ✅ Batch update instead of one-by-one
-                if running_ids:
-                    self.signal_gen.bulkUpdateSignals("RUNNING",running_ids)
-
-                offset += chunk_size
-
+            await self.signal_gen.updateSignals(self.symbol,self.threshold,candle,'PENDING')
         except Exception as e:
             self.logger.error(f"Error Updating Pending Signals: {self.symbol}: {str(e)}")      
     

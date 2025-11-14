@@ -174,6 +174,13 @@ class BaseModel:
         return result
     
     @classmethod
+    @islimitExist
+    def getRecentZones(cls,limit,symbol):
+        sql = f"((SELECT * FROM fvg_zones where symbol = %s) union (select * from ob_zones where symbol = %s) union (select * from liq_zones where symbol = %s)) order by timestamp desc {limit}"
+        result = DB.execute(sql,[symbol,symbol,symbol],fetchall= True)
+        return result
+    
+    @classmethod
     def GetByTimeStamp(cls,timestamp):
         raw_key = f"{cls.table}:find:timestamp:{timestamp}"
         cached = Cache.get(raw_key)
