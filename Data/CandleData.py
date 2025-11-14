@@ -16,7 +16,7 @@ class CandleData:
         self.TA = TA()
         data = self.TA.add(based_data)
         if symbol != 'BTCUSDT' : 
-            market_data = self.api.get_ohlcv('BTCUSDT',interval,lookback)
+            market_data = await self.api.get_ohlcv('BTCUSDT',interval,lookback)
             data = self.TA.add_RollingRegression(data,market_data)
         return data
     
@@ -25,7 +25,7 @@ class CandleData:
         self.TA = TA()
         data = self.TA.add(based_data)
         if symbol != 'BTCUSDT' : 
-            market_data = self.api.get_ohlcv('BTCUSDT',interval,limit = 100)
+            market_data = await self.api.get_ohlcv('BTCUSDT',interval,limit = 100)
             data = self.TA.add_RollingRegression(data,market_data)
         return data.iloc[-1]
 

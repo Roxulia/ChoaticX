@@ -57,7 +57,7 @@ class ZoneHandlingService():
         zones = confluentfinder.getConfluents()
         if initial_state:
             athHandler = ATHHandler(self.symbol,self.based_candles)
-            athHandler.updateATH()
+            await athHandler.updateATH()
         nearByZones = NearbyZones(zones,self.based_candles,threshold=self.threshold)
         zones = nearByZones.getNearbyZone()
         reactor = ZoneReactor()
@@ -83,7 +83,7 @@ class ZoneHandlingService():
             if ATH['zone_high'] < candle['high']:
                 candle_data = await self.candleFetcher.getCandleData(symbol=self.symbol,interval= '1h' , lookback= '7 days')
                 athHandler = ATHHandler(symbol=self.symbol,candles=candle_data)
-                new_ATH = athHandler.getATHFromCandles()
+                new_ATH = await athHandler.getATHFromCandles()
                 athHandler.store(new_ATH)
                 Cache._client.publish("ath_channel",json.dumps(new_ATH,default=utility.default_json_serializer))
                 self.logger.info(f"New ATH FORMED in {self.symbol} with price {new_ATH['zone_high']}")
@@ -119,9 +119,9 @@ class ZoneHandlingService():
         await datagen.get_dataset_list(df,for_predict=for_predict)
         return datagen.total_line
     
-    def getUpdatedATH(self):
+    async def getUpdatedATH(self):
         athHandler = ATHHandler(self.symbol)
-        ATH = athHandler.getATHFromStorage()
+        ATH = await athHandler.getATHFromStorage()
         return ATH
     
     async def deleteUsedZones(self,use_zones):
