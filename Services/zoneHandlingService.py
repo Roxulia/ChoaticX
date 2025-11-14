@@ -124,7 +124,7 @@ class ZoneHandlingService():
         ATH = athHandler.getATHFromStorage()
         return ATH
     
-    def deleteUsedZones(self,use_zones):
+    async def deleteUsedZones(self,use_zones):
         for zone in use_zones:
             id = zone.get('id',None)
             if id is not None:
