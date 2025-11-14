@@ -102,7 +102,7 @@ class ZoneHandlingService():
                     continue
                 else:
                     temp_df.append(row)
-            datagen = DatasetGenerator(symbol=self.symbol)
+            datagen = DatasetGenerator(symbol=self.symbol,timeframes = self.timeframes)
             await datagen.store_untouch_zones(temp_df)
         except CantFetchCandleData as e:
             self.logger.exception(f'Error : Updating Untouch Zones{self.symbol}:{(e)}')
