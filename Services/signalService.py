@@ -53,8 +53,9 @@ class SignalService:
         
     @mu.log_memory
     def get_current_signals(self):
+        self.logger.info(f"{self.symbol} : getting current signal")
         try:
-            self.logger.info(f"{self.symbol} : getting current signal")
+            
             candle = self.api.getLatestCandle(symbol=self.symbol,interval=self.timeframes[0])
             zones = self.zoneHandler.get_untouched_zones()
             ATH = self.zoneHandler.getUpdatedATH()
@@ -70,8 +71,11 @@ class SignalService:
                     zone['candle_volume'] = candle['volume']
                     zone['candle_open'] = candle['open']
                     zone['candle_close'] = candle['close']
-                    zone['candle_ema20'] = candle['ema20']
-                    zone['candle_ema50'] = candle['ema50']
+                    zone['candle_ema_short'] = candle['ema_short']
+                    zone['candle_ema_long'] = candle['ema_long']
+                    
+                    zone['candle_ma_short'] = candle['ma_short']
+                    zone['candle_ma_long'] = candle['ma_long']
                     zone['candle_rsi'] = candle['rsi']
                     zone['candle_atr'] = candle['atr']
                     zone['candle_bb_high'] = candle['bb_high']
