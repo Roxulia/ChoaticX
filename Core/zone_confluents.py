@@ -109,7 +109,7 @@ class ConfluentsFinder():
     
     @mu.log_memory
     def getConfluents(self,inner_func = False):
-        self.zones = self.indexCalculate.calculate()
+        #self.zones = self.indexCalculate.calculate()
         self.seperate()
         self.add_core_confluence(inner_func=inner_func)
         self.add_liq_confluence(inner_func=inner_func)
