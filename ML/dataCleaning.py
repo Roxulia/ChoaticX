@@ -86,6 +86,7 @@ class DataCleaner:
                 df = df.drop(columns=[col for col in ignore_cols if col in df.columns])
                 df = df.astype('float32')
                 batch = []
+                
                 yield df
                 
         if batch:
@@ -118,11 +119,16 @@ class DataCleaner:
             if header:
                 train.to_csv(f"{self.Paths.train_data}/{self.datafile}", mode='w', header=True, index=False)
                 test.to_csv(f"{self.Paths.test_data}/{self.datafile}",mode='w', header=True, index=False)
+                filename = "_".join(self.timeframes)
+                base = os.path.dirname(os.path.dirname(__file__))
+                path = f'{base}/{self.Paths.feature_list}/{self.symbol}_{filename}.json'
+                with open(path,'w') as f :
+                    json.dump(list(train.columns),f)
                 header = False
             else:
                 train.to_csv(f"{self.Paths.train_data}/{self.datafile}", mode='a', header=False, index=False)
                 test.to_csv(f"{self.Paths.test_data}/{self.datafile}",mode='a', header=False, index=False)
-
+        
         return int(np.ceil(self.total_line*0.7))
             
 

@@ -123,20 +123,25 @@ class ModelHandler:
             y (ndarray): Target batch.
         """
         for chunk in pd.read_csv(f'{self.Paths.train_data}/{self.datafile}', chunksize=self.chunk):
-            X = chunk.drop(columns = [self.target_col])
+            X = self.apply_fixed_columns(chunk)
+            X = X.drop(columns = [self.target_col])
             y = chunk[self.target_col]
             yield X, y
+
+    def apply_fixed_columns(self, X):
+        fixed_cols = self.getFeatureName()   # Load from DataCleaning
+        # Add missing columns
+        for c in fixed_cols:
+            if c not in X.columns:
+                X[c] = 0
+        # Drop extra columns & enforce order
+        return X[fixed_cols]
 
     def train(self):
         for i, (X_batch, y_batch) in tqdm(enumerate(self.data_generator()),desc="Model Training",total=self.total_line,dynamic_ncols=True):
             for f in list(X_batch.columns):
                 self.features_name.add(f)
             self.partial_train(X_batch, y_batch, iteration=i)
-        filename = "_".join(self.timeframes)
-        base = os.path.dirname(os.path.dirname(__file__))
-        path = f'{base}/{self.Paths.feature_list}/{self.symbol}_{filename}.json'
-        with open(path,'w') as f :
-            json.dump(list(self.features_name),f)
         joblib.dump(self.model, self.model_path)
 
     def test_result(self):
@@ -161,9 +166,11 @@ class ModelHandler:
         return columns
 
     def predict(self, X):
+        X = self.apply_fixed_columns(X)
         return self.model.predict(X)
 
     def predict_proba(self, X):
+        X = self.apply_fixed_columns(X)
         return self.model.predict_proba(X)
     
     def get_model(self):
