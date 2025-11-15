@@ -78,8 +78,8 @@ class ATHHandler():
                 return None
 
     async def updateATH(self):
-        candleATH = self.getATHFromCandles()
-        storageATH = self.getATHFromStorage()
+        candleATH = await self.getATHFromCandles()
+        storageATH = await self.getATHFromStorage()
         if storageATH is None:
             if candleATH is None:
                 return False
