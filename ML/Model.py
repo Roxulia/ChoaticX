@@ -29,7 +29,6 @@ class ModelHandler:
         self.n_estimators_step = n_estimators_step
         self.total_line = total_line
         self.classes = None
-        self.features_name = set()
         self.model = self._init_model()
 
     def _init_model(self):
@@ -139,13 +138,12 @@ class ModelHandler:
 
     def train(self):
         for i, (X_batch, y_batch) in tqdm(enumerate(self.data_generator()),desc="Model Training",total=self.total_line,dynamic_ncols=True):
-            for f in list(X_batch.columns):
-                self.features_name.add(f)
             self.partial_train(X_batch, y_batch, iteration=i)
         joblib.dump(self.model, self.model_path)
 
     def test_result(self):
         test = pd.read_csv(f'{self.Paths.test_data}/{self.datafile}')
+        X = self.apply_fixed_columns(test)
         X = test.drop(columns=[self.target_col])
         y = test[self.target_col]
         y_pred = self.predict(X)
@@ -167,10 +165,14 @@ class ModelHandler:
 
     def predict(self, X):
         X = self.apply_fixed_columns(X)
+        if self.target_col in X.columns:
+            X = X.drop(columns = [self.target_col])
         return self.model.predict(X)
 
     def predict_proba(self, X):
         X = self.apply_fixed_columns(X)
+        if self.target_col in X.columns:
+            X = X.drop(columns = [self.target_col])
         return self.model.predict_proba(X)
     
     def get_model(self):
