@@ -21,7 +21,7 @@ Logger.set_context("main_system")
 # ----------------------------------------------------------------------
 # CONFIG
 # ----------------------------------------------------------------------
-local = True
+local = False
 
 symbols = {
     "BTCUSDT": [500, 125, 1000],
@@ -249,4 +249,5 @@ if __name__ == "__main__":
     end = time.perf_counter()
 
     print(f"Execution time: {end - start:.6f} seconds")
+
 
