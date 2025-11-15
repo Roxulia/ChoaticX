@@ -37,7 +37,7 @@ class PredictionAPI:
         except Exception as e:
             return jsonify({"error": str(e)}),500
         
-    def predictSignal(self):
+    async def predictSignal(self):
         try:
             data = request.get_json()
             if not data:
@@ -51,7 +51,7 @@ class PredictionAPI:
                 return jsonify({"error":"Empty Timeframe"}),400
             x_Values = data.get('data',{})
             predictor = PredictionService(symbol,[timeframe])
-            signals = predictor.predict(x_Values)
+            await signals = predictor.predict(x_Values)
             return jsonify({"data" :signals}),200
         except Exception as e:
             return jsonify({"error": str(e)}),500

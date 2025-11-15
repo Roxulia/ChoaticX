@@ -119,7 +119,7 @@ class DatasetGenerator:
             if row.get('target') is not None:
                 yield row
     
-    def store_untouch_zones(self,zones,start = True):
+    async def store_untouch_zones(self,zones,start = True):
         data = self.extract_based_zone_confluent_tf(zones)
         for i,row in enumerate(tqdm(data,desc="Writing to untouch zone storage file")):
             try:
@@ -157,7 +157,7 @@ class DatasetGenerator:
                 raise e
 
     @mu.log_memory
-    def get_dataset_list(self,zones,for_predict=False):
+    async def get_dataset_list(self,zones,for_predict=False):
         
         data = self.extract_based_zone_confluent_tf(zones)
         

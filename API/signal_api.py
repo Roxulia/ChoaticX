@@ -15,9 +15,9 @@ class SignalAPI:
         self.blueprint.add_url_rule("/zones", view_func=self.limiter.limit("10 per minute")(self.get_zones), methods=["GET"])
         self.blueprint.add_url_rule("/signals", view_func=self.limiter.limit("5 per minute")(self.get_given_signals), methods=["GET"])
         
-    def get_zones(self):
+    async def get_zones(self):
         try:
-            zones = self.service.zoneHandler.get_untouched_zones()
+            zones = await self.service.zoneHandler.get_untouched_zones()
             return jsonify({"data":zones}),200
         except NoUntouchedZone as e:
             return jsonify({"error" : f'{e}'}),404

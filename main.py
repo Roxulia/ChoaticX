@@ -1,6 +1,7 @@
 import time
 import pandas as pd
 import argparse
+
 from Services.signalService import SignalService
 from Services.predictionService import PredictionService
 from Utility.MemoryUsage import MemoryUsage as mu
@@ -16,230 +17,234 @@ from Database.DataModels.Subscribers import Subscribers
 from Database.Cache import Cache
 
 Logger.set_context("main_system")
-local = False
+
+# ----------------------------------------------------------------------
+# CONFIG
+# ----------------------------------------------------------------------
+local = True
+
 symbols = {
-    "BTCUSDT" : [500,125],
-    "BNBUSDT" : [5,2],
-    "PAXGUSDT": [10,4],
-    "ETHUSDT" : [10,4],
-    "SOLUSDT" : [2,0.75]
+    "BTCUSDT": [500, 125, 1000],
+    "BNBUSDT": [5, 2, 10],
+    "PAXGUSDT": [10, 4, 20],
+    "ETHUSDT": [10, 4, 20],
+    "SOLUSDT": [2.5, 0.875, 5]
+}
+
+timeframes_1h = ['1h', '4h', '1D']
+timeframes_15m = ['15min', '1h', '4h']
+timeframes_1D = ['1D', '3D', '1W']
+
+# ----------------------------------------------------------------------
+# SERVICE FACTORIES
+# ----------------------------------------------------------------------
+def make_signal_service(symbol, timeframe_type):
+    tf_map = {
+        "1h": (timeframes_1h, symbols[symbol][0]),
+        "15min": (timeframes_15m, symbols[symbol][1]),
+        "1D": (timeframes_1D, symbols[symbol][2]),
     }
-services_based_1h = {
-    "BTCUSDT" : SignalService(symbol="BTCUSDT",threshold=symbols['BTCUSDT'][0],timeframes=['1h','4h','1D'],Local=local,initial=True),
-    "BNBUSDT" : SignalService(symbol="BNBUSDT",threshold=symbols['BNBUSDT'][0],timeframes=['1h','4h','1D'],Local=local,initial=True),
-    "ETHUSDT" : SignalService(symbol="ETHUSDT",threshold=symbols['ETHUSDT'][0],timeframes=['1h','4h','1D'],Local=local,initial=True),
-    "SOLUSDT" : SignalService(symbol="SOLUSDT",threshold=symbols['SOLUSDT'][0],timeframes=['1h','4h','1D'],Local=local,initial=True),
-    "PAXGUSDT" : SignalService(symbol="PAXGUSDT",threshold=symbols['PAXGUSDT'][0],timeframes=['1h','4h','1D'],Local=local,initial=True),
-}
-services_based_15min = {
-    "BTCUSDT" : SignalService(symbol="BTCUSDT",threshold=symbols['BTCUSDT'][1],timeframes=['15min','1h','4h'],Local=local,initial=True),
-    "BNBUSDT" : SignalService(symbol="BNBUSDT",threshold=symbols['BNBUSDT'][1],timeframes=['15min','1h','4h'],Local=local,initial=True),
-    "ETHUSDT" : SignalService(symbol="ETHUSDT",threshold=symbols['ETHUSDT'][1],timeframes=['15min','1h','4h'],Local=local,initial=True),
-    "SOLUSDT" : SignalService(symbol="SOLUSDT",threshold=symbols['SOLUSDT'][1],timeframes=['15min','1h','4h'],Local=local,initial=True),
-    "PAXGUSDT" : SignalService(symbol="PAXGUSDT",threshold=symbols['PAXGUSDT'][1],timeframes=['15min','1h','4h'],Local=local,initial=True),
-}
-"""services_based_1D = {
-    "BTCUSDT" : SignalService(symbol="BTCUSDT",threshold=symbols['BTCUSDT'],timeframes=['1D','3D','1W'],Local=local,initial=True),
-    "BNBUSDT" : SignalService(symbol="BNBUSDT",threshold=symbols['BNBUSDT'],timeframes=['1D','3D','1W'],Local=local,initial=True),
-    "ETHUSDT" : SignalService(symbol="ETHUSDT",threshold=symbols['ETHUSDT'],timeframes=['1D','3D','1W'],Local=local,initial=True),
-    "SOLUSDT" : SignalService(symbol="SOLUSDT",threshold=symbols['SOLUSDT'],timeframes=['1D','3D','1W'],Local=local,initial=True),
-    "PAXGUSDT" : SignalService(symbol="PAXGUSDT",threshold=symbols['PAXGUSDT'],timeframes=['1D','3D','1W'],Local=local,initial=True),
-}"""
-timeframes = ['15min','1h','4h','1D']
+    tfs, threshold = tf_map[timeframe_type]
+    return SignalService(symbol=symbol, threshold=threshold, timeframes=tfs, Local=local, initial=True)
+
+
+services_based_1h = {s: make_signal_service(s, "1h") for s in symbols}
+services_based_15m = {s: make_signal_service(s, "15min") for s in symbols}
+services_based_1D = {s: make_signal_service(s, "1D") for s in symbols}
+
+
+# ----------------------------------------------------------------------
+# UTILITY WRAPPERS
+# ----------------------------------------------------------------------
+def run_training(service):
+    """Extract + Train wrapper with uniform exception handling."""
+    try:
+        initiate_database()
+        total = service.data_extraction()
+        service.training_process(total)
+    except (CantFetchCandleData, TrainingFail) as e:
+        print(str(e))
+        raise FailInitialState
+    except Exception as e:
+        print(str(e))
+        raise
+
+
+# ----------------------------------------------------------------------
+# MAIN ACTIONS
+# ----------------------------------------------------------------------
 @mu.log_memory
 def initiateAll():
     print("Initiating All Model and System")
     try:
         initiate_database()
-        for k,v in services_based_1h.items():
-            total = v.data_extraction()
-            v.training_process(total)
-        for k,v in services_based_15min.items():
-            total = v.data_extraction()
-            v.training_process(total)
+
+        # Train 1h models
+        for service in services_based_1h.values():
+            run_training(service)
+
+        # Train 15 min models
+        for service in services_based_15m.values():
+            run_training(service)
+
+        for service in services_based_1D.values():
+            run_training(service)
+
+        # Train prediction models
         initiate_prediction_models()
-    except CantFetchCandleData as e:
-        print(f'{e}')
-        raise FailInitialState
-    except TrainingFail as e:
-        print(f'{e}')
-        raise FailInitialState
+
     except Exception as e:
-        print(f'{e}')
-        raise e
+        print(str(e))
+        raise FailInitialState
+
 
 @mu.log_memory
 def initiate_prediction_models():
     print("Initiating Prediction Models")
     try:
-        for s,threshold in symbols.items():
-            for t in timeframes:
-                if t == '15min':
-                    predictor = PredictionService(s,[t],threshold[1])
-                    predictor.train_process()
-                else:
-                    predictor = PredictionService(s,[t],threshold[0])
-                    predictor.train_process()
+        for symbol, (h_th, m_th, d_th) in symbols.items():
+            for tf in ['15min', '1h', '4h', '1D']:
+                th = m_th if tf == '15min' else (d_th if tf == '1D' else h_th)
+                PredictionService(symbol, [tf], th).train_process()
     except Exception as e:
-        print(f'{e}')
-        raise e
-    
+        print(str(e))
+        raise
+
+
 @mu.log_memory
-def initiate_prediction_model(symbol,timeframe):
+def initiate_prediction_model(symbol, timeframe):
     print("Initiating Prediction Model:")
     try:
         if timeframe == '15min':
-            predictor = PredictionService(symbol,[timeframe],symbols[symbol][1])
-            predictor.train_process()
+            th = symbols[symbol][1]  
+        elif timeframe == '1D':
+            th = symbols[symbol][2]  
         else:
-            predictor = PredictionService(symbol,[timeframe],symbols[symbol][1])
-            predictor.train_process()
+            th = symbols[symbol][0]  
+        PredictionService(symbol, [timeframe], th).train_process()
     except Exception as e:
-        print(f'{e}')
-        raise e
+        print(str(e))
+        raise
+
 
 @mu.log_memory
 def initialState1H(symbol):
-    print('Running Model Training')
-    try:
-        initiate_database()
-        test = services_based_1h[symbol]
-        total = test.data_extraction()
-        test.training_process(total)
-    except CantFetchCandleData as e:
-        print(f'{e}')
-        raise FailInitialState
-    except TrainingFail as e:
-        print(f'{e}')
-        raise FailInitialState
-    except Exception as e:
-        print(f'{e}')
-        raise e
+    run_training(services_based_1h[symbol])
+
 
 @mu.log_memory
 def initialState15Min(symbol):
-    print('Running Model Training')
-    try:
-        initiate_database()
-        test = services_based_15min[symbol]
-        total = test.data_extraction()
-        test.training_process(total)
-    except CantFetchCandleData as e:
-        print(f'{e}')
-        raise FailInitialState
-    except TrainingFail as e:
-        print(f'{e}')
-        raise FailInitialState
-    except Exception as e:
-        print(f'{e}')
-        raise e
-        
+    run_training(services_based_15m[symbol])
+
+@mu.log_memory
+def initialState1D(symbol):
+    run_training(services_based_1D[symbol])
+
 @mu.log_memory
 def initiate_database():
     try:
-        
         FVG.initiate()
         OB.initiate()
         LIQ.initiate()
         Signals.initiate()
         Subscribers.initiate()
-        FVG.create_index(['symbol','timestamp','time_frame'])
-        OB.create_index(['symbol','timestamp','time_frame'])
-        LIQ.create_index(['symbol','timestamp','time_frame'])
-        Signals.create_index(['result','symbol','timestamp'])
+
+        FVG.create_index(['symbol', 'timestamp', 'time_frame'])
+        OB.create_index(['symbol', 'timestamp', 'time_frame'])
+        LIQ.create_index(['symbol', 'timestamp', 'time_frame'])
+        Signals.create_index(['result', 'symbol', 'timestamp'])
         Subscribers.create_index(['chat_id'])
-        Subscribers.create_index(['tier','is_admin'])
+        Subscribers.create_index(['tier', 'is_admin'])
+
     except Exception as e:
-        print(f'{str(e)}')
-        raise e
+        print(str(e))
+        raise
+
 
 @mu.log_memory
 def train_model(symbol):
-    try:
-        test = services_based_1h[symbol]
-        total = test.data_extraction()
-        test.training_process(total)
-    except CantFetchCandleData as e:
-        print(f'{e}')
-        raise FailInitialState
-    except TrainingFail as e:
-        print(f'{e}')
-        raise FailInitialState
-    except Exception as e:
-        print(f'{e}')
-        raise e
+    run_training(services_based_1h[symbol])
+
 
 @mu.log_memory
-def backtest(symbol,threshold):
-    backtest = BackTestHandler(symbol=symbol,threshold=threshold,time_frames = ['1h','4h','1D'],lookback = '1 years')
-    if backtest.warm_up():
+def backtest(symbol, threshold):
+    handler = BackTestHandler(symbol=symbol, threshold=threshold,
+                              time_frames=['1h', '4h', '1D'], lookback='1 years')
+
+    if handler.warm_up():
         try:
-            backtest.run_backtest()
+            handler.run_backtest()
         except:
             raise BackTestFail
     else:
-        print("Warm-up failed. Exiting.")
         raise WarmUpFail
+
 
 @mu.log_memory
 def run_all_process():
     try:
         initiateAll()
-        backtest()
-    except FailInitialState as e:
-        print(f'{e}')
-    except WarmUpFail as e:
-        print(f'{e}')
-    except:
-        print("Process Fail")
+        # You did backtest() but missing args → now removed to avoid crash
+    except Exception as e:
+        print(str(e))
 
-if __name__ == "__main__" :
+
+# ----------------------------------------------------------------------
+# PROCESS REGISTRATION
+# ----------------------------------------------------------------------
+def generate_process_map():
+    process = {
+        "*": run_all_process,
+        "update-database": initiate_database,
+        "initiate-system": initiateAll,
+        "initiate-predict": initiate_prediction_models,
+        #"initiate-predict-btc-15min": lambda: initiate_prediction_model("BTCUSDT", "15min")
+    }
+
+    # dynamic generation for all symbols
+    for sym in symbols:
+        process[f"initiate-{sym.lower()}-1h"] = lambda s=sym: initialState1H(s)
+        process[f"initiate-{sym.lower()}-15m"] = lambda s=sym: initialState15Min(s)
+        process[f"initiate-{sym.lower()}-1D"] = lambda s=sym: initialState1D(s)
+        process[f"train-{sym.lower()}"] = lambda s=sym: train_model(s)
+
+        # backtest threshold
+        thr = symbols[sym][0]
+        process[f"backtest-{sym.lower()}"] = lambda s=sym, t=thr: backtest(s, t)
+
+    for sym in symbols.keys():
+        lower = sym.replace("USDT", "").lower()
+        for tf in ['15min','1h','4h','1D']:  # ['15min','1h','4h','1D']
+            tf_key = tf.lower()
+            process[f"initiate-predict-{lower}-{tf_key}"] = \
+                lambda s=sym, t=tf: initiate_prediction_model(s, t)
+    return process
+
+
+# ----------------------------------------------------------------------
+# ENTRY POINT
+# ----------------------------------------------------------------------
+if __name__ == "__main__":
     if not local:
         Cache.init()
     DB.init_logger("initialdb.log")
     pd.set_option('future.no_silent_downcasting', True)
+
     parser = argparse.ArgumentParser(description="run training program")
-    parser.add_argument("option",help="'*' to do all process\n'train' to Train Model\n'backtest' to Test the Model",default='*')
-    start = time.perf_counter()
+    parser.add_argument("option")
     args = parser.parse_args()
-    process = {
-        '*' : run_all_process,
-        'update-database' : initiate_database,
-        'initiate-btc-1h' : lambda : initialState1H("BTCUSDT"),
-        'initiate-bnb-1h' : lambda : initialState1H("BNBUSDT"),
-        'initiate-paxg-1h' : lambda : initialState1H("PAXGUSDT"),
-        'initiate-eth-1h' : lambda : initialState1H("ETHUSDT"),
-        'initiate-sol-1h' : lambda : initialState1H("SOLUSDT"),
-        
-        'initiate-btc-15m' : lambda : initialState15Min("BTCUSDT"),
-        'initiate-bnb-15m' : lambda : initialState15Min("BNBUSDT"),
-        'initiate-paxg-15m' : lambda : initialState15Min("PAXGUSDT"),
-        'initiate-eth-15m' : lambda : initialState15Min("ETHUSDT"),
-        'initiate-sol-15m' : lambda : initialState15Min("SOLUSDT"),
-        'train-btc' : lambda : train_model("BTCUSDT"),
-        'train-bnb' : lambda : train_model("BNBUSDT"),
-        'train-paxg' : lambda : train_model("PAXGUSDT"),
-        'train-eth' : lambda : train_model("ETHUSDT"),
-        'train-sol' : lambda : train_model("SOLUSDT"),
-        'backtest-btc' : lambda : backtest("BTCUSDT",500),
-        'backtest-bnb' : lambda : backtest("BNBUSDT",5),
-        'backtest-paxg' : lambda : backtest("PAXGUSDT",10),
-        'backtest-eth' : lambda : backtest("ETHUSDT",10),
-        'backtest-sol' : lambda : backtest("SOLUSDT",10),
-        'initiate-system' : initiateAll,
-        'initiate-predict' : initiate_prediction_models,
-        'initiate-predict-btc-15min' : lambda : initiate_prediction_model('BTCUSDT','15min')
-    }
-    process[args.option]()
+
+    process_map = generate_process_map()
+
+    if args.option not in process_map:
+        print(f"❌ Invalid option: {args.option}")
+        print("Available options:")
+        for key in process_map:
+            print("  -", key)
+        exit(1)
+
+    start = time.perf_counter()
+    process_map[args.option]()
     end = time.perf_counter()
+
     print(f"Execution time: {end - start:.6f} seconds")
-
-
-
-
-
-
-
-
-
-

@@ -30,7 +30,7 @@ import os
 import redis
 import logging
 import numpy as np
-import datetime,decimal
+import datetime,decimal,asyncio
 
 class SignalService:
     def __init__(self,symbol = "BTCUSDT",threshold = 300,timeframes = ['1h','4h','1D'],Local = False,initial = False):
@@ -46,7 +46,7 @@ class SignalService:
         self.zoneHandler = ZoneHandlingService(self.symbol,self.threshold,self.timeframes)
         if not initial:
             datacleaner = DataCleaner(symbol=self.symbol,timeframes=self.timeframes)
-            model_handler1 = ModelHandler(symbol=self.symbol,model_type='xgb')
+            model_handler1 = ModelHandler(symbol=self.symbol,timeframes=self.timeframes,model_type='xgb')
             model_handler2 = ModelHandler(symbol=self.symbol,timeframes=[self.timeframes[0]],model_type='xgb')
             self.signal_gen = SignalGenerator([model_handler1,model_handler2],datacleaner,[self.ignore_cols.signalGenModelV1,self.ignore_cols.predictionModelV1])
         self.logger = Logger()
@@ -141,7 +141,9 @@ class SignalService:
 
     def data_extraction(self):
         try:
-            total = self.zoneHandler.get_dataset(for_predict=self.local)
+            loop = asyncio.new_event_loop()
+            total = loop.run_until_complete(self.zoneHandler.get_dataset(for_predict=self.local))
+            loop.close()
         except CantFetchCandleData:
             raise CantFetchCandleData
         total = self.clean_dataset(total)
