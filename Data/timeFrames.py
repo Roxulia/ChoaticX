@@ -8,9 +8,11 @@ class timeFrame:
             '15min' : Client.KLINE_INTERVAL_15MINUTE,
             '1h' : Client.KLINE_INTERVAL_1HOUR,
             '4h' : Client.KLINE_INTERVAL_4HOUR,
-            '1D' : Client.KLINE_INTERVAL_1DAY
+            '1D' : Client.KLINE_INTERVAL_1DAY,
+            '3D' : Client.KLINE_INTERVAL_3DAY,
+            '1W' : Client.KLINE_INTERVAL_1WEEK
         }
-        self.tfOrder = ['1min','3min','5min','15min','1h','4h','1D']
+        self.tfOrder = ['1min','3min','5min','15min','1h','4h','1D','3D','1W']
         self.multiplier = {
             '1min' : {
                 '1min' : 1,
