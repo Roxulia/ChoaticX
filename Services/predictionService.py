@@ -3,6 +3,7 @@ from ML.Model import ModelHandler
 from Core.SignalGeneration import SignalGenerator
 from .zoneHandlingService import ZoneHandlingService
 from Data.Columns import IgnoreColumns
+import asyncio
 class PredictionService():
     def __init__(self,symbol,timeframes,threshold=0):
         self.symbol = symbol
@@ -14,7 +15,7 @@ class PredictionService():
         self.ignore_cols = IgnoreColumns().predictionModelV1
 
     def train_process(self):
-        self.zonehandler.get_dataset(initial_state=False,for_predict=True)
+        asyncio.run(self.zonehandler.get_dataset(initial_state=False,for_predict=True))
         self.datacleaner = DataCleaner(self.symbol,self.timeframes)
         self.datacleaner.perform_clean(self.ignore_cols)
         self.model_handler.train()

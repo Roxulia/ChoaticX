@@ -51,7 +51,7 @@ class PredictionAPI:
                 return jsonify({"error":"Empty Timeframe"}),400
             x_Values = data.get('data',{})
             predictor = PredictionService(symbol,[timeframe])
-            await signals = predictor.predict(x_Values)
+            signals = await predictor.predict(x_Values)
             return jsonify({"data" :signals}),200
         except Exception as e:
             return jsonify({"error": str(e)}),500
