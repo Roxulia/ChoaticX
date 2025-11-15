@@ -12,7 +12,7 @@ class DataCleaner:
         self.symbol = symbol
         self.datafile = f'{symbol}_'+"_".join(timeframes)+"_data.csv"
         self.rawfile = f'{symbol}_' + "_".join(timeframes)+"_raw.jsonl"
-        feature_file = "_".join(self.timeframes)
+        feature_file = "_".join(timeframes)
         base = os.path.dirname(os.path.dirname(__file__))
         self.feature_path = f'{base}/{self.Paths.feature_list}/{self.symbol}_{feature_file}.json'
         self.total_line = np.ceil(total_line / batch_size)
