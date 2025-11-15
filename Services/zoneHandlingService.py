@@ -51,7 +51,7 @@ class ZoneHandlingService():
         self.logger.info(f"{self.__class__}: getting updated zone for {self.symbol}")
         for tf in self.timeframes:
             try:
-                zone = self.get_zones(tf,lookback)
+                zone = await self.get_zones(tf,lookback)
                 
                 t_zones = t_zones + zone
             except CantFetchCandleData:
