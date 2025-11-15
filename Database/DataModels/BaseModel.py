@@ -163,21 +163,24 @@ class BaseModel:
 
     @classmethod
     @islimitExist
-    def getRecentData(cls,limit,key,symbol):
-        raw_key = f"{cls.table}:find:{key}:{symbol}:{limit}:ORDER"
+    def getRecentData(cls,limit,key,symbol,timeframe):
+        raw_key = f"{cls.table}:find:{key}:{symbol}:{timeframe}:{limit}:ORDER"
         cached = Cache.get(raw_key)
         if cached is not None:
             return cached
-        sql = f"SELECT * FROM {cls.table} WHERE symbol = %s ORDER BY {key} DESC {limit}"
-        result = DB.execute(sql,[symbol],fetchall= True)
+        sql = f"SELECT * FROM {cls.table} WHERE symbol = %s and time_frame = %s ORDER BY {key} DESC {limit}"
+        result = DB.execute(sql,[symbol,timeframe],fetchall= True)
         Cache.set(raw_key,result,60)
         return result
     
     @classmethod
     @islimitExist
-    def getRecentZones(cls,limit,symbol):
-        sql = f"((SELECT * FROM fvg_zones where symbol = %s) union (select * from ob_zones where symbol = %s) union (select * from liq_zones where symbol = %s)) order by timestamp desc {limit}"
-        result = DB.execute(sql,[symbol,symbol,symbol],fetchall= True)
+    def getRecentZones(cls,limit,symbol,timeframe):
+        sql = f"""((SELECT id,zone_type,zone_high,zone_low,timestamp FROM fvg_zones where symbol = %s and time_frame = %s)
+        union (select id,zone_type,zone_high,zone_low,timestamp from ob_zones where symbol = %s and time_frame = %s) 
+        union (select id,zone_type,zone_high,zone_low,timestamp from liq_zones where symbol = %s and time_frame = %s)) 
+        order by timestamp desc {limit}"""
+        result = DB.execute(sql,[symbol,timeframe,symbol,timeframe,symbol,timeframe],fetchall= True)
         return result
     
     @classmethod

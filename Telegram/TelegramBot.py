@@ -173,7 +173,7 @@ class TelegramBot:
         try:
             message = self.get_message(update)
             try:
-                zones = self.btcservice.zoneHandler.get_untouched_zones(limit= 5)
+                zones = await self.btcservice.zoneHandler.get_untouched_zones(limit= 5)
                 sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
                 msg = f"📊 *Recent BTCUSDT Zones*\n\n"
                 for i, zz in enumerate(sorted_zones, start=1):
@@ -269,7 +269,7 @@ class TelegramBot:
         try:
             message = self.get_message(update)
             try:
-                zones = self.bnbservice.zoneHandler.get_untouched_zones(limit= 5)
+                zones = await self.bnbservice.zoneHandler.get_untouched_zones(limit= 5)
                 sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
                 msg = f"📊 *Recent BNBUSDT Zones*\n\n"
                 for i, zz in enumerate(sorted_zones, start=1):
@@ -351,7 +351,7 @@ class TelegramBot:
         try:
             message = self.get_message(update)
             try:
-                zones = self.paxgservice.zoneHandler.get_untouched_zones(limit= 5)
+                zones = await self.paxgservice.zoneHandler.get_untouched_zones(limit= 5)
                 sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
                 msg = f"📊 *Recent PAXGUSDT Zones*\n\n"
                 for i, zz in enumerate(sorted_zones, start=1):
@@ -433,7 +433,7 @@ class TelegramBot:
         try:
             message = self.get_message(update)
             try:
-                zones = self.ethservice.zoneHandler.get_untouched_zones(limit= 5)
+                zones = await self.ethservice.zoneHandler.get_untouched_zones(limit= 5)
                 sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
                 msg = f"📊 *Recent ETHUSDT Zones*\n\n"
                 for i, zz in enumerate(sorted_zones, start=1):
@@ -515,7 +515,7 @@ class TelegramBot:
         try:
             message = self.get_message(update)
             try:
-                zones = self.solservice.zoneHandler.get_untouched_zones(limit= 5)
+                zones = await self.solservice.zoneHandler.get_untouched_zones(limit= 5)
                 sorted_zones = sorted(zones, key=lambda x: x.get("timestamp"),reverse= True)[:4]
                 msg = f"📊 *Recent SOLUSDT Zones*\n\n"
                 for i, zz in enumerate(sorted_zones, start=1):

@@ -251,6 +251,8 @@ class ZoneReactor:
             zone_high = zone['zone_high']
             zone_low = zone['zone_low']
             zone_timestamp = pd.to_datetime(zone['timestamp'])
+            zone_id = zone['id']
+            zone_type = zone['zone_type']
             if (zone_low > open_ and zone_low <= high) or (zone_high < open_ and zone_high >= low):
                 touch_from = 'Inside'
                 if zone_low > open_:
@@ -259,15 +261,45 @@ class ZoneReactor:
                     touch_from = 'Above'
 
                 if zone_low <= close <= zone_high:
-                    return {'touch_from':touch_from,'touch_type':'body_close_inside','touch_time':zone_timestamp}
+                    return {
+                        'touch_from':touch_from,
+                        'touch_type':'body_close_inside',
+                        'touch_time':zone_timestamp,
+                        'id': zone_id,
+                        'type' : zone_type
+                        }
                 elif (open_ > zone_high and close < zone_low) or (open_ < zone_low and close > zone_high):
-                    return {'touch_from':touch_from,'touch_type':'engulf','touch_time':zone_timestamp}
+                    return {
+                        'touch_from':touch_from,
+                        'touch_type':'engulf',
+                        'touch_time':zone_timestamp,
+                        'id': zone_id,
+                        'type' : zone_type
+                        }
                 elif close > zone_high and open_ > zone_high:
-                    return {'touch_from':touch_from,'touch_type':'body_close_above','touch_time':zone_timestamp}
+                    return {
+                        'touch_from':touch_from,
+                        'touch_type':'body_close_above',
+                        'touch_time':zone_timestamp,
+                        'id': zone_id,
+                        'type' : zone_type
+                        }
                 elif close < zone_low and open_ < zone_low:
-                    return {'touch_from':touch_from,'touch_type':'body_close_below','touch_time':zone_timestamp}
+                    return {
+                        'touch_from':touch_from,
+                        'touch_type':'body_close_below',
+                        'touch_time':zone_timestamp,
+                        'id': zone_id,
+                        'type' : zone_type
+                        }
                 else:
-                    return {'touch_from':touch_from,'touch_type':'wick_touch','touch_time':zone_timestamp}
+                    return {
+                        'touch_from':touch_from,
+                        'touch_type':'wick_touch',
+                        'touch_time':zone_timestamp,
+                        'id': zone_id,
+                        'type' : zone_type
+                        }
         raise CandleNotTouch
 
     @mu.log_memory

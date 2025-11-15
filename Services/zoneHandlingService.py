@@ -11,6 +11,7 @@ from Database.DataModels.FVG import FVG
 from Database.DataModels.OB import OB
 from Database.DataModels.Liq import LIQ
 from Database.Cache import Cache
+from Database.DataModels.BaseModel import BaseModel
 from Utility.MemoryUsage import MemoryUsage as mu
 from Utility.UtilityClass import UtilityFunctions as utility
 from Utility.Logger import Logger
@@ -27,6 +28,8 @@ class ZoneHandlingService():
             self.lookback = '1 year'
         elif timeframes[0] == '1h':
             self.lookback = '3 years'
+        elif timeframes[0] == '1D':
+            self.lookback = '5 years'
         else:
             self.lookback = '3 years'
         self.logger = Logger()
@@ -67,7 +70,8 @@ class ZoneHandlingService():
 
     async def get_untouched_zones(self,limit=0):
         try:
-            zones = FVG.getRecentData(symbol=self.symbol,key="timestamp",limit=limit) + OB.getRecentData(symbol=self.symbol,key="timestamp",limit=limit) + LIQ.getRecentData(symbol=self.symbol,key="timestamp",limit=limit)
+            zones = FVG.getRecentData(symbol=self.symbol,timeframe=self.timeframes[0],key="timestamp",limit=limit) + OB.getRecentData(symbol=self.symbol,timeframe=self.timeframes[0],key="timestamp",limit=limit) + LIQ.getRecentData(symbol=self.symbol,timeframe=self.timeframes[0],key="timestamp",limit=limit)
+            #zones = BaseModel.getRecentZones(limit=limit,symbol=self.symbol,timeframe=self.timeframes[0])
             if zones:
                 return zones
             else:
@@ -105,9 +109,9 @@ class ZoneHandlingService():
             datagen = DatasetGenerator(symbol=self.symbol,timeframes = self.timeframes)
             await datagen.store_untouch_zones(temp_df)
         except CantFetchCandleData as e:
-            self.logger.exception(f'Error : Updating Untouch Zones{self.symbol}:{(e)}')
+            self.logger.error(f'Error : Updating Untouch Zones{self.symbol}:{(e)}')
         except Exception as e:
-            self.logger.exception(f'Error : Updating Untouch Zones{self.symbol}:{(e)}')
+            self.logger.error(f'Error : Updating Untouch Zones{self.symbol}:{(e)}')
         
 
     async def get_dataset(self,initial_state=True,for_predict=False):
