@@ -56,10 +56,11 @@ services_based_1D = {s: make_signal_service(s, "1D") for s in symbols}
 # ----------------------------------------------------------------------
 # UTILITY WRAPPERS
 # ----------------------------------------------------------------------
-def run_training(service):
+def run_training(service,initiate_all = False):
     """Extract + Train wrapper with uniform exception handling."""
     try:
-        initiate_database()
+        if not initiate_all:
+            initiate_database()
         total = service.data_extraction()
         service.training_process(total)
     except (CantFetchCandleData, TrainingFail) as e:
@@ -81,14 +82,14 @@ def initiateAll():
 
         # Train 1h models
         for service in services_based_1h.values():
-            run_training(service)
+            run_training(service,True)
 
         # Train 15 min models
         for service in services_based_15m.values():
-            run_training(service)
+            run_training(service,True)
 
         for service in services_based_1D.values():
-            run_training(service)
+            run_training(service,True)
 
         # Train prediction models
         initiate_prediction_models()
@@ -248,3 +249,4 @@ if __name__ == "__main__":
     end = time.perf_counter()
 
     print(f"Execution time: {end - start:.6f} seconds")
+
