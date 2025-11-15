@@ -12,6 +12,9 @@ class DataCleaner:
         self.symbol = symbol
         self.datafile = f'{symbol}_'+"_".join(timeframes)+"_data.csv"
         self.rawfile = f'{symbol}_' + "_".join(timeframes)+"_raw.jsonl"
+        feature_file = "_".join(self.timeframes)
+        base = os.path.dirname(os.path.dirname(__file__))
+        self.feature_path = f'{base}/{self.Paths.feature_list}/{self.symbol}_{feature_file}.json'
         self.total_line = np.ceil(total_line / batch_size)
         self.datasplit =  DataSplit(random_state=42,shuffle=True,train_size=0.6,test_size=0.4)
         self.batch_size = batch_size
@@ -119,10 +122,8 @@ class DataCleaner:
             if header:
                 train.to_csv(f"{self.Paths.train_data}/{self.datafile}", mode='w', header=True, index=False)
                 test.to_csv(f"{self.Paths.test_data}/{self.datafile}",mode='w', header=True, index=False)
-                filename = "_".join(self.timeframes)
-                base = os.path.dirname(os.path.dirname(__file__))
-                path = f'{base}/{self.Paths.feature_list}/{self.symbol}_{filename}.json'
-                with open(path,'w') as f :
+                
+                with open(self.feature_path,'w') as f :
                     json.dump(list(train.columns),f)
                 header = False
             else:
