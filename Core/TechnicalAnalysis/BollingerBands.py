@@ -20,7 +20,7 @@ class BollingerBands:
         data["bb_mid"] = bb.bollinger_mavg()
         return data
     
-    def detectCrossOver(self, data):
+    async def detectCrossOver(self, data):
         """
         Detect all Bollinger Band crossover points.
 
@@ -58,7 +58,7 @@ class BollingerBands:
             if prev_close <= prev_high and curr_close > curr_high:
                 crossovers.append({
                     'timestamp': timestamps.iloc[i],
-                    'type': 'upper_breakout',
+                    'type': 'bb_upper_breakout',
                     'close': curr_close,
                     'bb_high': curr_high,
                     'bb_mid': curr_mid,
@@ -68,7 +68,7 @@ class BollingerBands:
             elif prev_close >= prev_high and curr_close < curr_high:
                 crossovers.append({
                     'timestamp': timestamps.iloc[i],
-                    'type': 'upper_rejection',
+                    'type': 'bb_upper_rejection',
                     'close': curr_close,
                     'bb_high': curr_high,
                     'bb_mid': curr_mid,
@@ -79,7 +79,7 @@ class BollingerBands:
             elif prev_close >= prev_low and curr_close < curr_low:
                 crossovers.append({
                     'timestamp': timestamps.iloc[i],
-                    'type': 'lower_breakout',
+                    'type': 'bb_lower_breakout',
                     'close': curr_close,
                     'bb_high': curr_high,
                     'bb_mid': curr_mid,
@@ -89,7 +89,7 @@ class BollingerBands:
             elif prev_close <= prev_low and curr_close > curr_low:
                 crossovers.append({
                     'timestamp': timestamps.iloc[i],
-                    'type': 'lower_rejection',
+                    'type': 'bb_lower_rejection',
                     'close': curr_close,
                     'bb_high': curr_high,
                     'bb_mid': curr_mid,
@@ -100,7 +100,7 @@ class BollingerBands:
             elif prev_close < prev_mid and curr_close > curr_mid:
                 crossovers.append({
                     'timestamp': timestamps.iloc[i],
-                    'type': 'mid_cross_up',
+                    'type': 'bb_mid_cross_up',
                     'close': curr_close,
                     'bb_high': curr_high,
                     'bb_mid': curr_mid,
@@ -110,7 +110,7 @@ class BollingerBands:
             elif prev_close > prev_mid and curr_close < curr_mid:
                 crossovers.append({
                     'timestamp': timestamps.iloc[i],
-                    'type': 'mid_cross_down',
+                    'type': 'bb_mid_cross_down',
                     'close': curr_close,
                     'bb_high': curr_high,
                     'bb_mid': curr_mid,

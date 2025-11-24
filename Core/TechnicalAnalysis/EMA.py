@@ -19,7 +19,7 @@ class EMA:
         return data
 
 
-    def detectCrossOver(self, data):
+    async def detectCrossOver(self, data):
         """
         Detect all crossover points between short and long ema.
 
@@ -49,7 +49,7 @@ class EMA:
             if prev_short < prev_long and curr_short > curr_long:
                 crossovers.append({
                     'timestamp': timestamps.iloc[i],
-                    'type': 'golden_cross',
+                    'type': 'ema_golden_cross',
                     'short_ema': curr_short,
                     'long_ema': curr_long
                 })
@@ -58,7 +58,7 @@ class EMA:
             elif prev_short > prev_long and curr_short < curr_long:
                 crossovers.append({
                     'timestamp': timestamps.iloc[i],
-                    'type': 'death_cross',
+                    'type': 'ema_death_cross',
                     'short_ema': curr_short,
                     'long_ema': curr_long
                 })

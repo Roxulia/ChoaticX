@@ -122,3 +122,14 @@ class UtilityFunctions():
     @staticmethod
     def escape_md(text: str) -> str:
         return re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', str(text))
+
+    @staticmethod
+    def get_last_cross_before(cross_events,ts):
+        """Return the most recent crossover before a given timestamp."""
+        last = None
+        for c in cross_events:
+            if c["timestamp"] <= ts:
+                last = c
+            else:
+                break
+        return last

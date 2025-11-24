@@ -22,7 +22,7 @@ class MovingAverage:
         return data
 
 
-    def detectCrossOver(self, data):
+    async def detectCrossOver(self, data):
         """
         Detect all crossover points between short and long moving averages.
 
@@ -52,7 +52,7 @@ class MovingAverage:
             if prev_short < prev_long and curr_short > curr_long:
                 crossovers.append({
                     'timestamp': timestamps.iloc[i],
-                    'type': 'golden_cross',
+                    'type': 'ma_golden_cross',
                     'short_ma': curr_short,
                     'long_ma': curr_long
                 })
@@ -61,7 +61,7 @@ class MovingAverage:
             elif prev_short > prev_long and curr_short < curr_long:
                 crossovers.append({
                     'timestamp': timestamps.iloc[i],
-                    'type': 'death_cross',
+                    'type': 'ma_death_cross',
                     'short_ma': curr_short,
                     'long_ma': curr_long
                 })

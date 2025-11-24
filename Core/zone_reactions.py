@@ -301,7 +301,7 @@ class ZoneReactor:
                         'type' : zone_type
                         }
         raise CandleNotTouch
-
+    
     @mu.log_memory
     def perform_reaction_check(self,zones,candles_data):
         data = list(self.get_zones_reaction(zones,candles_data))

@@ -25,10 +25,12 @@ class TA:
         RR = RollingRegression(data,market_data)
         return RR.AddRegressionValues()
     
-    def detectCrossOvers(self,data):
-        MA_cross = self.MA.detectCrossOver(data)
-        EMA_cross = self.EMA.detectCrossOver(data)
-        BB_cross = self.BollingerBands.detectCrossOver(data)
+    async def detectCrossOvers(self,data):
+        MA_cross = await self.MA.detectCrossOver(data)
+        EMA_cross = await self.EMA.detectCrossOver(data)
+        BB_cross = await self.BollingerBands.detectCrossOver(data)
         zones = MA_cross+EMA_cross+BB_cross
-        return zones.sort(key='timestamp')
+        return sorted(zones, key=lambda z: z['timestamp'])
+
+    
 
