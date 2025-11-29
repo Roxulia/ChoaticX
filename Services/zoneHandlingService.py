@@ -34,6 +34,17 @@ class ZoneHandlingService():
             self.lookback = '3 years'
         self.logger = Logger()
 
+    async def getBasedCandle(self,limit=False):
+        try:
+            if limit :
+                df = await self.candleFetcher.getCandleData(self.symbol,self.timeframes[0],self.lookback,limit=True)
+            else:
+                df = await self.candleFetcher.getCandleData(self.symbol,self.timeframes[0],self.lookback)
+            return df
+        except CantFetchCandleData as e:
+            raise CantFetchCandleData
+        
+
     async def get_zones(self,interval,lookback):
         try:
             df = await self.candleFetcher.getCandleData(symbol=self.symbol,interval=interval,lookback=lookback)

@@ -15,6 +15,7 @@ class Paths :
     columns_list : str = field(init= False)
     feature_list : str = field(init=False)
     backtest_history : str = field(init= False)
+    ma_crossover_data : str = field(init=False)
 
     def __post_init__(self):
         load_dotenv()  
@@ -29,3 +30,4 @@ class Paths :
         self.columns_list = os.getenv("COLUMNS_LIST")
         self.feature_list = os.getenv("FEATURE_LIST")
         self.backtest_history = os.getenv("BACKTEST_HISTORY")
+        self.ma_crossover_data = os.getenv("MA_CROSSOVER_DATA")

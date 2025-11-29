@@ -6,13 +6,15 @@ from sklearn.linear_model import SGDClassifier
 from xgboost import XGBClassifier
 import xgboost as xgb
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+from sklearn.linear_model import LogisticRegression, RidgeClassifier, Perceptron
+from sklearn.svm import LinearSVC
 from tqdm import tqdm
 from dotenv import load_dotenv
 import os,json
 from Data.Paths import Paths
 
 class ModelHandler:
-    def __init__(self,symbol = "BTCUSDT",timeframes = ['1h','4h','1D'],total_line=1000,chunk = 1000,model_type='rf', n_estimators_step=10):
+    def __init__(self,prefix = "",symbol = "BTCUSDT",timeframes = ['1h','4h','1D'],total_line=1000,chunk = 1000,model_type='rf', n_estimators_step=10):
         """
         model_type: 'rf' (RandomForest), 'sgd' (SGDClassifier), or 'xgb' (XGBoost)
         """
@@ -22,7 +24,7 @@ class ModelHandler:
         self.Paths = Paths()
         filename = f"{symbol}"+"_".join(timeframes)
         base = os.path.dirname(os.path.dirname(__file__))
-        self.model_path = f'{base}/{self.Paths.model_root}/Model_{model_type}_{filename}_.pkl'
+        self.model_path = f'{base}/{self.Paths.model_root}/{prefix}Model_{model_type}_{filename}_.pkl'
         self.datafile = f'{symbol}_'+"_".join(timeframes)+"_data.csv"
         self.target_col = 'target'
         self.chunk = chunk
@@ -38,6 +40,21 @@ class ModelHandler:
             return SGDClassifier()
         elif self.model_type == 'xgb':
             return XGBClassifier( eval_metric='logloss', n_estimators=self.n_estimators_step)
+        # ----- Linear Models -----
+        elif self.model_type == 'logistic':
+            return LogisticRegression(
+                max_iter=200,
+                solver='lbfgs'
+            )
+        
+        elif self.model_type == 'ridge':
+            return RidgeClassifier()
+
+        elif self.model_type == 'linearsvc':
+            return LinearSVC()
+
+        elif self.model_type == 'perceptron':
+            return Perceptron()
         else:
             raise ValueError(f"Unsupported model type: {self.model_type}")
         
@@ -140,6 +157,10 @@ class ModelHandler:
         for i, (X_batch, y_batch) in tqdm(enumerate(self.data_generator()),desc="Model Training",total=self.total_line,dynamic_ncols=True):
             self.partial_train(X_batch, y_batch, iteration=i)
         joblib.dump(self.model, self.model_path)
+
+    def full_train(self,X,y):
+        self.model.fit(X,y)
+        joblib.dump(self.model,self.model_path)
 
     def test_result(self):
         test = pd.read_csv(f'{self.Paths.test_data}/{self.datafile}')

@@ -11,13 +11,21 @@ class CandleData:
         self.data_root = os.getenv("DATA_PATH")
         self.logger = Logger()
 
-    async def getCandleData(self,symbol,interval,lookback):
-        based_data = await self.api.get_ohlcv(symbol,interval,lookback)
-        self.TA = TA()
-        data = self.TA.add(based_data)
-        if symbol != 'BTCUSDT' : 
-            market_data = await self.api.get_ohlcv('BTCUSDT',interval,lookback)
-            data = self.TA.add_RollingRegression(data,market_data)
+    async def getCandleData(self,symbol,interval,lookback,limit = False):
+        if limit:
+            based_data = await self.api.get_ohlcv(symbol,interval,limit=100)
+            self.TA = TA()
+            data = self.TA.add(based_data)
+            if symbol != 'BTCUSDT' : 
+                market_data = await self.api.get_ohlcv('BTCUSDT',interval,limit = 100)
+                data = self.TA.add_RollingRegression(data,market_data)
+        else:
+            based_data = await self.api.get_ohlcv(symbol,interval,lookback)
+            self.TA = TA()
+            data = self.TA.add(based_data)
+            if symbol != 'BTCUSDT' : 
+                market_data = await self.api.get_ohlcv('BTCUSDT',interval,lookback)
+                data = self.TA.add_RollingRegression(data,market_data)
         return data
     
     async def getLatestCandle(self,symbol,interval):
