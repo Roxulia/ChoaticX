@@ -15,10 +15,11 @@ class predictionWithTA:
         base = os.path.dirname(os.path.dirname(__file__))
         self.ma_crossover_path = f'{base}/{self.paths.ma_crossover_data}/{self.symbol}_{ma_crossover_file}.json'
 
-    async def prepareData(self):
+    async def prepareData(self,analysis = False):
         candles_df = await self.zonehandler.getBasedCandle()
-        crossovers = await self.ta.detectMaLinesCrossOvers(candles)
-        self.storeCrossOver(crossovers[-1])
+        crossovers = await self.ta.detectMaLinesCrossOvers(candles_df)
+        if not analysis:
+            self.storeCrossOver(crossovers[-1])
         labeled = []
         max_size = len(crossovers)
 
@@ -40,7 +41,6 @@ class predictionWithTA:
                     "timestamp": time_stamp,
                     "type": type,
                     "label": None,
-                    "price_move": None,
                     "percent_move": None,
                     "movement_type": None
                 })
@@ -64,7 +64,6 @@ class predictionWithTA:
             labeled.append({
                 **crossovers[i],
                 "label": label,
-                "price_move": price_move,
                 "percent_move": percent_move,
             })
         

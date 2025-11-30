@@ -1,17 +1,16 @@
 from dataclasses import dataclass,field
-from Services.signalService import SignalService
 
 @dataclass
 class ServiceData:
-    thresholds : dict = {
+    thresholds : dict = field( default_factory= lambda : {
         "BTCUSDT" : 500,
         "BNBUSDT" : 5,
         "PAXGUSDT": 10,
         "ETHUSDT" : 10,
         "SOLUSDT" : 2
-    }
+    })
 
-    crossOverTypes = field(default_factory= lambda: [
+    crossOverTypes :list  = field(default_factory= lambda: [
         ('ma_short','ma_long',None,None),
         ('ma_short','ema_long',None,None),
         ('ma_short','ema_short',None,None),

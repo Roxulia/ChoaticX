@@ -4,6 +4,7 @@ import argparse
 
 from Services.signalService import SignalService
 from Services.predictionService import PredictionService
+from Services.predictionUsingTA_Service import predictionWithTA
 from Utility.MemoryUsage import MemoryUsage as mu
 from Utility.Logger import Logger
 from Backtest.backtest import BackTestHandler

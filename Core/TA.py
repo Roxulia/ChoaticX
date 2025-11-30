@@ -38,17 +38,18 @@ class TA:
         timestamps = data["timestamp"]
 
         for i in range(1, len(data)):
-            for a, b , c ,d in self.CrossOverTypes:
+            for index,(a, b , c ,d) in enumerate(self.CrossOverTypes):
                 prev_rsi , curr_rsi = data['rsi'].iloc[i-1],data['rsi'].iloc[i]
                 prev_a, prev_b = data[a].iloc[i-1], data[b].iloc[i-1]
                 curr_a, curr_b = data[a].iloc[i], data[b].iloc[i]
-                if not (d is None and c is None):
+                if c is not None and d is not None:
                     prev_c, prev_d = data[c].iloc[i-1], data[d].iloc[i-1]
                     curr_c, curr_d = data[c].iloc[i], data[d].iloc[i]
                     if (prev_a > prev_b and curr_a < curr_b) and (prev_a > prev_c and curr_a < curr_c) and (prev_a > prev_d and curr_a < curr_d):
                         crossovers.append({
                             "timestamp": timestamps.iloc[i],
                             "type": f"{a}_dip_{b}_{c}_{d}",
+                            "type_index": index,
                             "rsi_change" : curr_rsi - prev_rsi,
                             "ema_long" : data['ema_long'].iloc[i],
                             "ma_long" : data['ma_long'].iloc[i],
@@ -61,6 +62,7 @@ class TA:
                         crossovers.append({
                             "timestamp": timestamps.iloc[i],
                             "type": f"{a}_dip_{b}_{c}",
+                            "type_index": index,
                             "rsi_change" : curr_rsi - prev_rsi,
                             "ema_long" : data['ema_long'].iloc[i],
                             "ma_long" : data['ma_long'].iloc[i],
@@ -73,6 +75,7 @@ class TA:
                         crossovers.append({
                             "timestamp": timestamps.iloc[i],
                             "type": f"{a}_dip_{b}",
+                            "type_index": index,
                             "rsi_change" : curr_rsi - prev_rsi,
                             "ema_long" : data['ema_long'].iloc[i],
                             "ma_long" : data['ma_long'].iloc[i],
