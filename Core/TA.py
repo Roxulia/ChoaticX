@@ -51,10 +51,8 @@ class TA:
                             "type": f"{a}_dip_{b}_{c}_{d}",
                             "type_index": index,
                             "rsi_change" : curr_rsi - prev_rsi,
-                            "ema_long" : data['ema_long'].iloc[i],
-                            "ma_long" : data['ma_long'].iloc[i],
-                            "ema_short" : data['ema_short'].iloc[i],
-                            "ma_short" : data['ma_short'].iloc[i],
+                            "volume_per_trade" : data['volume'].iloc[i] / data['number_of_trades'].iloc[i],
+                            "volatility" : (data['bb_high'].iloc[i] - data['bb_low'].iloc[i]) / data['bb_mid'].iloc[i]
                     })
                 elif c is not None:
                     prev_c,curr_c = data[c].iloc[i-1],data[c].iloc[i]
@@ -64,10 +62,8 @@ class TA:
                             "type": f"{a}_dip_{b}_{c}",
                             "type_index": index,
                             "rsi_change" : curr_rsi - prev_rsi,
-                            "ema_long" : data['ema_long'].iloc[i],
-                            "ma_long" : data['ma_long'].iloc[i],
-                            "ema_short" : data['ema_short'].iloc[i],
-                            "ma_short" : data['ma_short'].iloc[i],
+                            "volume_per_trade" : data['volume'].iloc[i] / data['number_of_trades'].iloc[i],
+                            "volatility" : (data['bb_high'].iloc[i] - data['bb_low'].iloc[i]) / data['bb_mid'].iloc[i]
                     })
                 else:
                     # Detect crossover (A dips below B)
@@ -77,10 +73,8 @@ class TA:
                             "type": f"{a}_dip_{b}",
                             "type_index": index,
                             "rsi_change" : curr_rsi - prev_rsi,
-                            "ema_long" : data['ema_long'].iloc[i],
-                            "ma_long" : data['ma_long'].iloc[i],
-                            "ema_short" : data['ema_short'].iloc[i],
-                            "ma_short" : data['ma_short'].iloc[i],
+                            "volume_per_trade" : data['volume'].iloc[i] / data['number_of_trades'].iloc[i],
+                            "volatility" : (data['bb_high'].iloc[i] - data['bb_low'].iloc[i]) / data['bb_mid'].iloc[i]
                         })
         return crossovers
     

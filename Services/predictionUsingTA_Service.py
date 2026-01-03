@@ -38,8 +38,7 @@ class predictionWithTA:
             # Identify start / end candle
             if candles.empty:
                 labeled.append({
-                    "timestamp": time_stamp,
-                    "type": type,
+                    **crossovers[i],
                     "label": None,
                     "percent_move": None,
                     "movement_type": None
@@ -49,12 +48,15 @@ class predictionWithTA:
             start_candle = candles.iloc[0]
             end_candle = candles.iloc[-1]
 
-            # Original label logic
-            label = (
-                start_candle["high"] < end_candle["low"]
-                if len(candles) > 1
-                else None
-            )
+            label = None
+            if (start_candle['high'] < end_candle['high'] and
+                start_candle['low'] < end_candle['low']):
+                label = "uptrend"
+            elif (start_candle['high'] > end_candle['high'] and
+                  start_candle['low'] > end_candle['low']):
+                label = "downtrend"
+            else:
+                label = "sideways"
 
             # Price movement
             price_move = end_candle["close"] - start_candle["open"]
