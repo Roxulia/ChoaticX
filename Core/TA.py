@@ -1,17 +1,12 @@
-from .TechnicalAnalysis.ATR import ATR
-from .TechnicalAnalysis.BollingerBands import BollingerBands
-from .TechnicalAnalysis.MA import MovingAverage
-from .TechnicalAnalysis.EMA import EMA
-from .TechnicalAnalysis.RSI import RSI
-from .TechnicalAnalysis.RollingRegression import RollingRegression
+from Features.registry import get_feature
 from Data.Services_data import ServiceData
 class TA:
     def __init__(self):
-        self.ATR = ATR()
-        self.BollingerBands = BollingerBands()
-        self.MA = MovingAverage()
-        self.EMA = EMA()
-        self.RSI = RSI()
+        self.ATR = get_feature('ATR')()
+        self.BollingerBands = get_feature('BollingerBands')()
+        self.MA = get_feature('MovingAverage')()
+        self.EMA = get_feature('EMA')()
+        self.RSI = get_feature('RSI')()
         self.CrossOverTypes = ServiceData().crossOverTypes
 
     def add(self,data):
@@ -23,7 +18,7 @@ class TA:
         return data
     
     def add_RollingRegression(self,data,market_data):
-        RR = RollingRegression(data,market_data)
+        RR = get_feature('RollingRegression')(data,market_data)
         return RR.AddRegressionValues()
     
     async def detectCrossOvers(self,data):

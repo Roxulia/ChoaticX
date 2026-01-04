@@ -1,4 +1,7 @@
 import ta
+from ..registry import register_feature
+
+@register_feature
 class MovingAverage:
     """
     Detects moving average crossover signals (Golden Cross & Death Cross).

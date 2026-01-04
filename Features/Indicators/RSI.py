@@ -1,4 +1,7 @@
 import ta
+from ..registry import register_feature
+
+@register_feature
 class RSI:
     """
     Detects RSI-based signals such as overbought, oversold, and midline crossovers.

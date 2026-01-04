@@ -2,7 +2,9 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
+from ..registry import register_feature
 
+@register_feature
 class RollingRegression():
     def __init__(self,based_df,market_df):
         self.based_df = based_df
