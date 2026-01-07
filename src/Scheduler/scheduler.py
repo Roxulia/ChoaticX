@@ -215,14 +215,14 @@ class SchedulerManager:
                         self.logger.info(f"📊 {symbol} {interval} → signal updates.")
                     elif interval == "15m":
                         self._put_task(5, lambda s=service_1h, c=candle: s.zoneHandler.update_ATHzone(c))
-                        self._put_task(3, service_15m.get_current_signals)
+                        self._put_task(1, service_15m.get_current_signals)
                         self.logger.info(f"📊 {symbol} {interval} → ATH + 15m current signals.")
                     elif interval == "1h":
-                        self._put_task(1, service_15m.zoneHandler.update_untouched_zones)
-                        self._put_task(4, service_1h.get_current_signals)
+                        self._put_task(3, service_15m.zoneHandler.update_untouched_zones)
+                        self._put_task(2, service_1h.get_current_signals)
                         self.logger.info(f"📊 {symbol} {interval} →15m zone refresh + 1h current signals.")
                     elif interval == "4h":
-                        self._put_task(2, service_1h.zoneHandler.update_untouched_zones)
+                        self._put_task(4, service_1h.zoneHandler.update_untouched_zones)
                         self.logger.info(f"📊 {symbol} {interval} →1h zone refresh.")
                 except Exception as e:
                     self.logger.error(f"Callback error: {e}")
