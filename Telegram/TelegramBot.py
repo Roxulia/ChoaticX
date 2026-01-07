@@ -653,32 +653,37 @@ class TelegramBot:
         symbol = signal['symbol']
         position = signal['position']
         path = imagegen.create_signal_card(signal,template=f'{self.image_path}/{symbol}_{position}_template.jpg',output_path=f'{self.image_path}/{symbol}_signal.jpg')
-        if signal['symbol'] == "BTCUSDT":
-            subscribers = self.subscriptionService.getActiveSubscribers()
-            for s in subscribers:
-                if s['is_admin'] == True or s['tier'] > 1:
+        try:
+            if signal['symbol'] == "BTCUSDT":
+                subscribers = self.subscriptionService.getActiveSubscribers()
+                for s in subscribers:
+                    if s['is_admin'] == True or s['tier'] > 1:
+                        porfolio = Portfolio(starting_balance= s['capital'])
+                        lot_size = porfolio.risk_position_size(float(signal['entry_price']),float(signal['sl']),s['risk_size'])
+                        temp_text = text + f"| Lot Size: {float(lot_size):,.4f}"
+                        
+                        await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=temp_text, parse_mode="Markdown")
+                        
+                    else:
+                        
+                        await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=text, parse_mode="Markdown")
+                    
+            elif signal['symbol'] == "BNBUSDT" :
+                subscribers = self.subscriptionService.getActiveSubscribers(tier=2)
+                for s in subscribers:
                     porfolio = Portfolio(starting_balance= s['capital'])
                     lot_size = porfolio.risk_position_size(float(signal['entry_price']),float(signal['sl']),s['risk_size'])
                     temp_text = text + f"| Lot Size: {float(lot_size):,.4f}"
-                    
                     await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=temp_text, parse_mode="Markdown")
-                else:
-                    
-                    await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=text, parse_mode="Markdown")
-        elif signal['symbol'] == "BNBUSDT" :
-            subscribers = self.subscriptionService.getActiveSubscribers(tier=2)
-            for s in subscribers:
-                porfolio = Portfolio(starting_balance= s['capital'])
-                lot_size = porfolio.risk_position_size(float(signal['entry_price']),float(signal['sl']),s['risk_size'])
-                temp_text = text + f"| Lot Size: {float(lot_size):,.4f}"
-                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=temp_text, parse_mode="Markdown")
-        elif signal['symbol'] in ["PAXGUSDT","ETHUSDT","SOLUSDT"] :
-            subscribers = self.subscriptionService.getActiveSubscribers(tier=3)
-            for s in subscribers:
-                porfolio = Portfolio(starting_balance= s['capital'])
-                lot_size = porfolio.risk_position_size(float(signal['entry_price']),float(signal['sl']),s['risk_size'])
-                temp_text = text + f"| Lot Size: {float(lot_size):,.4f}"
-                await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=temp_text, parse_mode="Markdown")
+            elif signal['symbol'] in ["PAXGUSDT","ETHUSDT","SOLUSDT"] :
+                subscribers = self.subscriptionService.getActiveSubscribers(tier=3)
+                for s in subscribers:
+                    porfolio = Portfolio(starting_balance= s['capital'])
+                    lot_size = porfolio.risk_position_size(float(signal['entry_price']),float(signal['sl']),s['risk_size'])
+                    temp_text = text + f"| Lot Size: {float(lot_size):,.4f}"
+                    await self.app.bot.send_photo(chat_id=s['chat_id'], photo=open(path, 'rb'),caption=temp_text, parse_mode="Markdown")
+        except Forbidden:
+            print(f"Cannot send message to {s['chat_id']}: bot was blocked.")
 
     async def broadcast_ath(self,data):
         if not isinstance(data, dict):
@@ -688,18 +693,21 @@ class TelegramBot:
         f"📢 New ATH! in Token: {data['symbol']} "
         f"with Price {data['zone_high']}"
         )
-        if data['symbol'] == "BTCUSDT":
-            subscribers = self.subscriptionService.getActiveSubscribers()
-            for s in subscribers:
-                await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
-        elif data['symbol'] == "BNBUSDT" :
-            subscribers = self.subscriptionService.getActiveSubscribers(tier=2)
-            for s in subscribers:
-                await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
-        elif data['symbol'] in ["PAXGUSDT","ETHUSDT","SOLUSDT"] :
-            subscribers = self.subscriptionService.getActiveSubscribers(tier=3)
-            for s in subscribers:
-                await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+        try:
+            if data['symbol'] == "BTCUSDT":
+                subscribers = self.subscriptionService.getActiveSubscribers()
+                for s in subscribers:
+                    await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+            elif data['symbol'] == "BNBUSDT" :
+                subscribers = self.subscriptionService.getActiveSubscribers(tier=2)
+                for s in subscribers:
+                    await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+            elif data['symbol'] in ["PAXGUSDT","ETHUSDT","SOLUSDT"] :
+                subscribers = self.subscriptionService.getActiveSubscribers(tier=3)
+                for s in subscribers:
+                    await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+        except Forbidden:
+            print(f"Cannot send message to {s['chat_id']}: bot was blocked.")
         
     async def broadcast_error(self,data):
         subscribers = self.subscriptionService.getActiveSubscribers(admin_only=True)
@@ -856,7 +864,10 @@ class TelegramBot:
 
                 '💥 Welcome back to the chaos!')
         for s in subscribers:
-            await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+            try:
+                await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+            except Forbidden:
+                print(f"Cannot send message to {s['chat_id']}: bot was blocked.")
 
     async def stop(self,app = None):
         """Gracefully stop listener and app"""
@@ -873,7 +884,10 @@ class TelegramBot:
 
                 '💬 Stay tuned for the comeback notification 👇')
             for s in subscribers:
-                await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+                try:
+                    await self.app.bot.send_message(chat_id=s['chat_id'], text=text)
+                except Forbidden:
+                    print(f"Cannot send message to {s['chat_id']}: bot was blocked.")
             try:
                 await self.listener_task
             except asyncio.CancelledError:
