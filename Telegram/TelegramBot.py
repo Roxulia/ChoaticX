@@ -1,4 +1,5 @@
 from telegram import Update
+from telegram.error import Forbidden
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import *
 from telegram.helpers import escape_markdown
