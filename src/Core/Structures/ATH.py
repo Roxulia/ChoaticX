@@ -35,19 +35,14 @@ class ATHHandler():
             'zone_high': float(ATH_zone['high']),
             'zone_low': float(ATH_zone['low']),
             'trades' : float(ATH_zone['number_of_trades']),
-            'ma_short': float(ATH_zone['ma_short']),
-            'ma_long': float(ATH_zone['ma_long']),
-            'ema_short': float(ATH_zone['ema_short']),
-            'ema_long': float(ATH_zone['ema_long']),
-            'rsi': float(ATH_zone['rsi']),
-            'atr': float(ATH_zone['atr']),
             'volume_on_creation': float(ATH_zone['volume']),
             'avg_volume_past_5': float(avg_volume_past_5[index]),
             'prev_volatility_5': float(prev_volatility_5[index]),
             'momentum_5': float(momentum_5.iloc[index]),
             'zone_type': 'ATH',
             'index': index,
-            'timestamp' : ATH_zone['timestamp']
+            'timestamp' : ATH_zone['timestamp'],
+            **ATH_zone,
         }
 
         return ath

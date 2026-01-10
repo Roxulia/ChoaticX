@@ -9,7 +9,7 @@ import ta
 from .timeFrames import timeFrame
 from Exceptions.ServiceExceptions import *
 from Utility.Logger import Logger
-from Features import RollingRegression
+from Core import RollingRegression
 
 class BinanceAPI:
     def __init__(self):

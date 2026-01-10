@@ -2,10 +2,13 @@ import ta
 from .registry import register_indicator
 
 @register_indicator
-class EMA:
-    
+class SMA:
+    """
+    Detects moving average crossover signals (Golden Cross & Death Cross).
+    Can be extended for multiple timeframes and custom moving averages.
+    """
 
-    def __init__(self, windows = [20,50],source = 'close'):
+    def __init__(self, windows = [20,50] , source = 'close'):
         """
         Initialize MovingAverageCrossOver with default or custom MA periods.
         """
@@ -16,7 +19,5 @@ class EMA:
     def add(self,df):
         data = df.copy()
         for w in self.windows:
-            data[f'ma_{w}'] = ta.trend.ema_indicator(data[self.source], window=w)
+            data[f'sma_{w}'] = ta.trend.sma_indicator(data[self.source], window=w)
         return data
-
-

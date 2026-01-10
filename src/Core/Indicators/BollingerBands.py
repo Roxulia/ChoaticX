@@ -1,7 +1,7 @@
 import ta
-from ..registry import register_feature
+from .registry import register_indicator
 
-@register_feature
+@register_indicator
 class BollingerBands:
     """
     Detects moving average crossover signals (Golden Cross & Death Cross).

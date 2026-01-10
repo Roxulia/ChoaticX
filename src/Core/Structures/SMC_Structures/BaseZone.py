@@ -1,8 +1,9 @@
 import numpy as np
 from Utility.MemoryUsage import MemoryUsage as mu
+import pandas as pd
 
 class BaseZone:
-    def __init__(self,df=[],timeframe = '1h'):
+    def __init__(self,df: pd.DataFrame = [],timeframe = '1h'):
         self.df = df
         self.timeframe = timeframe
         self.initialize()

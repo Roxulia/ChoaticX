@@ -20,21 +20,8 @@ class Swings(BaseZone):
             base_data = {
                 'index': i,
                 'trades': self.trades[i],
-                'ema_short': self.ema_short[i],
-                'ema_long': self.ema_long[i],
-                'ma_short': self.ma_short[i],
-                'ma_long': self.ma_long[i],
-                'atr': self.atr[i],
-                'rsi': self.rsi[i],
-                'atr_mean': self.atr_mean[i],
-                'bb_high': self.bb_high[i],
-                'bb_low': self.bb_low[i],
-                'bb_mid': self.bb_mid[i],
-                'alpha': self.alphas[i] if self.alphas is not None else None,
-                'beta': self.betas[i] if self.betas is not None else None,
-                'gamma': self.gammas[i] if self.gammas is not None else None,
-                'r2': self.r2s[i] if self.r2s is not None else None,
-                'timestamp': self.timestamps[i]
+                'timestamp': self.timestamps[i],
+                **self.df.iloc[i]
             }
 
             if is_swing_high:

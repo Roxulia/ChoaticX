@@ -1,6 +1,7 @@
 from .BaseZone import BaseZone
 from tqdm import tqdm
 import numpy as np
+import pandas as pd
 from Utility.MemoryUsage import MemoryUsage as mu
 
 class LIQ(BaseZone):
@@ -38,6 +39,9 @@ class LIQ(BaseZone):
 
                 if len(group) < 2:
                     continue
+                group_df = pd.DataFrame(group)
+
+                ta_means = group_df.select_dtypes(include='number').mean()
 
                 avg_level = np.mean(prices)
                 zone_high = avg_level + pip_range
@@ -55,7 +59,8 @@ class LIQ(BaseZone):
                     'avg_volume_around_zone': avg_volume,
                     'duration_between_first_last_touch': duration / np.timedelta64(1, 's'),
                     'time_frame': self.timeframe,
-                    'timestamp': group[0]['timestamp']
+                    'timestamp': group[0]['timestamp'],
+                    **ta_means
                 })
             return result
 

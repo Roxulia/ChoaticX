@@ -2,13 +2,12 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
-from ..registry import register_feature
+from .registry import register_indicator
 
-@register_feature
+@register_indicator
 class RollingRegression():
-    def __init__(self,based_df,market_df):
-        self.based_df = based_df
-        self.market_df = market_df
+    def __init__(self,source = 'close'):
+        self.source = source
         self.poly = PolynomialFeatures(degree=2)
         self.model = LinearRegression()
 
@@ -58,14 +57,14 @@ class RollingRegression():
 
         return df_result
     
-    def AddRegressionValues(self):
+    def AddRegressionValues(self,based_df,market_df):
         df = pd.DataFrame({
-            'market': self.market_df['close'],
-            'base': self.based_df['close']
+            'market': market_df[self.source],
+            'base': based_df[self.source]
         }).dropna()
 
         df = df.pct_change().dropna()
 
         reg = self.rolling_regression(df['base'], df['market'], window=50)
 
-        return self.based_df.join(reg)
+        return based_df.join(reg)

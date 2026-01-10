@@ -1,5 +1,5 @@
 from .binanceAPI import BinanceAPI
-from Core.TA import TA
+from Core.Indicators.TA import TA
 from Exceptions.ServiceExceptions import *
 from Utility.Logger import Logger
 from dotenv import load_dotenv

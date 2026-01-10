@@ -1,5 +1,5 @@
 from .zoneHandlingService import ZoneHandlingService
-from Core.TA import TA
+from Core.Indicators.TA import TA
 from Utility.UtilityClass import UtilityFunctions as utility
 from Data.Paths import Paths
 import asyncio,os,json

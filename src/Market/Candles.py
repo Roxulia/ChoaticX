@@ -1,40 +1,45 @@
-from .binanceAPI import BinanceAPI
-from Core.TA import TA
+from .Binance.rest import BinanceRestAPI
+from Core.Indicators.TA import TA
 from Exceptions.ServiceExceptions import *
-from Utility.Logger import Logger
+from Core import RollingRegression
+from Utility import Logger
+from Utility import ConfigReader
 from dotenv import load_dotenv
 import os
 class Candles:
     def __init__(self):
         load_dotenv()
-        self.api = BinanceAPI()
+        self.api = BinanceRestAPI()
         self.data_root = os.getenv("DATA_PATH")
         self.logger = Logger()
+        self.config = ConfigReader("config.json")
+        self.TA = TA(self.config.getIndicatorsConfig())
+        self.RR = self.config.getRollingRegression()
 
     async def getCandleData(self,symbol,interval,lookback,limit = False):
         if limit:
             based_data = await self.api.get_ohlcv(symbol,interval,limit=100)
-            self.TA = TA()
             data = self.TA.add(based_data)
-            if symbol != 'BTCUSDT' : 
-                market_data = await self.api.get_ohlcv('BTCUSDT',interval,limit = 100)
-                data = self.TA.add_RollingRegression(data,market_data)
+            if self.RR['enabled']: 
+                rr = RollingRegression()
+                market_data = await self.api.get_ohlcv(self.RR['base'],interval,limit = 100)
+                data = rr.AddRegressionValues(data,market_data)
         else:
             based_data = await self.api.get_ohlcv(symbol,interval,lookback)
-            self.TA = TA()
             data = self.TA.add(based_data)
-            if symbol != 'BTCUSDT' : 
-                market_data = await self.api.get_ohlcv('BTCUSDT',interval,lookback)
-                data = self.TA.add_RollingRegression(data,market_data)
+            if self.RR['enabled']: 
+                rr = RollingRegression()
+                market_data = await self.api.get_ohlcv(self.RR['base'],interval,lookback)
+                data = rr.AddRegressionValues(data,market_data)
         return data
     
     async def getLatestCandle(self,symbol,interval):
         based_data = await self.api.get_ohlcv(symbol,interval,limit = 100)
-        self.TA = TA()
         data = self.TA.add(based_data)
-        if symbol != 'BTCUSDT' : 
-            market_data = await self.api.get_ohlcv('BTCUSDT',interval,limit = 100)
-            data = self.TA.add_RollingRegression(data,market_data)
+        if self.RR['enabled']: 
+                rr = RollingRegression()
+                market_data = await self.api.get_ohlcv(self.RR['base'],interval,limit = 100)
+                data = rr.AddRegressionValues(data,market_data)
         return data.iloc[-1]
 
     def store_OHLCV(self, symbol, interval,lookback):
