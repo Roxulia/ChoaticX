@@ -1,3 +1,4 @@
+import numpy as np
 import ta
 from .registry import register_indicator
 
@@ -16,5 +17,12 @@ class HMA:
     def add(self,df):
         data = df.copy()
         for w in self.windows:
-            data[f'ma_{w}'] = ta.trend.hma_indicator(data[self.source], window=w)
+            half = int(w / 2)
+            sqrt_w = int(np.sqrt(w))
+
+            wma_half = ta.trend.wma_indicator(data[self.source], window=half)
+            wma_full = ta.trend.wma_indicator(data[self.source], window=w)
+
+            raw = 2 * wma_half - wma_full
+            data[f'hma_{w}'] = ta.trend.wma_indicator(raw, window=sqrt_w)
         return data

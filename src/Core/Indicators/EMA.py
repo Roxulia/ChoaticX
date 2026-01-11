@@ -16,7 +16,7 @@ class EMA:
     def add(self,df):
         data = df.copy()
         for w in self.windows:
-            data[f'ma_{w}'] = ta.trend.ema_indicator(data[self.source], window=w)
+            data[f'ema_{w}'] = ta.trend.ema_indicator(data[self.source], window=w)
         return data
 
 

@@ -2,6 +2,9 @@ from .Indicators.ATR import ATR
 from .Indicators.BollingerBands import BollingerBands
 from .Indicators.SMA import SMA
 from .Indicators.EMA import EMA
+from .Indicators.HMA import HMA
+from .Indicators.WMA import WMA
+from .Indicators.MACD import MACD
 from .Indicators.RollingRegression import RollingRegression
 from .Indicators.RSI import RSI
 from .Structures.ATH import ATHHandler
