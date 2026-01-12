@@ -2,13 +2,13 @@ import os
 import json
 from Data.Paths import Paths
 from Utility.UtilityClass import UtilityFunctions as utility
-from ..registry import register_feature
+from .registry import register_structure
 
-@register_feature
+@register_structure
 class ATHHandler():
-    def __init__(self,symbol = "BTCUSDT",candles=[]):
+    def __init__(self,candles=[]):
         self.candles = candles
-        self.symbol = symbol
+        self.symbol = candles.iloc[0]['symbol']
         self.Paths = Paths()
     
     async def getATHFromCandles(self):

@@ -46,6 +46,7 @@ class BinanceRestAPI:
 
             df = df[['open', 'high', 'low', 'close', 'volume','number_of_trades']]
             df = df.apply(pd.to_numeric).astype('float32')
+            df['symbol'] = symbol
             df['timestamp'] = df.index
             return df
         except Exception as e:

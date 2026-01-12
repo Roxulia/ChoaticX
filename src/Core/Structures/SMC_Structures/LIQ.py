@@ -1,20 +1,27 @@
 from .BaseZone import BaseZone
+from .Swings import Swings
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from Utility.MemoryUsage import MemoryUsage as mu
+from ..registry import register_structure
 
+@register_structure
 class LIQ(BaseZone):
+
+    def __init__(self, df = [],range_pct=0.01,window=10):
+        super().__init__(df)
+        self.range_pct = range_pct
+        self.swingDetector = Swings(df, window)
+
     @mu.log_memory
-    def detect(self, swings=None, range_pct=0.01, inner_func=False):
-        if swings is None:
-            raise ValueError("LiquidityDetector requires swings detected first")
-        self.swings = swings
+    def detect(self,  inner_func=False):
+        swings = self.swingDetector.detect()
         liquidity_zones = []
 
         highs = [s for s in swings if s['Type'] == 'Swing High']
         lows = [s for s in swings if s['Type'] == 'Swing Low']
-        pip_range = (self.highs.max() - self.lows.min()) * range_pct
+        pip_range = (self.highs.max() - self.lows.min()) * self.range_pct
 
         def process_zone(candidates, direction):
             result = []
@@ -58,7 +65,7 @@ class LIQ(BaseZone):
                     'equal_level_deviation': equal_level_deviation,
                     'avg_volume_around_zone': avg_volume,
                     'duration_between_first_last_touch': duration / np.timedelta64(1, 's'),
-                    'time_frame': self.timeframe,
+                    
                     'timestamp': group[0]['timestamp'],
                     **ta_means
                 })

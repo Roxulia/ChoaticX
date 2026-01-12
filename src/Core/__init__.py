@@ -8,4 +8,5 @@ from .Indicators.MACD import MACD
 from .Indicators.RollingRegression import RollingRegression
 from .Indicators.RSI import RSI
 from .Structures.ATH import ATHHandler
-from .Structures.SmcStructureDetector import SMCStructureDetector
+from .Structures.SMC import SMC
+from .Structures.Structures import Structures

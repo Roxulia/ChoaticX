@@ -1,11 +1,18 @@
 from .BaseZone import BaseZone
 from tqdm import tqdm
+import numpy as np
 from Utility.MemoryUsage import MemoryUsage as mu
+from ..registry import register_structure
 
+@register_structure
 class FVG(BaseZone):
 
+    def __init__(self, df = ...,threshold = 0.02):
+        super().__init__(df)
+        self.threshold = threshold
+
     @mu.log_memory
-    def detect(self,threshold = 300,inner_func = False):
+    def detect(self,inner_func = False):
         fvg_indices = []
         length = len(self.df)
         close_rolling = self.df['close'].rolling(window=5)
@@ -13,7 +20,7 @@ class FVG(BaseZone):
         avg_volume_past_5 = volume_rolling.mean().values
         prev_volatility_5 = close_rolling.std().values
         momentum_5 = self.closes - np.roll(self.closes, 5)
-
+        pip_range = (self.highs.max() - self.lows.min()) * self.threshold
         for i in tqdm(range(5, length - 1), desc='Extracting FVG', disable=inner_func):
             prev_high, prev_low = self.highs[i - 1], self.lows[i - 1]
             next_high, next_low = self.highs[i + 1], self.lows[i + 1]
@@ -25,13 +32,13 @@ class FVG(BaseZone):
             body_size = body
 
             # Bullish FVG
-            if next_low > prev_high and (next_low - prev_high) >= threshold:
+            if next_low > prev_high and (next_low - prev_high) >= pip_range:
                 touch_indx = next((j for j in range(i+2, length)
                                    if self.opens[j] > next_low and self.closes[j] < next_low), None)
                 fvg_indices.append(self._build_zone_dict(i, 'Bullish FVG', prev_high, next_low, touch_indx, wick_ratio, body_size, avg_volume_past_5, prev_volatility_5, momentum_5))
 
             # Bearish FVG
-            elif next_high < prev_low and (prev_low - next_high) >= threshold:
+            elif next_high < prev_low and (prev_low - next_high) >= pip_range:
                 touch_indx = next((j for j in range(i+2, length)
                                    if self.opens[j] < next_high and self.closes[j] > next_high), None)
                 fvg_indices.append(self._build_zone_dict(i, 'Bearish FVG', next_high, prev_low, touch_indx, wick_ratio, body_size, avg_volume_past_5, prev_volatility_5, momentum_5))
@@ -42,7 +49,6 @@ class FVG(BaseZone):
         return {
             'timestamp': self.timestamps[i],
             'zone_type': zone_type,
-            'time_frame': self.timeframe,
             'zone_high': zone_high,
             'zone_low': zone_low,
             'zone_width': abs(zone_high - zone_low),

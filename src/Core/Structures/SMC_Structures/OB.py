@@ -2,18 +2,24 @@ from .BaseZone import BaseZone
 from tqdm import tqdm
 import numpy as np
 from Utility.MemoryUsage import MemoryUsage as mu
+from ..registry import register_structure
 
+@register_structure
 class OB(BaseZone):
 
+    def __init__(self, df = ..., threshold = 0.02):
+        super().__init__(df)
+        self.threshold = threshold
+
     @mu.log_memory
-    def detect(self, threshold = 300,inner_func = False):
+    def detect(self, inner_func = False):
         ob_list = []
         close_rolling = self.df['close'].rolling(window=5)
         volume_rolling = self.df['volume'].rolling(window=5)
         avg_vol = volume_rolling.mean().values
         prev_vol= close_rolling.std().values
         momentum = self.closes - np.roll(self.closes, 5)
-        
+        pip_range = (self.highs.max() - self.lows.min()) * self.threshold
         for i in tqdm(range(5, len(self.df) - 2), desc='Extracting OBs', disable=inner_func):
             open_, close_ = self.opens[i], self.closes[i]
             high_, low_ = self.highs[i], self.lows[i]
@@ -23,7 +29,7 @@ class OB(BaseZone):
 
             body = abs(open_ - close_)
             candle_range = high_ - low_
-            if candle_range == 0 or candle_range < threshold:
+            if candle_range == 0 or candle_range < pip_range:
                 continue
 
             wick_ratio = 1 - (body / candle_range)
@@ -49,7 +55,6 @@ class OB(BaseZone):
         return {
             'timestamp': self.timestamps[i],
             'zone_type': zone_type,
-            'time_frame': self.timeframe,
             'zone_high': zone_high,
             'zone_low': zone_low,
             'zone_width': abs(zone_high - zone_low),
