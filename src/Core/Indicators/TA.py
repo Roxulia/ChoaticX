@@ -16,7 +16,7 @@ class TA:
             cls_name = indicator['name']
             params = indicator['params']
             cls = get_indicator(cls_name)
-            print({cls_name : cls})
+            # print({cls_name : cls})
             if cls is not None:
                 self.indicators[cls_name] = cls(**params)
 

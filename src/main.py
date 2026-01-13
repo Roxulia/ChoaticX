@@ -1,8 +1,6 @@
 import time
 import pandas as pd
 import argparse
-import asyncio
-import traceback
 from Services.signalService import SignalService
 from Services.predictionService import PredictionService
 from Services.predictionUsingTA_Service import predictionWithTA
@@ -17,8 +15,7 @@ from Database.DataModels.Liq import LIQ
 from Database.DataModels.Signals import Signals
 from Database.DataModels.Subscribers import Subscribers
 from Database.Cache import Cache
-from Market import Candles
-from Core import Structures
+
 
 Logger.set_context("main_system")
 
@@ -193,24 +190,7 @@ def run_all_process():
     except Exception as e:
         print(str(e))
 
-def test_TA():
-    try:
-        df_gen = Candles()
-        data = asyncio.run(df_gen.getLatestCandle("BNBUSDT","1h"))
-        print(data)
-    except Exception as e:
-        print(str(e))
 
-def test_Structure():
-    try:
-        candles = asyncio.run(Candles().getCandleData("BNBUSDT","1h","1 year"))
-        df_gen = Structures(candles,"1h")
-        data = asyncio.run(df_gen.detect())
-        print(data[0])
-    except Exception as e:
-        print(str(e))
-        traceback.print_stack()
-    
 
 # ----------------------------------------------------------------------
 # PROCESS REGISTRATION
@@ -218,8 +198,6 @@ def test_Structure():
 def generate_process_map():
     process = {
         "*": run_all_process,
-        "test-TA" : test_TA,
-        "test-Structure" : test_Structure,
         "update-database": initiate_database,
         "initiate-system": initiateAll,
         "initiate-predict": initiate_prediction_models,

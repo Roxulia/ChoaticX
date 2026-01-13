@@ -10,3 +10,4 @@ from .Indicators.RSI import RSI
 from .Structures.ATH import ATHHandler
 from .Structures.SMC import SMC
 from .Structures.Structures import Structures
+from .Regimes.Volatility import Volatility
