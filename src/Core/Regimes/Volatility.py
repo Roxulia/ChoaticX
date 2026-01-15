@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
+from .registry import register_regime
 
+@register_regime
 class Volatility:
 
     def __init__(

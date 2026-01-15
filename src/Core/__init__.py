@@ -11,3 +11,5 @@ from .Structures.ATH import ATHHandler
 from .Structures.SMC import SMC
 from .Structures.Structures import Structures
 from .Regimes.Volatility import Volatility
+from .Regimes.Session import Session
+from .Regimes.Regimes import Regimes

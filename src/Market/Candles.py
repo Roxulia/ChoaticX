@@ -1,5 +1,6 @@
 from .Binance.rest import BinanceRestAPI
 from Core.Indicators.TA import TA
+from Core import Regimes
 from Exceptions.ServiceExceptions import *
 from Core import RollingRegression
 from Utility import Logger
@@ -14,12 +15,14 @@ class Candles:
         self.logger = Logger()
         self.config = ConfigReader("config.json")
         self.TA = TA(self.config.getIndicatorsConfig())
+        self.regimes = Regimes(self.config.getRegimesConfig())
         self.RR = self.config.getRollingRegression()
 
     async def getCandleData(self,symbol,interval,lookback,limit = False):
         if limit:
             based_data = await self.api.get_ohlcv(symbol,interval,limit=100)
             data = self.TA.add(based_data)
+            data = self.regimes.add(data)
             if self.RR['enabled']: 
                 rr = RollingRegression()
                 market_data = await self.api.get_ohlcv(self.RR['base'],interval,limit = 100)
@@ -27,6 +30,7 @@ class Candles:
         else:
             based_data = await self.api.get_ohlcv(symbol,interval,lookback)
             data = self.TA.add(based_data)
+            data = self.regimes.add(data)
             if self.RR['enabled']: 
                 rr = RollingRegression()
                 market_data = await self.api.get_ohlcv(self.RR['base'],interval,lookback)
@@ -36,6 +40,7 @@ class Candles:
     async def getLatestCandle(self,symbol,interval):
         based_data = await self.api.get_ohlcv(symbol,interval,limit = 100)
         data = self.TA.add(based_data)
+        data = self.regimes.add(data)
         if self.RR['enabled']: 
                 rr = RollingRegression()
                 market_data = await self.api.get_ohlcv(self.RR['base'],interval,limit = 100)
@@ -57,4 +62,20 @@ class Candles:
             return file_path
         except:
             raise CantSaveToCSV
+
+
+    async def performFeatureEngineering(self, df):
+        """
+        Perform feature engineering on the DataFrame
+        """
+        try:
+            data = self.TA.add(df)
+            if self.RR['enabled']: 
+                rr = RollingRegression()
+                market_data = await self.api.get_ohlcv(self.RR['base'],interval,lookback)
+                data = rr.AddRegressionValues(data,market_data)
+            return data
+        except Exception as e:
+            self.logger.error(f"Error in feature engineering: {e}")
+            raise
 

@@ -66,5 +66,8 @@ class ConfigReader:
     def getModifiersConfig(self):
         return self._config_data['Modifiers'] if 'Modifiers' in self._config_data else []
     
+    def getRegimesConfig(self):
+        return self._config_data['Regimes'] if 'Regimes' in self._config_data else []
+
     def getRollingRegression(self):
         return self._config_data['RollingRegression'] if 'RollingRegression' in self._config_data else None
