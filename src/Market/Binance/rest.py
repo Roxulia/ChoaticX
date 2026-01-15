@@ -14,8 +14,6 @@ class BinanceRestAPI:
         self.api_secret = os.getenv("BINANCE_SECRET_KEY")
         
         self.apiclient = Client(self.api_key, self.api_secret)
-        self.broadcast_client = None
-        self.bm = None
         self.logger = Logger()
 
     async def get_ohlcv(self, symbol, interval, lookback=None,limit=None):

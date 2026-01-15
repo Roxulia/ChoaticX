@@ -50,7 +50,7 @@ class Volatility:
         # Confidence
         temp["vol_conf"] = temp["vol_z"].abs().clip(0, 3) / 3
 
-        return df.join(temp)
+        return df.join(temp[["vol_conf", "vol_regime", "vol_trend"]])
 
     def classify(self,z):
         if z <= -1.0:

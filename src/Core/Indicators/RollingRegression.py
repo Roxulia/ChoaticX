@@ -57,7 +57,7 @@ class RollingRegression():
 
         return df_result
     
-    def AddRegressionValues(self,based_df,market_df):
+    async def AddRegressionValues(self,based_df,market_df):
         df = pd.DataFrame({
             'market': market_df[self.source],
             'base': based_df[self.source]

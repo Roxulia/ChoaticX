@@ -27,10 +27,8 @@ def test_Structure():
     
 def test_Regime():
     try:
-        candles = asyncio.run(Candles().getCandleData("BNBUSDT","1h","1 year"))
-        df_gen = Volatility()
-        data = asyncio.run(df_gen.detect(candles))
-        print(data.iloc[-1])
+        candles = asyncio.run(Candles().getLatestCandle("BNBUSDT","15min"))
+        print(candles)
     except Exception as e:
         print(str(e))
         traceback.print_stack()
@@ -40,7 +38,7 @@ def generate_process_map():
     process = {
         "test-TA" : test_TA,
         "test-Structure" : test_Structure,
-        "test-Volatility" : test_Regime
+        "test-Regime" : test_Regime
     }
     return process
 

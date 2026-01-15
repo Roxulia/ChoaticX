@@ -5,19 +5,20 @@ class Regimes:
         self.configs = configs or []
         self.initialize()
 
-    def add(self,data):
+    async def add(self,data):
         for k,v in self.regimes.items() :
-            data = asyncio.run(v.detect(data))
+            data = await v.detect(data)
         return data
     
     def initialize(self):
         self.regimes = {}
         for regime in self.configs:
-            cls_name = regime['name']
-            params = regime['params']
-            cls = get_regime(cls_name)
-            # print({cls_name : cls})
-            if cls is not None:
-                self.regimes[cls_name] = cls(**params)
-    
+            if regime["enabled"]:
+                cls_name = regime['name']
+                params = regime['params']
+                cls = get_regime(cls_name)
+                # print({cls_name : cls})
+                if cls is not None:
+                    self.regimes[cls_name] = cls(**params)
+        
 

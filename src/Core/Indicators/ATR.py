@@ -10,7 +10,7 @@ class ATR:
         self.window = window
         self.source = source
     
-    def add(self,df):
+    async def add(self,df):
         data = df.copy()
         atr = ta.trend.ema_indicator(data[self.source], window=self.window)
         data['atr'] = atr

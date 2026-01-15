@@ -21,30 +21,30 @@ class Candles:
     async def getCandleData(self,symbol,interval,lookback,limit = False):
         if limit:
             based_data = await self.api.get_ohlcv(symbol,interval,limit=100)
-            data = self.TA.add(based_data)
-            data = self.regimes.add(data)
+            data = await self.TA.add(based_data)
+            data = await self.regimes.add(data)
             if self.RR['enabled']: 
                 rr = RollingRegression()
                 market_data = await self.api.get_ohlcv(self.RR['base'],interval,limit = 100)
-                data = rr.AddRegressionValues(data,market_data)
+                data = await rr.AddRegressionValues(data,market_data)
         else:
             based_data = await self.api.get_ohlcv(symbol,interval,lookback)
-            data = self.TA.add(based_data)
-            data = self.regimes.add(data)
+            data = await self.TA.add(based_data)
+            data = await self.regimes.add(data)
             if self.RR['enabled']: 
                 rr = RollingRegression()
                 market_data = await self.api.get_ohlcv(self.RR['base'],interval,lookback)
-                data = rr.AddRegressionValues(data,market_data)
+                data = await rr.AddRegressionValues(data,market_data)
         return data
     
     async def getLatestCandle(self,symbol,interval):
         based_data = await self.api.get_ohlcv(symbol,interval,limit = 100)
-        data = self.TA.add(based_data)
-        data = self.regimes.add(data)
+        data = await self.TA.add(based_data)
+        data = await self.regimes.add(data)
         if self.RR['enabled']: 
                 rr = RollingRegression()
                 market_data = await self.api.get_ohlcv(self.RR['base'],interval,limit = 100)
-                data = rr.AddRegressionValues(data,market_data)
+                data = await rr.AddRegressionValues(data,market_data)
         return data.iloc[-1]
 
     def store_OHLCV(self, symbol, interval,lookback):

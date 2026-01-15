@@ -20,7 +20,7 @@ class Trend:
         self.min_trend_bars = min_trend_bars
         self.slope_threshold = slope_threshold
 
-    def detect(self, df: pd.DataFrame) -> pd.DataFrame:
+    async def detect(self, df: pd.DataFrame) -> pd.DataFrame:
         temp = pd.DataFrame()
         df_swings = self.attach_swing_structure(df)
         temp["swing_type"] = df_swings["swing_type"]
@@ -39,25 +39,23 @@ class Trend:
         temp["trend_slope"] = (
             (temp["ema"] - temp["ema"].shift(self.slope_lookback)) / temp["atr"]
         )
+        
+        swing_map = {
+            "HH": 1,
+            "HL": 1,
+            "LH": -1,
+            "LL": -1
+        }
 
-        # Structure score
-        def structure_score(x):
-            score = 0
-            for s in x:
-                if s in ("HH", "HL"):
-                    score += 1
-                elif s in ("LL", "LH"):
-                    score -= 1
-            return score
+        temp["structure_val"] = temp["swing_type"].map(swing_map).fillna(0)
+
 
         temp["structure_score"] = (
-            temp["swing_type"]
-            .rolling(self.structure_window)
-            .apply(structure_score, raw=False)
+            temp["structure_val"]
+            .rolling(self.structure_window, min_periods=1)
+            .sum()
+            / self.structure_window
         )
-
-        # Normalize structure score
-        temp["structure_score"] /= self.structure_window
 
         # Trend direction flags
         temp["bullish"] = (
@@ -104,28 +102,31 @@ class Trend:
         )
 
         return df.join(
-            temp[
+            temp[[
                 "trend_regime",
                 "structure_score",
                 "trend_slope",
                 "trend_conf"
-            ])
+            ]])
     
     def attach_swing_structure(self,df:pd.DataFrame):
-        structure_cls = get_structure("Swings")
-        structure = structure_cls(df=df,window=self.structure_window)
-        swings = structure.label_market_structure()
-        temp = df.copy()
-        temp["swing_type"] = None
+        try:
+            structure_cls = get_structure("Swings")
+            structure = structure_cls(df=df,window=self.structure_window)
+            swings = structure.label_market_structure()
+            temp = df.copy()
+            temp["swing_type"] = None
+            swing_idx = 0
+            last_type = None
 
-        swing_idx = 0
-        last_type = None
+            for i in range(len(temp)):
+                while swing_idx < len(swings) and swings[swing_idx]["index"] <= i:
+                    last_type = swings[swing_idx]["swing_type"]
+                    swing_idx += 1
 
-        for i in range(len(temp)):
-            while swing_idx < len(swings) and swings[swing_idx]["index"] <= i:
-                last_type = swings[swing_idx]["swing_type"]
-                swing_idx += 1
-
-            temp.at[i, "swing_type"] = last_type
-
-        return temp
+                temp.at[i, "swing_type"] = last_type
+            return temp
+        except Exception as e:
+            print(f"Error in attach_swing_structure: {e}")
+            raise e
+        

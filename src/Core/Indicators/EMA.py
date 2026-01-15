@@ -13,7 +13,7 @@ class EMA:
         self.source = source
         self.previous_crossover = None  # Store previous crossover info
     
-    def add(self,df):
+    async def add(self,df):
         data = df.copy()
         for w in self.windows:
             data[f'ema_{w}'] = ta.trend.ema_indicator(data[self.source], window=w)

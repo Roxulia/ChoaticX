@@ -12,7 +12,7 @@ class MACD:
         self.signal_period = signal_period
         self.source = source
     
-    def add(self, df):
+    async def add(self, df):
         data = df.copy()
         macd = ta.trend.MACD(data[self.source], window_slow=self.slow_period,
                              window_fast=self.fast_period, window_sign=self.signal_period)

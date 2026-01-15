@@ -3,8 +3,8 @@ from Core.Regimes.registry import register_regime
 
 @register_regime
 class Session:
-    def __init__(self, tz="UTC"):
-        self.tz = tz
+    def __init__(self, timezone="UTC"):
+        self.timezone = timezone
 
     async def detect(self, df: pd.DataFrame) -> pd.DataFrame:
         temp = pd.DataFrame()
@@ -18,7 +18,7 @@ class Session:
         temp["session_regime"] = temp.apply(self.classify, axis=1)
         temp["session_conf"] = 1.0
 
-        return df.join(temp)
+        return df.join(temp[["session_conf", "session_regime"]])
     
     def classify(self,row):
         if row["weekday"] >= 5:

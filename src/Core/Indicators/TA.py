@@ -5,9 +5,9 @@ class TA:
         self.configs = configs or []
         self.initialize()
 
-    def add(self,data):
+    async def add(self,data):
         for k,v in self.indicators.items() :
-            data = v.add(data)
+            data = await v.add(data)
         return data
     
     def initialize(self):

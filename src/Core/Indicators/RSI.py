@@ -15,7 +15,7 @@ class RSI:
         self.source = source
         self.window = window
 
-    def add(self,df):
+    async def add(self,df):
         data = df.copy()
         data['rsi'] = ta.momentum.rsi(data[self.source], window=self.window)
         return data

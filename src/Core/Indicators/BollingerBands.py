@@ -15,7 +15,7 @@ class BollingerBands:
         self.window = window
         self.window_dev = window_dev
     
-    def add(self,df):
+    async def add(self,df):
         data = df.copy()
         bb = ta.volatility.BollingerBands(close=data["close"], window=self.window, window_dev=self.window_dev)
         data["bb_high"] = bb.bollinger_hband()
