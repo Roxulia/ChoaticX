@@ -1,3 +1,4 @@
+import traceback
 class EmptySignalException(Exception):
     def __init__(self):
         super().__init__("No running Signal Found")
@@ -53,3 +54,22 @@ class EmptyTelegramMessage(Exception):
 class ValueLessThanZero(Exception):
     def __init__(self, *args):
         super().__init__("Can't be less than Zero")
+
+
+def asyncerrorHandling(func):
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            print(f"Error in {func.__name__}: {str(e)}")
+            traceback.print_exc()
+    return wrapper
+
+def errorHandling(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            print(f"Error in {func.__name__}: {str(e)}")
+            traceback.print_exc()
+    return wrapper

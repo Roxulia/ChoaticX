@@ -1,3 +1,4 @@
+from Exceptions.ServiceExceptions import errorHandling
 from .BaseZone import BaseZone
 from tqdm import tqdm
 from Utility.MemoryUsage import MemoryUsage as mu
@@ -31,7 +32,8 @@ class Swings(BaseZone):
         self.window = window
 
     @mu.log_memory
-    def detect(self):
+    @errorHandling
+    def detect(self, inner_func=False):
         swings = []
 
         for i in range(len(self.df)):
@@ -55,13 +57,13 @@ class Swings(BaseZone):
                 swings.append({**base_data, 'Type': 'Swing High', 'Price': center_high, 'swing_strength': self.window})
             elif is_swing_low:
                 swings.append({**base_data, 'Type': 'Swing Low', 'Price': center_low, 'swing_strength': self.window})
+        swings = self.label_market_structure(swings)
         self.swings = swings
         return swings
     
-    def label_market_structure(self):
+    def label_market_structure(self,swings=None):
         last_high = None
         last_low = None
-        swings = self.detect()
         for swing in swings:
             if swing["Type"] == "Swing High":
                 if last_high is None:

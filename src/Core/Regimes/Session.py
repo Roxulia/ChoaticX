@@ -1,6 +1,7 @@
 import pandas as pd
 from Core.Regimes.registry import register_regime
 from Core.Features.meta_registry import register_feature_meta
+from Exceptions.ServiceExceptions import asyncerrorHandling
 
 @register_regime
 @register_feature_meta
@@ -26,7 +27,8 @@ class Session:
     def __init__(self, timezone="UTC"):
         self.timezone = timezone
 
-    async def detect(self, df: pd.DataFrame) -> pd.DataFrame:
+    @asyncerrorHandling
+    async def detect(self, df: pd.DataFrame, context) -> pd.DataFrame:
         temp = pd.DataFrame()
 
         # Ensure timestamp is timezone-aware

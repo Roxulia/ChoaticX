@@ -1,3 +1,4 @@
+from Exceptions.ServiceExceptions import asyncerrorHandling
 import numpy as np
 import pandas as pd
 from Core.Indicators.registry import get_indicator
@@ -62,9 +63,11 @@ class Trend:
         self.min_trend_bars = min_trend_bars
         self.slope_threshold = slope_threshold
 
-    async def detect(self, df: pd.DataFrame) -> pd.DataFrame:
+    @asyncerrorHandling
+    async def detect(self, df: pd.DataFrame , context) -> pd.DataFrame:
         temp = pd.DataFrame()
-        df_swings = self.attach_swing_structure(df)
+        df_swings = self.attach_swing_structure(df,context.get("Swings",[]))
+
         temp["swing_type"] = df_swings["swing_type"]
         if f"ema_{self.ema_window}" not in df.columns:
             emaIndicator = get_indicator('EMA')(windows=[self.ema_window], source='close')
@@ -151,11 +154,12 @@ class Trend:
                 "trend_conf"
             ]])
     
-    def attach_swing_structure(self,df:pd.DataFrame):
+    def attach_swing_structure(self,df:pd.DataFrame, swings=None) -> pd.DataFrame:
         try:
-            structure_cls = get_structure("Swings")
-            structure = structure_cls(df=df,window=self.structure_window)
-            swings = structure.label_market_structure()
+            if swings == []:
+                structure_cls = get_structure("Swings")
+                structure = structure_cls(df=df,window=self.structure_window)
+                swings = structure.detect()
             temp = df.copy()
             temp["swing_type"] = None
             swing_idx = 0

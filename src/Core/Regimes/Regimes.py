@@ -1,3 +1,4 @@
+from Exceptions.ServiceExceptions import asyncerrorHandling
 from .registry import get_regime
 import asyncio
 class Regimes:
@@ -5,9 +6,10 @@ class Regimes:
         self.configs = configs or []
         self.initialize()
 
-    async def add(self,data):
+    @asyncerrorHandling
+    async def add(self,data,context):
         for k,v in self.regimes.items() :
-            data = await v.detect(data)
+            data = await v.detect(data,context)
         return data
     
     def initialize(self):

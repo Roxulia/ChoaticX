@@ -1,6 +1,6 @@
 from .registry import get_structure,list_structures
-from Utility import ConfigReader
-
+from Utility import ConfigReader,Logger
+from Exceptions.ServiceExceptions import asyncerrorHandling,errorHandling
 class Structures:
     def __init__(self,candlestick_data,timeframe = '1h'):
         self.df = candlestick_data
@@ -18,11 +18,12 @@ class Structures:
                 if cls is not None:
                     self.detectors[name] = cls(self.df,**params)
 
+    @asyncerrorHandling
     async def detect(self):
-        zones = []
+        Logger.info("Detecting Structures...")
+        zones = {}
         for name,detectors in self.detectors.items():
             if name != "ATH" : 
-                zones.extend(detectors.get_zones())
-        for zone in zones:
-            zone["timeframe"] = self.timeframe
+                zones[name] = detectors.get_zones()
+        zones["timeframe"] = self.timeframe
         return zones

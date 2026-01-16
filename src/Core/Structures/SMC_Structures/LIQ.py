@@ -1,3 +1,4 @@
+from Exceptions.ServiceExceptions import errorHandling
 from .BaseZone import BaseZone
 from .Swings import Swings
 from tqdm import tqdm
@@ -39,6 +40,7 @@ class LIQ(BaseZone):
         self.swingDetector = Swings(df, window)
 
     @mu.log_memory
+    @errorHandling
     def detect(self,  inner_func=False):
         swings = self.swingDetector.detect()
         liquidity_zones = []

@@ -1,3 +1,4 @@
+from Exceptions.ServiceExceptions import errorHandling
 from .SMC_Structures.FVG import FVG
 from .SMC_Structures.LIQ import LIQ
 from .SMC_Structures.OB import OB
@@ -12,11 +13,12 @@ class SMC:
         self.configs = zones or []
         self.initialize()
 
+    @errorHandling
     def get_zones(self):
-        zones  = []
+        zones  = {}
         for name, structure in self.structures.items():
             detected_zones = structure.detect(inner_func=True)
-            zones.extend(detected_zones)
+            zones[name] = detected_zones
 
         # return all zones
         return zones

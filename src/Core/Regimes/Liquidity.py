@@ -1,11 +1,15 @@
 import pandas as pd
+
+from Core.Structures.registry import get_structure
+from Exceptions.ServiceExceptions import errorHandling,asyncerrorHandling
 from .registry import register_regime
 from Core.Features.meta_registry import register_feature_meta
-
+from Core.Indicators.registry import get_indicator
+from Utility import ConfigReader
 
 @register_regime
 @register_feature_meta
-class LiquidityRegimeDetector:
+class Liquidity:
     META = {
         'name': 'Liquidity Regime Detector',
         'short_name': 'Liquidity',
@@ -57,9 +61,19 @@ class LiquidityRegimeDetector:
         self.liq_age = 0
         self.liq_event = "NONE"
 
-    def detect(self, df: pd.DataFrame, liquidity_zones) -> pd.DataFrame:
+    @asyncerrorHandling
+    async def detect(self, df: pd.DataFrame, context) -> pd.DataFrame:
         temp = pd.DataFrame()
-
+        liquidity_zones = context.get("LIQ", [])
+        if liquidity_zones == []:
+            liq_structure_cls = get_structure("LIQ")
+            liq_structure = liq_structure_cls(df=df)
+            liquidity_zones = liq_structure.detect()
+        if "atr" not in df.columns:
+            atrIndicator = get_indicator('ATR')(window=14, source='close')
+            temp["atr"] = atrIndicator.add(df)
+        else:
+            temp["atr"] = df["atr"]
         regimes = []
         events = []
         ages = []
@@ -86,8 +100,9 @@ class LiquidityRegimeDetector:
         temp["liq_age"] = ages
         temp["liq_conf"] = confs
 
-        return df.join(temp)
+        return df.join(temp[["liq_regime", "liq_event", "liq_age", "liq_conf"]])
 
+    @errorHandling
     def detect_candle(self, candle, liquidity_zones):
         """
         candle: dict with open, high, low, close, atr
@@ -115,20 +130,20 @@ class LiquidityRegimeDetector:
 
         # --- Step 2: Sweep detection ---
         for zone in liquidity_zones:
-            if zone["side"] == "BUY":
+            if zone["zone_type"] == "Buy-Side Liq":
                 if (
-                    candle["high"] > zone["price"] + candle["atr"] * self.sweep_atr_factor
-                    and candle["close"] < zone["price"]
+                    candle["high"] > zone["level"] + candle["atr"] * self.sweep_atr_factor
+                    and candle["close"] < zone["level"]
                 ):
                     self.current_regime = "LIQUIDITY_SWEEP"
                     self.liq_age = 0
                     self.liq_event = "BUY_SIDE"
                     return self._output("LIQUIDITY_SWEEP", "BUY_SIDE", 0, 0.85)
 
-            if zone["side"] == "SELL":
+            if zone["zone_type"] == "Sell-Side Liq":
                 if (
-                    candle["low"] < zone["price"] - candle["atr"] * self.sweep_atr_factor
-                    and candle["close"] > zone["price"]
+                    candle["low"] < zone["level"] - candle["atr"] * self.sweep_atr_factor
+                    and candle["close"] > zone["level"]
                 ):
                     self.current_regime = "LIQUIDITY_SWEEP"
                     self.liq_age = 0

@@ -1,3 +1,4 @@
+from Exceptions.ServiceExceptions import asyncerrorHandling
 import numpy as np
 import pandas as pd
 from .registry import register_regime
@@ -53,8 +54,8 @@ class Volatility:
         self.baseline_window = baseline_window
         self.slope_window = slope_window
 
-
-    async def detect(self, df: pd.DataFrame) -> pd.DataFrame:
+    @asyncerrorHandling
+    async def detect(self, df: pd.DataFrame,context) -> pd.DataFrame:
         temp = pd.DataFrame()
 
         # Log returns (stationary)

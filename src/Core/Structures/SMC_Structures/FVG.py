@@ -1,3 +1,4 @@
+from Exceptions.ServiceExceptions import errorHandling
 from .BaseZone import BaseZone
 from tqdm import tqdm
 import numpy as np
@@ -31,6 +32,7 @@ class FVG(BaseZone):
         self.threshold = threshold
 
     @mu.log_memory
+    @errorHandling
     def detect(self,inner_func = False):
         fvg_indices = []
         length = len(self.df)

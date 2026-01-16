@@ -1,11 +1,14 @@
 from .registry import get_indicator
 from Data.Services_data import ServiceData
+from Utility import Logger
+
 class TA:
     def __init__(self,configs = None):
         self.configs = configs or []
         self.initialize()
 
     async def add(self,data):
+        Logger.info("Adding Technical Indicators...")
         for k,v in self.indicators.items() :
             data = await v.add(data)
         return data
