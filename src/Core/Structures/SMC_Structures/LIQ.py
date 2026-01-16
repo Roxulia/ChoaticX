@@ -5,9 +5,33 @@ import numpy as np
 import pandas as pd
 from Utility.MemoryUsage import MemoryUsage as mu
 from ..registry import register_structure
+from Core.Features.meta_registry import register_feature_meta
 
 @register_structure
+@register_feature_meta
 class LIQ(BaseZone):
+
+    META = {
+        'name': 'LIQ',
+        'short_name': 'LIQ',
+        'description': 'Detects liquidity zones in price data.',
+        'parameters': {
+            'range_pct': {
+                'type': 'float',
+                'default': 0.01,
+                "description": "The percentage range for liquidity zone detection."
+            },
+            'window': {
+                'type': 'int',
+                'default': 10,
+                "description": "The window size for swing detection."
+            }
+        },
+        "provides": {
+            "liquidity_zones": "Detected liquidity zones"
+        },
+        "requires": {"swings"}
+    }
 
     def __init__(self, df = [],range_pct=0.01,window=10):
         super().__init__(df)
@@ -73,5 +97,5 @@ class LIQ(BaseZone):
 
         buy_side = process_zone(lows, 'Buy-Side')
         sell_side = process_zone(highs, 'Sell-Side')
-        liquidity_zones = buy_side + sell_side
-        return liquidity_zones
+        self.liquidity_zones = buy_side + sell_side
+        return self.liquidity_zones

@@ -2,10 +2,29 @@ from .BaseZone import BaseZone
 from tqdm import tqdm
 from Utility.MemoryUsage import MemoryUsage as mu
 from ..registry import register_structure
+from Core.Features.meta_registry import register_feature_meta
 
 
 @register_structure
+@register_feature_meta
 class Swings(BaseZone):
+
+    META = {
+        'name': 'Swings',
+        'short_name': 'Swings',
+        'description': 'Detects swing highs and lows in price data.',
+        'parameters': {
+            'window': {
+                'type': 'int',
+                'default': 10,
+                "description": "The window size for swing detection."
+            }
+        },
+        "provides": {
+            "swings": "Detected swing points"
+        },
+        "requires": {}
+    }
 
     def __init__(self, df = [], window=10):
         super().__init__(df)
@@ -36,7 +55,7 @@ class Swings(BaseZone):
                 swings.append({**base_data, 'Type': 'Swing High', 'Price': center_high, 'swing_strength': self.window})
             elif is_swing_low:
                 swings.append({**base_data, 'Type': 'Swing Low', 'Price': center_low, 'swing_strength': self.window})
-
+        self.swings = swings
         return swings
     
     def label_market_structure(self):
@@ -57,4 +76,5 @@ class Swings(BaseZone):
                 else:
                     swing["swing_type"] = "HL" if swing["Price"] > last_low else "LL"
                 last_low = swing["Price"]
+        self.swings = swings
         return swings

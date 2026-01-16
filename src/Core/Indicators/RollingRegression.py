@@ -3,9 +3,31 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from .registry import register_indicator
+from Core.Features.meta_registry import register_feature_meta
 
 @register_indicator
+@register_feature_meta
 class RollingRegression():
+    META = {
+        'name': 'Rolling Regression',
+        'short_name': 'RR',
+        'description': 'Calculates rolling regression between two time series.',
+        'parameters': {
+            'source': {
+                'type': 'str',
+                'default': "close",
+                "description": "The source price column to calculate regression from."
+            }
+        },
+        "provides": {
+            "alpha": "Alpha coefficient",
+            "beta": "Beta coefficient",
+            "gamma": "Gamma coefficient",
+            "r2": "R-squared value"
+        },
+        "requires": lambda self: {self.source}
+    }
+
     def __init__(self,source = 'close'):
         self.source = source
         self.poly = PolynomialFeatures(degree=2)

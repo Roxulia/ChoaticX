@@ -1,9 +1,45 @@
 import numpy as np
 import pandas as pd
 from .registry import register_regime
+from Core.Features.meta_registry import register_feature_meta
 
 @register_regime
+@register_feature_meta
 class Volatility:
+
+    META = {
+        'name': 'Volatility Regime Detector',
+        'short_name': 'Volatility',
+        'description': 'Detects volatility regimes based on rolling volatility and z-scores.',
+        'parameters': {
+            'ret_window': {
+                'type': 'int',
+                'default': 1,
+                "description": "The window for calculating log returns."
+            },
+            'vol_window': {
+                'type': 'int',
+                'default': 20,
+                "description": "The window for calculating rolling volatility."
+            },
+            'baseline_window': {
+                'type': 'int',
+                'default': 100,
+                "description": "The window for calculating baseline volatility."
+            },
+            'slope_window': {
+                'type': 'int',
+                'default': 5,
+                "description": "The window for calculating volatility slope."
+            }
+        },
+        "provides": {
+            "vol_regime": "The detected volatility regime",
+            "vol_trend": "The detected volatility trend",
+            "vol_conf": "Confidence level of the detected volatility regime"
+        },
+        "requires": {"close"}
+    }
 
     def __init__(
         self,

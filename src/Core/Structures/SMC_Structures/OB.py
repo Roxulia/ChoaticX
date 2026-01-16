@@ -3,9 +3,28 @@ from tqdm import tqdm
 import numpy as np
 from Utility.MemoryUsage import MemoryUsage as mu
 from ..registry import register_structure
+from Core.Features.meta_registry import register_feature_meta
 
 @register_structure
+@register_feature_meta
 class OB(BaseZone):
+
+    META = {
+        'name': 'OB',
+        'short_name': 'OB',
+        'description': 'Detects OB in price data.',
+        'parameters': {
+            'threshold': {
+                'type': 'float',
+                'default': 0.02,
+                "description": "The threshold for OB detection."
+            }
+        },
+        "provides": {
+            "ob": "Detected OB points"
+        },
+        "requires": {}
+    }
 
     def __init__(self, df = ..., threshold = 0.02):
         super().__init__(df)
@@ -48,7 +67,7 @@ class OB(BaseZone):
                 touch_indx = next((j for j in range(i+3, len(self.df))
                                    if self.opens[j] < zone_low and self.closes[j] > zone_low), None)
                 ob_list.append(self._build_zone_dict(i, 'Bearish OB', zone_low, zone_high, touch_indx, wick_ratio, body_size, avg_vol,prev_vol,momentum))
-
+        self.ob = ob_list
         return ob_list
     
     def _build_zone_dict(self, i, zone_type, zone_low, zone_high, touch_index, wick_ratio, body_size, avg_vol, prev_vol, momentum):

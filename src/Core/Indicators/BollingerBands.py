@@ -1,12 +1,37 @@
 import ta
 from .registry import register_indicator
+from Core.Features.meta_registry import register_feature_meta
 
 @register_indicator
+@register_feature_meta
 class BollingerBands:
     """
     Detects moving average crossover signals (Golden Cross & Death Cross).
     Can be extended for multiple timeframes and custom moving averages.
     """
+    META = {
+        'name': 'Bollinger Bands',
+        'short_name': 'BB',
+        'description': 'Calculates Bollinger Bands with customizable window and standard deviation.',
+        'parameters': {
+            'window': {
+                'type': 'int',
+                'default': 20,
+                'description': 'The period for the Bollinger Bands calculation.'
+            },
+            'window_dev': {
+                'type': 'float',
+                'default': 2.0,
+                'description': 'The number of standard deviations to use for the bands.'
+            }
+        },
+        'provides': {
+            'bb_high': "Upper Bollinger Band",
+            'bb_low': "Lower Bollinger Band",
+            'bb_mid': "Middle Bollinger Band"
+        },
+        'requires': {"close"}
+    }
 
     def __init__(self, window=20, window_dev = 2):
         """

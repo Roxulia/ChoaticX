@@ -3,9 +3,51 @@ import pandas as pd
 from Core.Indicators.registry import get_indicator
 from Core.Structures.registry import get_structure
 from .registry import register_regime
+from Core.Features.meta_registry import register_feature_meta
 
 @register_regime
+@register_feature_meta
 class Trend:
+    META = {
+        'name': 'Trend Regime Detector',
+        'short_name': 'Trend',
+        'description': 'Detects trend regimes based on EMA slope and market structure.',
+        'parameters': {
+            'ema_window': {
+                'type': 'int',
+                'default': 50,
+                "description": "The EMA window size."
+            },
+            'slope_lookback': {
+                'type': 'int',
+                'default': 5,
+                "description": "The lookback period for slope calculation."
+            },
+            'structure_window': {
+                'type': 'int',
+                'default': 10,
+                "description": "The window size for structure detection."
+            },
+            'min_trend_bars': {
+                'type': 'int',
+                'default': 5,
+                "description": "Minimum number of bars to confirm a trend."
+            },
+            'slope_threshold': {
+                'type': 'float',
+                'default': 0.2,
+                "description": "The threshold for slope detection."
+            }
+        },
+        "provides": {
+            "trend_regime": "The detected trend regime (UPTREND, DOWNTREND, RANGE, TRANSITION)",
+            "structure_score": "Score indicating market structure strength",
+            "trend_slope": "The normalized slope of the EMA",
+            "trend_conf": "Confidence level of the detected trend regime"
+        },
+        "requires":lambda self: {"swings", f"ema_{self.ema_window}", "atr"}
+    }
+
     def __init__(
         self,
         ema_window=50,

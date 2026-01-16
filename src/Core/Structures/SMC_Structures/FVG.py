@@ -3,9 +3,28 @@ from tqdm import tqdm
 import numpy as np
 from Utility.MemoryUsage import MemoryUsage as mu
 from ..registry import register_structure
+from Core.Features.meta_registry import register_feature_meta
 
 @register_structure
+@register_feature_meta
 class FVG(BaseZone):
+
+    META = {
+        'name': 'FVG',
+        'short_name': 'FVG',
+        'description': 'Detects FVG in price data.',
+        'parameters': {
+            'threshold': {
+                'type': 'float',
+                'default': 0.02,
+                "description": "The threshold for FVG detection."
+            }
+        },
+        "provides": {
+            "fvg": "Detected FVG points"
+        },
+        "requires": {}
+    }
 
     def __init__(self, df = ...,threshold = 0.02):
         super().__init__(df)
@@ -42,7 +61,7 @@ class FVG(BaseZone):
                 touch_indx = next((j for j in range(i+2, length)
                                    if self.opens[j] < next_high and self.closes[j] > next_high), None)
                 fvg_indices.append(self._build_zone_dict(i, 'Bearish FVG', next_high, prev_low, touch_indx, wick_ratio, body_size, avg_volume_past_5, prev_volatility_5, momentum_5))
-
+        self.fvg = fvg_indices
         return fvg_indices
 
     def _build_zone_dict(self, i, zone_type, zone_low, zone_high, touch_index, wick_ratio, body_size, avg_vol, prev_vol, momentum):

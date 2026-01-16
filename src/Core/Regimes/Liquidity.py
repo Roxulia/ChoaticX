@@ -3,9 +3,47 @@ import pandas as pd
 from Core.Indicators.registry import get_indicator
 from Core.Structures.registry import get_structure
 from .registry import register_regime
+from Core.Features.meta_registry import register_feature_meta
+
 
 @register_regime
+@register_feature_meta
 class LiquidityRegimeDetector:
+    META = {
+        'name': 'Liquidity Regime Detector',
+        'short_name': 'Liquidity',
+        'description': 'Detects liquidity regimes based on price action and liquidity zones.',
+        'parameters': {
+            'sweep_atr_factor': {
+                'type': 'float',
+                'default': 0.5,
+                "description": "The ATR factor for sweep detection."
+            },
+            'post_sweep_bars': {
+                'type': 'int',
+                'default': 5,
+                "description": "The number of bars after a sweep to consider as post-sweep."
+            },
+            'void_atr_factor': {
+                'type': 'float',
+                'default': 2.0,
+                "description": "The ATR factor for void detection."
+            },
+            'wick_ratio_threshold': {
+                'type': 'float',
+                'default': 0.15,
+                "description": "The threshold for wick ratio in void detection."
+            }
+        },
+        "provides": {
+            "liq_regime": "The detected liquidity regime",
+            "liq_event": "The detected liquidity event",
+            "liq_age": "Age of the current liquidity regime",
+            "liq_conf": "Confidence level of the detected liquidity regime"
+        },
+        "requires": {"close", "high", "low", "atr","liquidity_zones"}
+    }
+
     def __init__(
         self,
         sweep_atr_factor=0.5,
@@ -21,6 +59,37 @@ class LiquidityRegimeDetector:
         self.current_regime = "NONE"
         self.liq_age = 0
         self.liq_event = "NONE"
+
+    def detect(self, df: pd.DataFrame, liquidity_zones) -> pd.DataFrame:
+        temp = pd.DataFrame()
+
+        regimes = []
+        events = []
+        ages = []
+        confs = []
+
+        for _, row in df.iterrows():
+            candle = {
+                "open": row["open"],
+                "high": row["high"],
+                "low": row["low"],
+                "close": row["close"],
+                "atr": row["atr"]
+            }
+
+            result = self.detect_candle(candle, liquidity_zones)
+
+            regimes.append(result["liq_regime"])
+            events.append(result["liq_event"])
+            ages.append(result["liq_age"])
+            confs.append(result["liq_conf"])
+
+        temp["liq_regime"] = regimes
+        temp["liq_event"] = events
+        temp["liq_age"] = ages
+        temp["liq_conf"] = confs
+
+        return df.join(temp)
 
     def detect_candle(self, candle, liquidity_zones):
         """

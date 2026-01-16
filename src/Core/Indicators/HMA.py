@@ -1,10 +1,30 @@
 import numpy as np
 import ta
 from .registry import register_indicator
+from Core.Features.meta_registry import register_feature_meta
 
 @register_indicator
+@register_feature_meta
 class HMA:
-    
+    META = {
+        'name': 'Hull Moving Average',
+        'short_name': 'HMA',
+        'description': 'Calculates Hull Moving Averages for specified windows.',
+        'parameters': {
+            'windows': {
+                'type': 'list[int]',
+                'default': [20, 50],
+                'description': 'The periods for the HMA calculations.'
+            },
+            'source': {
+                'type': 'str',
+                'default': 'close',
+                'description': 'The source price column to calculate HMA from.'
+            }
+        },
+        'provides': lambda self: {f'hma_{w}': f'Hull Moving Average for window {w}' for w in self.windows},
+        'requires': lambda self: {self.source}
+    }
 
     def __init__(self, windows = [20,50],source = 'close'):
         """
@@ -12,7 +32,6 @@ class HMA:
         """
         self.windows = windows
         self.source = source
-        self.previous_crossover = None  # Store previous crossover info
     
     async def add(self,df):
         data = df.copy()

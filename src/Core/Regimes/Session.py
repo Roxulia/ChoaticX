@@ -1,8 +1,28 @@
 import pandas as pd
 from Core.Regimes.registry import register_regime
+from Core.Features.meta_registry import register_feature_meta
 
 @register_regime
+@register_feature_meta
 class Session:
+    META = {
+        'name': 'Session Regime Detector',
+        'short_name': 'Session',
+        'description': 'Detects session regimes based on time of day.',
+        'parameters': {
+            'timezone': {
+                'type': 'str',
+                'default': "UTC",
+                "description": "The timezone to use for session detection."
+            }
+        },
+        "provides": {
+            "session_regime": "The detected session regime",
+            "session_conf": "Confidence level of the detected session regime"
+        },
+        "requires": {"timestamp"}
+    }
+
     def __init__(self, timezone="UTC"):
         self.timezone = timezone
 
