@@ -1,7 +1,4 @@
-import numpy as np
 import pandas as pd
-from Core.Indicators.registry import get_indicator
-from Core.Structures.registry import get_structure
 from .registry import register_regime
 from Core.Features.meta_registry import register_feature_meta
 
@@ -36,12 +33,12 @@ class LiquidityRegimeDetector:
             }
         },
         "provides": {
-            "liq_regime": "The detected liquidity regime",
-            "liq_event": "The detected liquidity event",
-            "liq_age": "Age of the current liquidity regime",
-            "liq_conf": "Confidence level of the detected liquidity regime"
+            "liq_regime": "column",
+            "liq_event": "column",
+            "liq_age": "column",
+            "liq_conf": "column"
         },
-        "requires": {"close", "high", "low", "atr","liquidity_zones"}
+        "requires": {"close":"column", "high":"column", "low":"column", "atr":"column","liquidity_zones":"list"}
     }
 
     def __init__(

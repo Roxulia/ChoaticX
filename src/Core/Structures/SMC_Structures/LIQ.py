@@ -28,9 +28,9 @@ class LIQ(BaseZone):
             }
         },
         "provides": {
-            "liquidity_zones": "Detected liquidity zones"
+            "liquidity_zones": "list"
         },
-        "requires": {"swings"}
+        "requires": {"swings": "list"}
     }
 
     def __init__(self, df = [],range_pct=0.01,window=10):
