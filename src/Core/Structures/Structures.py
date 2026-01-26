@@ -20,7 +20,7 @@ class Structures:
 
     @asyncerrorHandling
     async def detect(self):
-        Logger.info("Detecting Structures...")
+        Logger().info("Detecting Structures...")
         zones = {}
         for name,detectors in self.detectors.items():
             if name != "ATH" : 

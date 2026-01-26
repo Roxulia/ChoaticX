@@ -3,16 +3,17 @@ from .BaseZone import BaseZone
 from tqdm import tqdm
 import numpy as np
 from Utility.MemoryUsage import MemoryUsage as mu
-from ..registry import register_structure
+from ..registry import register_structure,register_zone
 from Core.Features.meta_registry import register_feature_meta
 
-@register_structure
+@register_zone
 @register_feature_meta
 class FVG(BaseZone):
 
     META = {
         'name': 'FVG',
         'short_name': 'FVG',
+        'is_zone': True,
         'description': 'Detects FVG in price data.',
         'parameters': {
             'threshold': {

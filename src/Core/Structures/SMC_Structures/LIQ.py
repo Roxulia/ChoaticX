@@ -5,16 +5,17 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from Utility.MemoryUsage import MemoryUsage as mu
-from ..registry import register_structure
+from ..registry import register_structure, register_zone
 from Core.Features.meta_registry import register_feature_meta
 
-@register_structure
+@register_zone  
 @register_feature_meta
 class LIQ(BaseZone):
 
     META = {
         'name': 'LIQ',
         'short_name': 'LIQ',
+        'is_zone': True,
         'description': 'Detects liquidity zones in price data.',
         'parameters': {
             'range_pct': {

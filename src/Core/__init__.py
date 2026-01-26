@@ -16,3 +16,8 @@ from .Regimes.Session import Session
 from .Regimes.Trend import Trend
 from .Regimes.Liquidity import Liquidity
 from .Regimes.Regimes import Regimes
+from .Features.Generators.BaseDataGenerator import Generator
+from .Features.meta_registry import FEATURE_META_REGISTRY
+from .Indicators.registry import *
+from .Structures.registry import *
+from .Regimes.registry import *

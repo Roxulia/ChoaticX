@@ -3,9 +3,22 @@ import json
 from Data.Paths import Paths
 from Utility.UtilityClass import UtilityFunctions as utility
 from .registry import register_structure
+from Core.Features.meta_registry import register_feature_meta
 
 @register_structure
+@register_feature_meta
 class ATHHandler():
+    META = {
+        'name': 'ATHHandler',
+        'short_name': 'ATHHandler',
+        'is_zone': True,
+        'description': 'Handles All-Time High (ATH) data for a given symbol.',
+        'parameters': {},
+        "provides": {
+            "ATH": "All-Time High data and related statistics"
+        },
+        "requires": {}
+    }
     def __init__(self,candles=[]):
         self.candles = candles
         self.symbol = candles.iloc[0]['symbol']

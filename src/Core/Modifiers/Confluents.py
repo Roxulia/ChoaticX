@@ -1,28 +1,32 @@
 import pandas as pd 
 import numpy as np
+import asyncio
 from Data.timeFrames import timeFrame
 from Data.indexCalculate import IndexCalculator
 from Utility.MemoryUsage import MemoryUsage as mu
+from Utility.Logger import Logger
+from Features.Generators.BaseDataGenerator import BaseDataGenerator
 from tqdm import tqdm
-class ConfluentsFinder():
-    def __init__(self,zones,threshold):
-        self.zones = zones
+from .registry import register_modifier
+
+@register_modifier
+class Confluents():
+    def __init__(self,timeFrames,threshold):
         self.threshold = threshold
-        self. timeframes = timeFrame()
-        self.indexCalculate = IndexCalculator(self.zones)
+        self.timeFrames = timeFrames
 
-    def seperate(self):
-        self.liq_zones = [z for z in self.zones if  z['zone_type'] in ['Buy-Side Liq','Sell-Side Liq']]
-        self.core_zones = [z for z in self.zones if z['zone_type'] not in ['Buy-Side Liq','Sell-Side Liq']]
-        self.based_zones = self.timeframes.getBasedZone(self.zones)
+    def load_zones(self):
+        zones = []
+        for tf in self.timeFrames:
+            bdg = BaseDataGenerator()
+            data = asyncio.run(bdg.getZonesByInterval(tf))
+            zones.extend(data)
+        return zones
 
-    def getTimeFrameList(self):
-        tfs = set()
-        for zone in self.zones:
-            timeframe = zone.get('timeframe',None)
-            if timeframe is not None:
-                tfs.add(timeframe)
-        return list(tfs)
+    def seperate(self,zones):
+        self.liq_zones = [z for z in zones if  z['zone_type'] in ['Buy-Side Liq','Sell-Side Liq']]
+        self.core_zones = [z for z in zones if z['zone_type'] not in ['Buy-Side Liq','Sell-Side Liq']]
+        
 
     def get_available_cores(self,zone):
         available_core = []
@@ -34,8 +38,8 @@ class ConfluentsFinder():
         if ref_time is None:
             return []
 
-        for z in self.liq_zones:
-            z_touch_time = z.get('swept_time')
+        for z in self.core_zones:
+            z_touch_time = z.get('touch_time')
 
             # If zone never swept, always available
             if z_touch_time is None:
@@ -108,11 +112,12 @@ class ConfluentsFinder():
             zone['available_core'] = self.get_available_cores(zone)
     
     @mu.log_memory
-    def getConfluents(self,inner_func = False):
-        #self.zones = self.indexCalculate.calculate()
-        self.seperate()
+    def get(self, data, inner_func = False):
+        self.based_zones = data
+        data = self.load_zones() + self.based_zones
+        self.seperate(data)
         self.add_core_confluence(inner_func=inner_func)
         self.add_liq_confluence(inner_func=inner_func)
         self.add_available_zones(inner_func=inner_func)
-        return self.zones
+        return self.based_zones
 

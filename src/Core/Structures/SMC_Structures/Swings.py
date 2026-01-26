@@ -2,17 +2,18 @@ from Exceptions.ServiceExceptions import errorHandling
 from .BaseZone import BaseZone
 from tqdm import tqdm
 from Utility.MemoryUsage import MemoryUsage as mu
-from ..registry import register_structure
+from ..registry import register_structure,register_zone
 from Core.Features.meta_registry import register_feature_meta
 
 
-@register_structure
+@register_zone
 @register_feature_meta
 class Swings(BaseZone):
 
     META = {
         'name': 'Swings',
         'short_name': 'Swings',
+        'is_zone': False,
         'description': 'Detects swing highs and lows in price data.',
         'parameters': {
             'window': {

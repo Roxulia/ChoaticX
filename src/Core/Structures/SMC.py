@@ -3,7 +3,7 @@ from .SMC_Structures.FVG import FVG
 from .SMC_Structures.LIQ import LIQ
 from .SMC_Structures.OB import OB
 from .SMC_Structures.Swings import Swings
-from .registry import get_structure,register_structure
+from .registry import get_structure,register_structure,get_zone
 
 @register_structure
 class SMC:
@@ -28,7 +28,7 @@ class SMC:
         for indicator in self.configs:
             cls_name = indicator['name']
             params = indicator['params']
-            cls = get_structure(cls_name)
+            cls = get_zone(cls_name)
             print({cls_name : cls})
             if cls is not None:
                 self.structures[cls_name] = cls(self.df, **params)

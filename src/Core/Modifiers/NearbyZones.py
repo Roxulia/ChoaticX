@@ -1,16 +1,21 @@
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
+import asyncio
 from Utility.MemoryUsage import MemoryUsage as mu
+from Features.Generators.BaseDataGenerator import BaseDataGenerator
+
+
 class NearbyZones():
-    def __init__(self,based_zones=[],candles=[],threshold = 300):
-        self.based_zones = based_zones
+    def __init__(self,threshold = 300):
         self.threshold = threshold
-        self.candles = candles
     
     @mu.log_memory
     def getNearbyZone(self,inner_func = False):
         results = []
+        bdg = BaseDataGenerator()
+        self.based_zones = asyncio.run(bdg.getZonesByInterval(None))
+        self.candles = asyncio.run(bdg.getRawCandleData())
 
         for i, zone in tqdm(enumerate(self.based_zones),desc="Adding Nearby Zones",dynamic_ncols=True,disable=inner_func):
             this_high = zone.get('zone_high')
@@ -80,22 +85,18 @@ class NearbyZones():
 
         # Build ATH zone dict
         ath = {
-            'zone_high': ATH_zone['high'],
-            'zone_low': ATH_zone['low'],
-            'trades' : ATH_zone['number_of_trades'],
-            'ma_short': ATH_zone['ma_short'],
-            'ma_long': ATH_zone['ma_long'],
-            'ema_short': ATH_zone['ema_short'],
-            'ema_long': ATH_zone['ema_long'],
-            'rsi': ATH_zone['rsi'],
-            'atr': ATH_zone['atr'],
-            'volume_on_creation': ATH_zone['volume'],
-            'avg_volume_past_5': avg_volume_past_5[index],
-            'prev_volatility_5': prev_volatility_5[index],
-            'momentum_5': momentum_5.iloc[index],
+            'symbol' : self.symbol,
+            'zone_high': float(ATH_zone['high']),
+            'zone_low': float(ATH_zone['low']),
+            'trades' : float(ATH_zone['number_of_trades']),
+            'volume_on_creation': float(ATH_zone['volume']),
+            'avg_volume_past_5': float(avg_volume_past_5[index]),
+            'prev_volatility_5': float(prev_volatility_5[index]),
+            'momentum_5': float(momentum_5.iloc[index]),
             'zone_type': 'ATH',
             'index': index,
-            'timestamp' : ATH_zone['timestamp']
+            'timestamp' : ATH_zone['timestamp'],
+            **ATH_zone,
         }
 
         return ath

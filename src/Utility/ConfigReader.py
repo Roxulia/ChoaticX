@@ -71,3 +71,15 @@ class ConfigReader:
 
     def getRollingRegression(self):
         return self._config_data['RollingRegression'] if 'RollingRegression' in self._config_data else None
+    
+    def getSymbol(self):
+        return self._config_data['Symbol'] if 'Symbol' in self._config_data else None
+    
+    def getTimeframe(self):
+        return self._config_data['Base TimeFrame'] if "Base TimeFrame" in self._config_data else None
+    
+    def getLookbackPeriod(self):
+        return self._config_data['LookbackPeriod'] if 'LookbackPeriod' in self._config_data else None
+    
+    def getLabelGeneration(self):
+        return self._config_data['Target_Label'] if 'Target_Label' in self._config_data else None

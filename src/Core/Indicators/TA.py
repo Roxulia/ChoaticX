@@ -8,7 +8,7 @@ class TA:
         self.initialize()
 
     async def add(self,data):
-        Logger.info("Adding Technical Indicators...")
+        Logger().info("Adding Technical Indicators...")
         for k,v in self.indicators.items() :
             data = await v.add(data)
         return data

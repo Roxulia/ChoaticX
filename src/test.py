@@ -6,7 +6,7 @@ import asyncio
 import traceback
 
 from Market import Candles, BinanceRestAPI
-from Core import Structures, TA, RollingRegression, Regimes
+from Core import *
 from Exceptions import asyncerrorHandling,errorHandling
 from Utility import ConfigReader, Logger, utility
 
@@ -52,12 +52,22 @@ def test_DataGeneration():
     candles = asyncio.run(regimes.add(candles, zones.get("SMC",{})))
     print(candles.iloc[-1])
 
+def test_metadata():
+    print(FEATURE_META_REGISTRY.get_meta("Swings").get("is_zone"))
+
+def test_getZone():
+    datagen = Generator()
+    data = asyncio.run(datagen.getZones())
+    print(data[0])
+
 def generate_process_map():
     process = {
         "test-TA" : test_TA,
         "test-Structure" : test_Structure,
         "test-Regime" : test_Regime,
         "test-DataGeneration" : test_DataGeneration,
+        "test-meta" : test_metadata,
+        "test-getZone" : test_getZone
     }
     return process
 
